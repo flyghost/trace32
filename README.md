@@ -49,6 +49,7 @@ TRACE32 **可以完全无人化**：
 | `fixtures\2211_deathscene\` | 死机现场数据（`cpu-ap.elf` 25 MB、`IRAM.bin`、`PSRAM.bin`、`ap_ilm/dlm.bin`、`0xC8031000.xip`） | 无人化跑的夹具输入，**冻结只读** | ❌ 35 MB + 内网痕迹 |
 | `golden\2211_ap_PrintData.txt` | 从夹具里复制出来的基线输出 | 夹具里那份**会被下一次运行覆盖**，比对只认这份 | ❌ |
 | `private\` | 客户报告原件（14 节 HTML）+ 敏感信息排查记录 | 只留本机，必要时放私有仓库 | ❌ |
+| `LICENSE` `NOTICE` | Apache-2.0 全文 + 版权与归属声明 | 许可（见 §9） | ✅ |
 
 > ### ★ 冻结边界
 > `vendor\`、`fixtures\`、`golden\` 三处是客户资产副本，**只读**：任何脚本、任何实验都不许写入。
@@ -341,3 +342,13 @@ BSP 路径走环境变量 `RAMDUMP_BSP_DIR`（`run_smoke.ps1` 会设置），不
 - `logs\history\` 是搬运前的原始日志（只读证据）；`logs\` 顶层的是在本目录重跑产生的（不入库）。
 - 遗留的可选清理项（**未删**，它们是分析证据）：`experiments\` 下 18 个对照/失败配置与 6 个早期 RCL 试验脚本。
 - 外部的 TRACE32 安装目录与客户启动目录**全程未被修改**。
+
+---
+
+## 9. 许可
+
+本仓库以 **Apache License 2.0** 发布：全文见 [LICENSE](LICENSE)，版权与归属声明见 [NOTICE](NOTICE)。
+
+许可证只覆盖**本仓库内的内容**（脚手架、脚本、实测结论与文档）。
+`vendor\`（客户 TRACE32 脚本）、`fixtures\`/`golden\`（死机现场数据）与 `python\pylibs\`（Lauterbach RCL SDK）
+**都不在本仓库内**，各自的权利归属不变——见 §1 与 `.gitignore`。
