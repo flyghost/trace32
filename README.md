@@ -33,6 +33,9 @@ TRACE32 **可以完全无人化**：
 | `run_smoke.ps1` | 一键冒烟（批处理 + RCL 两阶段，打印 `[PASS]/[FAIL]`） | 环境自检，**先跑这个** | ✅ |
 | `configs\` | 4 个已验证配置（`m1_min` / `g1_full` / `g3_nettcp` / `g4_port20001`） | 起实例用；带 `__T32_INSTALL__` 占位符 | ✅ |
 | `cmm\` | 14 个 PRACTICE 脚本 | 批处理 / 抄模板 | ✅ |
+| `harness\` | 2211 死机现场的无人化分析链（模板 + runner + 堆汇总） | `harness\run_2211_ap.ps1` 一键出报告（见 §5.1） | ✅ |
+| `tools\heap_stats_offline.py` | 纯 Python 读 dump 复算 dlmalloc 链 | 堆统计，自动与 arena 的 `used` 对账 | ✅ |
+| `runs\2211_ap\<时间戳>\` | 每次实跑的产物（报告 + `run.txt` + `heap_offline.txt`） | 结论证据 | ❌ |
 | `python\rcl_smoke.py` | RCL 冒烟测试（带断言，退出码 0/1） | 验证整条链 | ✅ |
 | `tools\make_shortcuts.ps1` | 在本机重建 `launchers\*.lnk` | 快捷方式无法入库（见下） | ✅ |
 | `local\paths.psd1.example` | 本机路径模板 | 复制成 `local\paths.psd1` 后填真实路径 | ✅ |
@@ -230,6 +233,40 @@ BSP 路径走环境变量 `RAMDUMP_BSP_DIR`（`run_smoke.ps1` 会设置），不
   `AREA.Create/OPEN REPORT &file` 可把之后所有 `PRINT` 写进文件。
   （注意：被强杀时 `APPEND` 的最后一行可能丢，**不能仅凭缺行判定失败**。）
 
+### 5.1 ★ 2211 AP 死机现场的无人化提取（实跑）
+
+`harness\run_2211_ap.ps1` 用**客户 2210 的原始脚本**（`vendor\2210_trace32\`，一个字节都没改）
+分析 2211 现场，全程无 GUI、无人工点击：`exit=0`、约 **1 秒**。
+
+| 环节 | 做法 |
+|---|---|
+| 绕开 GUI | 17 个脚本里只有 `LM620_Restore.cmm`（27 处 `DIALOG` + `STOP`）和 `select_thread.cmm`（4 处 `DIALOG` + `STOP`）含交互，其余 15 个可直接串起来调用 |
+| 入口 | `harness\2211_ap_analyze.cmm.tmpl` → 展开成 `local\run_2211_ap.cmm`，9 段：restore / sysinfo / errinfo / thread / backtrace+frame / 全线程回溯 / mailbox / thread-swap / heap |
+| 进度 | 13 个 marker 写进 `logs\2211ap-<时间戳>.log`（独立通道：报告被 t32 独占时也能看进度） |
+| 产物 | `runs\2211_ap\<时间戳>\` 下的 `2211_ap_deathscene.txt`（355 行）、`run.txt`（provenance + ELF SHA256）、`heap_offline.txt` |
+
+现场读数（`runs\2211_ap\20261007-171208\`）：
+
+- `ERRINFO: "AP Assert. File: dlmalloc.c, Line: 1138, PC: 0xC0265232"`
+- 异常帧回溯：`osAssertHandler → 0x8011C472`、`dlMalloc → 0xC0265232`、`osMallocTrace → 0xC026575E`
+  ⇒ **断言是在分配路径里触发的**（`osMallocTrace` → `dlMalloc` → 断言）。
+- 线程表、全线程回溯、mailbox 表都完整；`show_thread_swap.cmm` 只出 3 行（该脚本本身信息量极低）。
+- **★ 堆（离线复算，`tools\heap_stats_offline.py`）**：arena `0x80164CB8`（`g_osApSystemMem`）、
+  `total=0x188640`(1607232 B)、`used=0x17CEC0`(1560256 B，**97.1 %**)、`max_used=0x17CFE0`(1560544 B，97.1 %)、
+  `user_used=0x134A99`(1264281 B，78.7 %)；按块首的 owner 标记汇总：**`timer` 949240 B（60.8 %）**、
+  `main` 231400 B、`sua0` 165720 B、`ImsMain` 100352 B … ⇒ 定时器任务占了大头，堆已接近耗尽。
+- **强自检**：离线链枚举出 6028 个已用块，`Σ chunk size = 0x17CE08`，与 arena 的 `used = 0x17CEC0`
+  只差 **184 B（比值 0.9999）**；另外 TRACE32 `Data.SAVE.Binary` 读回的 DLM/ILM/PSRAM
+  与夹具文件**逐字节一致（0 mismatch）** ⇒ 装载与遍历都可信。
+
+**做不到的部分（如实记）**：客户的 `print_dlmalloc_heap.cmm` / `print_mem_summary_by_file.cmm`
+在这个 arena 上会**静默自旋**（自由链无环守卫、内层无 `size==0` 守卫），而它们依赖的
+dlmalloc 内部 typedef（`mbinptr`/`mchunkptr`）与 `sizeof(...)` 在本环境**不求值**
+（实测：用到它们的整行都不输出）⇒ 逐块 `Mem Leak Info` 表**无法从 CMM 复现**。
+旁证：客户自己的 golden 里 `Memory Summary By File` 段**一行数据都没有**（段头之后直接接下一段），
+且该固件把这个「来源」字段记成**任务名**（`timer`/`main`/…）而不是客户脚本在比较的 `.c` 文件名。
+⇒ 堆这条线走「arena 描述符（CMM 读）+ chunk 链（Python 离线复算）」两条腿，都能对账。
+
 ---
 
 ## 6. 现成可抄的素材（在本目录 / 安装目录里）
@@ -307,7 +344,8 @@ BSP 路径走环境变量 `RAMDUMP_BSP_DIR`（`run_smoke.ps1` 会设置），不
 2. **五段管线的状态**：[1] 构建/烧录/触发 = 已有；[2] `manifest.json` = **已有**（本轮补上，记录
    `fixtures\`+`golden\` 的路径/大小/SHA256——因为夹具本身不入库，靠它离线核对）；
    [3] 传输自检 = **缺**（`python\rcl_smoke.py` 的 FLASH 逐字节断言是最小可用版本，可扩成全片自检）；
-   [4] 分析 = 半有；[5] 断言判定 = **缺**。
+   [4] 分析 = **已有**（2211 AP 现场已跑通，见 §5.1；只有「逐块内存来源表」复现不了，原因见该节）；
+   [5] 断言判定 = **缺**。
 3. **官方 `ramdump.cmm`（1125 行）还没精读**，Cortex-M 移植前值得先读。
 4. **Session 0（无人登录）场景未验证**：若走计划任务“不管用户是否登录运行”或做成服务才需要验证。
    用户始终在已登录桌面跑自动化的话，这条不适用。
@@ -339,6 +377,14 @@ BSP 路径走环境变量 `RAMDUMP_BSP_DIR`（`run_smoke.ps1` 会设置），不
      不可参数化的 `.lnk` 改由 `tools\make_shortcuts.ps1` 在本机重建；
   ④ 本轮实测确认了**铁律 5、铁律 6** 两条新规律（相对路径按进程 CWD 解析；`APPEND` 不建目录且静默失败）；
   ⑤ 改造后**重跑冒烟全绿**：阶段 A 5/5 PASS、阶段 B 全 PASS、`SMOKE-ALL-OK`、退出码 0。
+- **2211 现场提取（第五轮）**：新增 `harness\`（`run_2211_ap.ps1` + `2211_ap_analyze.cmm.tmpl`
+  + `heap_summary.cmm`）与 `tools\heap_stats_offline.py`，用客户 2210 的原始脚本把 2211 AP 死机现场
+  无 GUI 提取成 txt（见 §5.1）。过程中实测确认了几条规律：① 打印 AREA 只在 **16 KB 缓冲满或 `AREA.Close`**
+  时落盘，强杀会丢掉最后一个 16 KB 块之后的内容（所以链路必须跑完，且得有边界）；
+  ② `((osDlmalloc_t *)&<符号>)->字段` 只在符号名写成**字面量**时可用，经 `do` 宏参数传进来再读会返回原始字节串；
+  ③ 没有 `SYStem.Up` 时一切内存读（`Data.Long`、`Var.Value`）都**静默失败**（独立探针必须先跑 `restore.cmm`）；
+  ④ `PRINTF` 带数值参数在本环境不出字，改用 `PRINT "…"+FORMAT.HEX(...)`；`APPEND` 也不接受拼接表达式。
+  期间自建的临时探针（`heap_walk.cmm`、`summarize_heap.py`、`probe_*.cmm`、`runs\_probe\`）**已全部删除**。
 - `logs\history\` 是搬运前的原始日志（只读证据）；`logs\` 顶层的是在本目录重跑产生的（不入库）。
 - 遗留的可选清理项（**未删**，它们是分析证据）：`experiments\` 下 18 个对照/失败配置与 6 个早期 RCL 试验脚本。
 - 外部的 TRACE32 安装目录与客户启动目录**全程未被修改**。

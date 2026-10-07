@@ -1,0 +1,51 @@
+; heap_summary.cmm - AP dlmalloc arena summary for the headless report.
+;
+; Why this file exists instead of calling the vendor's print_dlmalloc_heap.cmm:
+;   * print_dlmalloc_heap.cmm / print_mem_summary_by_file.cmm have no cycle guard and
+;     no size==0 guard; measured, they spin forever on this arena (killed after
+;     minutes with zero further output).
+;   * their walk needs the dlmalloc-internal typedefs (mbinptr / mchunkptr) and
+;     `sizeof(...)`, and those expressions do NOT evaluate in this environment
+;     (measured: every line using them silently produces nothing).
+;   * the per-block attribute list (Mem Leak Info) therefore cannot be reproduced
+;     from CMM here.  Cross-check: the customer's own golden output has the
+;     "Memory Summary By File" block completely empty as well, and the per-block
+;     trace field that the vendor script prints as "File (.c)" holds RTOS task
+;     names in this firmware build.
+; What IS reliably readable is the arena descriptor: it is a global of type
+; osDlmalloc_t, and `((osDlmalloc_t *)&<symbol>)->field` works - but only with the
+; symbol spelled out as a literal.  Handing the symbol over through a `do` macro
+; argument does NOT work: measured, the same expression then returns the raw
+; register dump string instead of a value, which is why the caller's &memheap is
+; used for nothing but a human-readable label here.
+; The chunk chain is analysed offline instead: tools\heap_stats_offline.py walks the
+; dump files and reproduces this arena's `used` field (see heap_offline.txt).
+;
+;   ENTRY &memheap   (= the symbol g_osApSystemMem handed over by the caller)
+ON ERROR CONTinue
+LOCAL &v
+PRINT "==================== Heap Arena Summary ===================="
+PRINT "arena symbol: g_osApSystemMem (caller passed &memheap=&memheap)"
+&v=Var.Value((unsigned long)&g_osApSystemMem)
+PRINT "HSA2 arena addr="+FORMAT.HEX(8.,&v)
+&v=Var.Value(((osDlmalloc_t *)&g_osApSystemMem)->num)
+PRINT "HSA3 num="+FORMAT.HEX(8.,&v)
+&v=Var.Value(((osDlmalloc_t *)&g_osApSystemMem)->total)
+PRINT "HSA4 total="+FORMAT.HEX(8.,&v)
+&v=Var.Value(((osDlmalloc_t *)&g_osApSystemMem)->used)
+PRINT "HSA6 used="+FORMAT.HEX(8.,&v)
+&v=Var.Value(((osDlmalloc_t *)&g_osApSystemMem)->max_used)
+PRINT "HSA5 max_used="+FORMAT.HEX(8.,&v)
+&v=Var.Value(((osDlmalloc_t *)&g_osApSystemMem)->user_used)
+PRINT "HSA7 user_used="+FORMAT.HEX(8.,&v)
+PRINT "HS97-FIELDS-DONE"
+IF sYmbol.EXIST(osMallocTrace)
+(
+    PRINT "HS98 osMallocTrace=exists (the trace feature is compiled in)"
+)
+ELSE
+(
+    PRINT "HS98 osMallocTrace=MISSING"
+)
+PRINT "HS99-NOTE per-block Mem Leak Info not reproducible from CMM here; chunk chain is analysed offline by tools\heap_stats_offline.py"
+RETURN

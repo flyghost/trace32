@@ -1,0 +1,154 @@
+; =============================================================================
+;  2211 AP death scene  -  headless analysis entry (no GUI, no DIALOG.*)
+;
+;  This file is a TEMPLATE. harness\run_2211_ap.ps1 expands it into
+;  local\run_2211_ap.cmm. Edit the template, never the generated copy.
+;
+;  It drives the customer's ORIGINAL scripts in vendor\2210_trace32\ unchanged.
+;  Bypassed on purpose:
+;     LM620_Restore.cmm  - GUI wrapper (27x DIALOG.*, STOP); hangs with SCREEN=OFF
+;     select_thread.cmm  - interactive thread picker (4x DIALOG.*, STOP)
+;  Everything else in vendor\2210_trace32 is DIALOG-free and is called here.
+;
+;  SCRIPT PATHS: every call uses an absolute __SCRIPT_DIR__ path, AND the runner
+;  starts TRACE32 with its working directory set to vendor\2210_trace32. Both are
+;  needed: bare `do restore.cmm` resolves against the process CWD, and the
+;  customer's scripts internally call each other by bare name (e.g. restore.cmm
+;  does `do frame.cmm`), which only resolves when that CWD is their own folder.
+;
+;  THE ARENA SECTION IS OURS, NOT THE CUSTOMER'S: show_ap_meminfo.cmm and
+;  show_ap_meminfo_sum.cmm both call a dlmalloc walker that has no cycle guard
+;  and no size==0 guard, and both of them spin forever on this arena (measured:
+;  section 8 of the first ordering, then section 9, each had to be killed after
+;  minutes with ZERO further output). harness\heap_walk.cmm is the same walk
+;  under a hard step budget and reports why it stopped.
+;
+;  RUN MUST COMPLETE: the print AREA writes its file only when its 16 KB buffer
+;  fills or when AREA.Close runs. Measured: killing TRACE32 loses everything
+;  printed since the last 16 KB boundary - on 2211 the killed run kept sections
+;  1-6 and silently dropped 7 and 8 even though their markers had been written.
+;  That is why the bounded walk sits LAST and why markers exist as an
+;  independent progress channel.
+;
+;  Two independent output channels, on purpose:
+;     1) the print AREA   -> __OUT_FILE__   (the human-readable report)
+;     2) APPEND markers   -> __MARKER_LOG__ (progress proof, in case an error
+;        stops the print pipeline before the report is complete)
+;  The ramdump is only READ; nothing is written back into the fixture dir.
+; =============================================================================
+ON ERROR CONTinue
+
+LOCAL &ramdump &elf &out
+
+&ramdump="__RAMDUMP_DIR__"
+&elf="&ramdump"+"\cpu-ap.elf"
+&out="__OUT_FILE__"
+
+APPEND __MARKER_LOG__ "H00START"
+
+AREA.Create PrintData 120. 20000.
+AREA.CLEAR PrintData
+AREA.Open PrintData "&out"
+
+PRINT "##################################################################"
+PRINT "#  2211 AP death scene - headless extraction"
+PRINT "#  run     : __RUN_STAMP__"
+PRINT "#  ramdump : &ramdump"
+PRINT "#  elf     : &elf"
+PRINT "#  engine  : vendor\2210_trace32 (customer originals, unmodified)"
+PRINT "##################################################################"
+PRINT ""
+
+PRINT "@@@[1/9] restore.cmm - load IRAM/PSRAM/ilm/dlm/xip + elf, set exception frame"
+do __SCRIPT_DIR__\restore.cmm "&ramdump" "&elf"
+IF sYmbol.EXIST(g_osAssert)
+(
+    APPEND __MARKER_LOG__ "H01A-g_osAssert-OK"
+)
+ELSE
+(
+    APPEND __MARKER_LOG__ "H01A-g_osAssert-MISSING"
+)
+&b0=Data.Long(D:0x10200000)
+&b1=Data.Long(D:0x40000000)
+APPEND __MARKER_LOG__ "H01B-MEM "+FORMAT.HEX(8.,&b0)+" "+FORMAT.HEX(8.,&b1)
+APPEND __MARKER_LOG__ "H01RESTORE"
+PRINT ""
+
+PRINT "@@@[2/9] show_sysinfo.cmm - current thread and IRQ nesting"
+IF sYmbol.EXIST(g_osCurrentThread)
+(
+    do __SCRIPT_DIR__\show_sysinfo.cmm
+    ENTRY &info
+    PRINT "SYSINFO: &info"
+)
+ELSE
+(
+    PRINT "SYSINFO: <no symbol g_osCurrentThread>"
+)
+APPEND __MARKER_LOG__ "H02SYSINFO"
+PRINT ""
+
+PRINT "@@@[3/9] errinfo.cmm - assert / RISC-V exception decode"
+do __SCRIPT_DIR__\errinfo.cmm
+ENTRY &info
+PRINT "ERRINFO: &info"
+APPEND __MARKER_LOG__ "H03ERRINFO"
+PRINT ""
+
+PRINT "@@@[4/9] show_thread.cmm - thread list"
+do __SCRIPT_DIR__\show_thread.cmm
+APPEND __MARKER_LOG__ "H04THREAD"
+PRINT ""
+
+PRINT "@@@[5/9] backtrace.cmm + frame.cmm - exception trace (exc_trace)"
+&start=Var.Value(exc_trace)
+&end=&start+0x1000
+do __SCRIPT_DIR__\backtrace.cmm &start &end
+do __SCRIPT_DIR__\frame.cmm &start
+APPEND __MARKER_LOG__ "H05TRACE"
+PRINT ""
+
+PRINT "@@@[6/9] show_all_backtrace.cmm - backtrace of every thread"
+do __SCRIPT_DIR__\show_all_backtrace.cmm
+APPEND __MARKER_LOG__ "H06ALLBT"
+PRINT ""
+
+PRINT "@@@[7/9] show_mailbox.cmm - mailbox state"
+do __SCRIPT_DIR__\show_mailbox.cmm
+APPEND __MARKER_LOG__ "H07MAILBOX"
+PRINT ""
+
+PRINT "@@@[8/9] show_thread_swap.cmm - thread swap table"
+do __SCRIPT_DIR__\show_thread_swap.cmm
+APPEND __MARKER_LOG__ "H08SWAP"
+PRINT ""
+
+; ---- the dlmalloc arena descriptor, deliberately last ---------------------
+; The vendor's print_dlmalloc_heap.cmm / print_mem_summary_by_file.cmm have no
+; cycle guard and no size==0 guard, and both spin forever on this arena
+; (measured: killed after minutes with zero further output). Their walk also
+; needs the dlmalloc-internal typedefs (mbinptr / mchunkptr) and sizeof(), and
+; those expressions do not evaluate in this environment at all (measured: every
+; line using them silently produces nothing). harness\heap_summary.cmm therefore
+; reports only what is reliably readable, and states that limit in the output.
+PRINT "@@@[9/9] dlmalloc arena summary - AP system mem (harness\heap_summary.cmm)"
+IF sYmbol.EXIST(g_osApSystemMem)
+(
+    do __HARNESS_DIR__\heap_summary.cmm &g_osApSystemMem
+)
+ELSE
+(
+    PRINT "HEAPSUMMARY-AP skipped: symbol g_osApSystemMem does not exist"
+)
+APPEND __MARKER_LOG__ "H09HEAP"
+PRINT ""
+
+PRINT "##################################################################"
+PRINT "#  END OF HEADLESS ANALYSIS"
+PRINT "##################################################################"
+
+AREA.Close PrintData
+APPEND __MARKER_LOG__ "H99END"
+ON ERROR
+QUIT
