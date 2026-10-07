@@ -1,0 +1,15 @@
+import sys
+sys.path.insert(0, r"__PYLIBS_DIR__")
+from lauterbach.trace32.rcl import connect
+dbg = connect(protocol="TCP", port=20000)
+print("services:", [m for m in dir(dbg) if not m.startswith("_")])
+print("symbol methods:", [m for m in dir(dbg.symbol) if not m.startswith("_")][:14])
+dbg.cmd("SYStem.CPU STM32F407ZG"); dbg.cmd("SYStem.Up")
+dbg.cmd(r"Data.LOAD.Binary __RTTHREAD_ROS__\bsp\stm32\stm32f407-atk-explorer\rtthread.bin 0x08000000")
+dbg.cmd(r"Data.LOAD.Elf __RTTHREAD_ROS__\bsp\stm32\stm32f407-atk-explorer\rt-thread.elf /NoCODE")
+print("MEM20 =", bytes(dbg.memory.read(0x08000000, length=20)).hex())
+print("U32   =", dbg.memory.read_uint32(0x08000004))
+print("SZ_EXC =", int(dbg.fnc("Var.Value(sizeof(ramdump_exception_t))")))
+print("FAULT =", int(dbg.fnc("Var.Value(g_ramdump_exception.fault_type)")))
+print("RCL-FINAL-OK")
+dbg.cmd("QUIT")

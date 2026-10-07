@@ -1,0 +1,3 @@
+ON ERROR CONTinue
+APPEND logs\restore.log "A1-START" ON ERROR CONTinue SYStem.CPU STM32F407ZG SYStem.Up APPEND logs\restore.log "A2-UP-OK"
+Data.LOAD.Binary __BSP_DIR__\rtthread.bin 0x08000000 APPEND logs\restore.log "A3-BIN-OK" QUIT

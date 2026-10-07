@@ -1,0 +1,4 @@
+ON ERROR CONTinue
+APPEND logs\restore.log "M1-START"
+APPEND logs\restore.log "M2-END"
+QUIT

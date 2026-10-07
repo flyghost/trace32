@@ -1,0 +1,16 @@
+import sys
+sys.path.insert(0, r"__PYLIBS_DIR__")
+import lauterbach.trace32.rcl as rcl
+dbg = rcl.connect(protocol="TCP", port=20000)
+dbg.cmd("SYStem.CPU STM32F407ZG"); dbg.cmd("SYStem.Up")
+dbg.cmd(r"Data.LOAD.Binary __RTTHREAD_ROS__\bsp\stm32\stm32f407-atk-explorer\rtthread.bin 0x08000000")
+a = rcl.Address(dbg, value=0x08000000)
+print("addr:", a)
+print("MEM20 =", bytes(dbg.memory.read(a, length=20)).hex())
+print("U32   =", hex(dbg.memory.read_uint32(a)))
+print("ELFOK =", dbg.cmd(r"Data.LOAD.Elf __RTTHREAD_ROS__\bsp\stm32\stm32f407-atk-explorer\rt-thread.elf /NoCODE") is not None)
+print("SZ_EXC =", dbg.fnc("Var.Value(sizeof(ramdump_exception_t))"))
+print("MAGIC =", dbg.fnc("Var.Value(g_ramdump_exception.magic)"))
+print("SYMQ  =", dbg.symbol.query_by_name("rt_thread_priority_table"))
+print("RCL-ALL-OK")
+dbg.cmd("QUIT")

@@ -1,0 +1,73 @@
+# ============================================================
+# Trace32_Auto —— .gitignore
+# 原则：1) 本机路径、内网地址、客户身份信息一律不入库
+#       2) 只排除「产物 / 元数据 / 本机垃圾 / 受版权或授权约束的件」
+#       3) cmm\、configs\、experiments\、logs\history\、python\*.py、
+#          tools\、launchers\config_sim.t32 入库
+# 排查依据见 private\敏感信息排查与Git纳管.md（私有，不入库）
+# ============================================================
+
+# ── 1. SVN 工作副本元数据（★ 必排除）────────────────────────
+# .svn\wc.db 里存着内网仓库地址与仓库 UUID（具体值见 private\ 排查记录，
+# 本文不写）。.svn\pristine 还是全部客户脚本的第二份完整副本
+# （vendor\ 166 个文件里约一半是它，体积凭空翻倍）。
+.svn/
+**/.svn/
+
+# ── 2. Python 产物（★ 必排除）──────────────────────────────
+# pylibs 下 20 个 .pyc 合计 697 KB，纯产物
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ── 3. 运行时日志与临时目录 ────────────────────────────────
+# logs\history\ 是留档证据，必须入库，所以只忽略 logs\ 顶层的运行产物
+logs/*.log
+logs/*.txt
+logs/*.out
+Temp/
+Temp_*/
+*.tmp
+*.bak
+*.orig
+*~
+
+# ── 4. 编辑器 / 系统垃圾 ──────────────────────────────────
+.vs/
+.idea/
+.vscode/
+desktop.ini
+Thumbs.db
+$RECYCLE.BIN/
+
+# ── 5. 客户脚本副本：不入库（已定）────────────────────────
+# vendor\ 4 个平台 66 个 .cmm，约 60 个带客户方版权头（署名到个人），
+# 且整份是从内网 SVN 工作副本里搬出来的。只留本机作参考/夹具，不出仓库。
+vendor/**
+
+# ── 6. 夹具与基线：不入库（已定）──────────────────────────
+# 共约 38.5 MB，且固件 ELF 里带内网构建路径与账号痕迹。
+# 完整性清单见根目录 manifest.json（路径/大小/SHA256），离线复现拿它核对。
+fixtures/**
+golden/**
+
+# ── 7. 第三方 RCL SDK（Lauterbach，1.23 MB）───────────────
+# 再分发须遵守 Lauterbach 许可，故不入库。
+# 取得方式见 README「4.4 Python RCL」：把 wheel 解包到 python\pylibs\。
+python/pylibs/
+
+# ── 8. 本机配置层（★ 必排除）──────────────────────────────
+# 仓库里的脚本只带占位符（__T32_INSTALL__ / __BSP_DIR__ / __TMP_DIR__ /
+# __T32_START_TEMP__）；真实路径由 run_smoke.ps1 在运行时注入 local\ 下的
+# 生成文件。占位符清单见 local\paths.psd1.example。
+local/*
+!local/*.example
+
+# 快捷方式 .lnk 内部硬编码绝对目标路径，还带创建者账号名 -> 无法参数化，
+# 改为在本机用 tools\make_shortcuts.ps1 重新生成。
+launchers/*.lnk
+
+# ── 9. 私有档案（客户报告原件 + 排查记录）──────────────────
+# 含内网地址、仓库 UUID、人员账号等原文，只留本机，必要时放私有仓库。
+private/

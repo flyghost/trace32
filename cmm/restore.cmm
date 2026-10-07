@@ -1,0 +1,26 @@
+ON ERROR CONTinue
+APPEND logs\restore.log "R1-START"
+ON ERROR CONTinue
+SYStem.CPU STM32F407ZG
+SYStem.Up
+APPEND logs\restore.log "R2-UP-OK"
+Data.LOAD.Binary __BSP_DIR__\rtthread.bin 0x08000000
+APPEND logs\restore.log "R3-BIN-LOADED"
+&w0=Data.Long(D:0x08000000)
+&w1=Data.Long(D:0x08000004)
+APPEND logs\restore.log "R4-VECTORS "+FORMAT.HEX(8.,&w0)+" "+FORMAT.HEX(8.,&w1)
+Data.LOAD.Elf __BSP_DIR__\rt-thread.elf /NoCODE
+APPEND logs\restore.log "R5-ELF-OK"
+&a1=sYmbol.ADDRESS(rt_interrupt_from_thread)
+&a2=sYmbol.ADDRESS(rt_thread_priority_table)
+&a3=sYmbol.ADDRESS(g_ramdump_exception)
+&a4=sYmbol.ADDRESS(Reset_Handler)
+APPEND logs\restore.log "R6-SYMS "+FORMAT.HEX(8.,&a1)+" "+FORMAT.HEX(8.,&a2)+" "+FORMAT.HEX(8.,&a3)+" "+FORMAT.HEX(8.,&a4)
+&m=Var.Value(g_ramdump_exception.magic)
+&f=Var.Value(g_ramdump_exception.fault_type)
+APPEND logs\restore.log "R7-STRUCT "+FORMAT.HEX(8.,&m)+" "+FORMAT.HEX(8.,&f)
+&b=Data.Byte(D:&a1)
+APPEND logs\restore.log "R8-MEM "+FORMAT.HEX(2.,&b)
+ON ERROR
+APPEND logs\restore.log "R9-END"
+QUIT

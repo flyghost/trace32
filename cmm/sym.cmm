@@ -1,0 +1,25 @@
+ON ERROR CONTinue
+APPEND logs\sym.log "B1-START"
+ON ERROR CONTinue
+SYStem.CPU STM32F407ZG
+SYStem.Up
+Data.LOAD.Binary __BSP_DIR__\rtthread.bin 0x08000000
+Data.LOAD.Elf __BSP_DIR__\rt-thread.elf /NoCODE
+APPEND logs\sym.log "B2-ELFLODED"
+&a1=sYmbol.ADDRESS(rt_interrupt_from_thread)
+APPEND logs\sym.log "B3-SYMADDR "+FORMAT.HEX(8.,&a1)
+&a1b=Var.Address(rt_interrupt_from_thread)
+APPEND logs\sym.log "B4-VARADDR "+FORMAT.HEX(8.,&a1b)
+&a3=sYmbol.ADDRESS(g_ramdump_exception)
+APPEND logs\sym.log "B5-EXCADDR "+FORMAT.HEX(8.,&a3)
+&a4=sYmbol.ADDRESS(Reset_Handler)
+APPEND logs\sym.log "B6-RESETADDR "+FORMAT.HEX(8.,&a4)
+&d1=Data.Long(D:0x20003AAC)
+APPEND logs\sym.log "B7-MEM "+FORMAT.HEX(8.,&d1)
+&m=Var.Value(g_ramdump_exception.magic)
+APPEND logs\sym.log "B8-MAGIC "+FORMAT.HEX(8.,&m)
+&e1=sYmbol.EXIST(rt_interrupt_from_thread)
+APPEND logs\sym.log "B9-EXIST "+FORMAT.HEX(8.,&e1)
+ON ERROR
+APPEND logs\sym.log "B10-END"
+QUIT

@@ -1,0 +1,13 @@
+# Copy this file to local\paths.psd1 and fill in YOUR machine's paths.
+# Everything under local\ is git-ignored, so your machine layout never enters
+# the repository: the committed scripts carry only the placeholders
+#   __T32_INSTALL__, __BSP_DIR__, __TMP_DIR__, __T32_START_TEMP__
+# which run_smoke.ps1 replaces at run time.
+@{
+    # TRACE32 installation directory: the folder that contains bin\windows64\
+    T32_INSTALL = 'C:\T32'
+
+    # RT-Thread BSP build output directory, containing
+    # rtthread.bin (no hyphen) and rt-thread.elf (hyphen!)
+    BSP_DIR = 'C:\rt-thread\bsp\stm32\stm32f407-atk-explorer'
+}

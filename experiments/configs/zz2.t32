@@ -1,0 +1,11 @@
+; Environment variables
+OS=
+ID=T32
+SYS=__T32_INSTALL__
+; TMP=__T32_START_TEMP__
+; or for dynamic use of the environment variable
+; TMP=${environment_variable_name}
+; USB information 
+PBI=SIM
+; Printer settings 
+PRINTER=WINDOWS

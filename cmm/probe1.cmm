@@ -1,0 +1,16 @@
+; probe1.cmm - headless offline bring-up test (PBI=SIM, SCREEN=OFF)
+; writes evidence to a report file so the result survives an abort
+AREA.Create REPORT
+AREA.CLEAR  REPORT
+AREA.OPEN   REPORT "logs\probe1.txt"
+PRINT "P1-START"
+ON ERROR CONTinue
+SYStem.CPU STM32F407ZG
+PRINT "P2-CPU-SET-OK"
+SYStem.Up
+PRINT "P3-MODE-"+FORMAT.Decimal(2.,SYStem.Mode())
+ON ERROR
+PRINT "P4-LASTERR-"+ERROR.MESSAGE()
+PRINT "P5-END"
+AREA.CLOSE REPORT
+QUIT
