@@ -1,0 +1,194 @@
+{
+  "case": "2211_ap",
+  "elf": "cpu-ap.elf",
+  "gui_entry": "vendor\\2210_trace32\\LM620_Restore.cmm",
+  "note": "One entry per button of the customer GUI. GUI entry and headless entry call the SAME customer scripts in vendor\\2210_trace32 (never modified); only the source of the parameters differs (a dialog box vs the command line). Bypassed on purpose: the GUI wrapper itself (27x DIALOG.* + STOP) and select_thread.cmm (interactive picker). Safe=false means: measured to spin forever on THIS arena, so 'all' skips it unless you ask for it by name.",
+  "functions": [
+    {
+      "name": "load",
+      "kind": "t32",
+      "button": "LOAD",
+      "safe": true,
+      "equiv": "yes",
+      "gui": "LM620_Restore.cmm:48 -> load_ramdump (L209-251)",
+      "vendor": ["restore.cmm", "show_sysinfo.cmm", "errinfo.cmm"],
+      "desc": "load the ramdump bins + elf, then report SYSINFO / ERRINFO; the GUI keeps both in dyntext, so they never reach its file",
+      "body": [
+        "Frame.view /Locals /Args",
+        "SETUP.DIS AbiNames",
+        "do __SCRIPT_DIR__\\show_sysinfo.cmm",
+        "ENTRY &info",
+        "PRINT \"SYSINFO: &info\"",
+        "do __SCRIPT_DIR__\\errinfo.cmm",
+        "ENTRY &info",
+        "PRINT \"ERRINFO: &info\""
+      ]
+    },
+    {
+      "name": "show_thread",
+      "kind": "t32",
+      "button": "ShowThread",
+      "safe": true,
+      "equiv": "yes",
+      "gui": "LM620_Restore.cmm:57-60",
+      "vendor": ["show_thread.cmm"],
+      "desc": "thread table: name / priority / state / stack / mailbox counters",
+      "body": ["do __SCRIPT_DIR__\\show_thread.cmm"]
+    },
+    {
+      "name": "backtrace",
+      "kind": "t32",
+      "button": "BackTrace",
+      "safe": true,
+      "equiv": "yes",
+      "gui": "LM620_Restore.cmm:63-69",
+      "vendor": ["backtrace.cmm", "frame.cmm"],
+      "desc": "backtrace from exc_trace (the exception frame) and decode that register frame",
+      "body": [
+        "&start=Var.Value(exc_trace)",
+        "&end=&start+0x1000",
+        "do __SCRIPT_DIR__\\backtrace.cmm &start &end",
+        "do __SCRIPT_DIR__\\frame.cmm &start"
+      ]
+    },
+    {
+      "name": "thread_bt",
+      "kind": "t32",
+      "button": "ThreadBT",
+      "safe": true,
+      "equiv": "partial",
+      "gui": "LM620_Restore.cmm:72-83 (calls select_thread.cmm, a dialog)",
+      "vendor": ["thread_pick.cmm (ours)", "backtrace.cmm", "frame.cmm"],
+      "desc": "backtrace ONE chosen thread; the name comes from -Thread <name> (default idle, the GUI's own default)",
+      "body": [
+        "do __HARNESS_DIR__\\thread_pick.cmm &want",
+        "ENTRY &found",
+        "IF &found!=0",
+        "(",
+        "    &thread_struct=&found",
+        "    &start=Var.Value(((osThread_t)&thread_struct)->stackAddr)",
+        "    &size=Var.Value(((osThread_t)&thread_struct)->stackSize)",
+        "    &sp=Var.Value(((osThread_t)&thread_struct)->sp)",
+        "    PRINTF \"Thread:%16s  0x%08x\"  Var.String(((osThread_t)&thread_struct)->name)  &thread_struct",
+        "    &end=&size+&start",
+        "    do __SCRIPT_DIR__\\backtrace.cmm &sp &end",
+        "    do __SCRIPT_DIR__\\frame.cmm &sp",
+        ")",
+        "ELSE",
+        "(",
+        "    PRINT \"THREADBT: no thread matched - see the THREADPICK list above\"",
+        ")"
+      ]
+    },
+    {
+      "name": "all_thread_bt",
+      "kind": "t32",
+      "button": "AllThreadBT",
+      "safe": true,
+      "equiv": "yes",
+      "gui": "LM620_Restore.cmm:86-89",
+      "vendor": ["show_all_backtrace.cmm"],
+      "desc": "backtrace every thread in g_osThreadList, using the customer's own traversal",
+      "body": ["do __SCRIPT_DIR__\\show_all_backtrace.cmm"]
+    },
+    {
+      "name": "mailbox",
+      "kind": "t32",
+      "button": "MSG Box",
+      "safe": true,
+      "equiv": "yes",
+      "gui": "LM620_Restore.cmm:92-95",
+      "vendor": ["show_mailbox.cmm"],
+      "desc": "mailbox / message queue contents. The button is labelled MSG Box but the script behind it is show_mailbox.cmm.",
+      "body": ["do __SCRIPT_DIR__\\show_mailbox.cmm"]
+    },
+    {
+      "name": "mem_trace",
+      "kind": "t32",
+      "button": "MemTrace",
+      "safe": false,
+      "equiv": "no",
+      "gui": "LM620_Restore.cmm:98-108 (branches on cpu_name==ap)",
+      "vendor": ["show_ap_meminfo.cmm"],
+      "unsafe_reason": "show_ap_meminfo.cmm calls print_dlmalloc_heap.cmm, whose free-list walk has no cycle guard; measured to spin with zero output on this arena. Use the 'heap' function instead.",
+      "desc": "per-heap detail for the AP heaps (system mem / share buf / up node / modem share buf). Unbounded walker - see unsafe_reason.",
+      "body": ["do __SCRIPT_DIR__\\show_ap_meminfo.cmm"]
+    },
+    {
+      "name": "mem_summary",
+      "kind": "t32",
+      "button": "MemSummary",
+      "safe": false,
+      "equiv": "no",
+      "gui": "LM620_Restore.cmm:111-121 (branches on cpu_name==ap)",
+      "vendor": ["show_ap_meminfo_sum.cmm"],
+      "unsafe_reason": "show_ap_meminfo_sum.cmm calls print_mem_summary_by_file.cmm, whose chunk loop has no size==0 guard; measured to spin with zero output on this arena. Use the 'heap' function instead.",
+      "desc": "heap summary by file. Unbounded walker - see unsafe_reason.",
+      "body": ["do __SCRIPT_DIR__\\show_ap_meminfo_sum.cmm"]
+    },
+    {
+      "name": "thread_swap",
+      "kind": "t32",
+      "button": "ThreadSwap",
+      "safe": true,
+      "equiv": "yes",
+      "gui": "LM620_Restore.cmm:124-127",
+      "vendor": ["show_thread_swap.cmm"],
+      "desc": "thread/IRQ swap arrays; the lowest-yield script of the set - it prints only a few raw addresses on this scene",
+      "body": ["do __SCRIPT_DIR__\\show_thread_swap.cmm"]
+    },
+    {
+      "name": "heap",
+      "kind": "t32",
+      "button": "(no button - replaces MemTrace / MemSummary)",
+      "safe": true,
+      "equiv": "yes",
+      "gui": "n/a",
+      "vendor": ["heap_summary.cmm (ours)"],
+      "desc": "the dlmalloc arena descriptor, read with the idioms that do evaluate here; the chunk chain is recomputed offline",
+      "body": ["do __HARNESS_DIR__\\heap_summary.cmm &g_osApSystemMem"]
+    },
+    {
+      "name": "sysinfo",
+      "kind": "t32",
+      "button": "(dyntext field)",
+      "safe": true,
+      "equiv": "yes",
+      "gui": "LM620_Restore.cmm:51, 244-246",
+      "vendor": ["show_sysinfo.cmm"],
+      "desc": "current thread + interrupt nesting, as text",
+      "body": [
+        "do __SCRIPT_DIR__\\show_sysinfo.cmm",
+        "ENTRY &info",
+        "PRINT \"SYSINFO: &info\""
+      ]
+    },
+    {
+      "name": "errinfo",
+      "kind": "t32",
+      "button": "(dyntext field)",
+      "safe": true,
+      "equiv": "yes",
+      "gui": "LM620_Restore.cmm:54, 247-249",
+      "vendor": ["errinfo.cmm"],
+      "desc": "the fault itself: assert (core/file/line/pc) or exception (mcause/mdcause/mepc/mtval) decoded",
+      "body": [
+        "do __SCRIPT_DIR__\\errinfo.cmm",
+        "ENTRY &info",
+        "PRINT \"ERRINFO: &info\""
+      ]
+    },
+    {
+      "name": "heap_offline",
+      "kind": "python",
+      "python": "tools\\heap_stats_offline.py",
+      "button": "(no button - not possible in the GUI at all)",
+      "safe": true,
+      "equiv": "yes",
+      "gui": "n/a",
+      "vendor": [],
+      "desc": "the same heap, computed from the raw dump bytes by Python - no TRACE32, no licence, no GUI",
+      "body": []
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+; =============================================================================
+;  2211 AP death scene - headless SINGLE-FUNCTION entry  (TEMPLATE)
+;
+;  Expanded by harness\run_2211_func.ps1 into local\func_<name>.cmm.
+;  Edit this file and harness\functions.json, never the generated copy.
+;
+;  ONE FUNCTION, TWO ENTRIES:
+;    GUI entry      vendor\2210_trace32\LM620_Restore.cmm  (buttons + DIALOG.* + STOP)
+;    headless entry this script, driven by harness\run_2211_func.ps1
+;  Both call the SAME customer scripts in vendor\2210_trace32, which are never
+;  modified. Only the source of the parameters differs: a dialog box in the GUI,
+;  the command line here. The GUI wrapper is bypassed because DIALOG.* hangs
+;  forever under SCREEN=OFF, and so is select_thread.cmm (its list walk is
+;  re-issued by harness\thread_pick.cmm with the thread name from the CLI).
+;
+;  The body of each function lives in harness\functions.json, so the registry is
+;  the single source of truth: no function is implemented twice.
+;
+;  SCRIPT PATHS: vendor calls use absolute __SCRIPT_DIR__ paths AND the runner
+;  starts TRACE32 with its working directory set to vendor\2210_trace32 - both are
+;  needed, because the customer scripts call each other by bare name (restore.cmm
+;  does `do frame.cmm`), which only resolves against that CWD.
+;
+;  The report is a print AREA -> __OUT_FILE__ (16 KB buffered, flushed by
+;  AREA.Close); progress markers go to __MARKER_LOG__ on a separate channel.
+; =============================================================================
+ON ERROR CONTinue
+
+LOCAL &ramdump &elf &out &want &info &start &end &sp &size &thread_struct &found
+
+&ramdump="__RAMDUMP_DIR__"
+&elf="&ramdump"+"\__ELF_NAME__"
+&out="__OUT_FILE__"
+&want="__PARAM_THREAD__"
+
+APPEND __MARKER_LOG__ "F00START"
+
+AREA.Create FuncData 120. 20000.
+AREA.CLEAR FuncData
+AREA.Open FuncData "&out"
+
+PRINT "##################################################################"
+PRINT "#  headless single function: __FUNC_NAME__"
+PRINT "#  GUI twin: __FUNC_BUTTON__"
+PRINT "#  __FUNC_DESC__"
+PRINT "##################################################################"
+
+; ---- prologue: the state the GUI's LOAD button establishes -----------------
+do __SCRIPT_DIR__\restore.cmm "&ramdump" "&elf"
+APPEND __MARKER_LOG__ "F01RESTORE"
+
+PRINT "@@@[__FUNC_NAME__]"
+__FUNC_BODY__
+PRINT ""
+
+PRINT "##################################################################"
+PRINT "#  END OF FUNCTION __FUNC_NAME__"
+PRINT "##################################################################"
+
+AREA.Close FuncData
+APPEND __MARKER_LOG__ "F99END"
+ON ERROR
+QUIT

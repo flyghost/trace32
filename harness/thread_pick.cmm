@@ -1,0 +1,64 @@
+; =============================================================================
+;  thread_pick.cmm - headless twin of vendor\2210_trace32\select_thread.cmm
+;
+;  The customer's selector walks g_osThreadList, lists the names in a
+;  DYNPULLDOWN dialog and STOPS for the user to click. This file performs the
+;  SAME walk with the SAME offsets and the SAME name match, but:
+;     - the wanted name arrives as a command-line argument (that is entry two),
+;     - the available names are printed instead of shown in a pulldown,
+;     - there is no DIALOG.* and no STOP, so it runs under SCREEN=OFF.
+;
+;  The traversal below is copied from the customer script verbatim:
+;     &thread_offset = Var.Value(&((osThread_t)0x0)->resource_node)
+;     &thread_next   = Var.Value((void*)((osThread_t)&th)->resource_node.next)
+;     &th            = &thread_next - &thread_offset
+;
+;  Usage:   do thread_pick.cmm idle
+;           ENTRY &picked          ; osThread_t address, or 0 when nothing matched
+;
+;  ATTENTION - measured quirk of this PRACTICE build: `do script.cmm "&want"` hands
+;  the argument over WITH its quotes ("idle"), so an equality test against a thread
+;  name never matches; `do script.cmm &want` hands over idle. Therefore the caller
+;  passes the macro unquoted. (File paths survive the quoted form only because
+;  TRACE32 strips quotes when it opens a file - a string comparison does not.)
+;  A thread name containing a space would still be split by this rule.
+; =============================================================================
+ON ERROR CONTinue
+
+ENTRY &want
+LOCAL &head &next &off &th &name &list &i &hit
+
+&hit=0
+&i=0
+&list=""
+
+IF !sYmbol.EXIST(g_osThreadList)
+(
+    PRINT "THREADPICK: no symbol g_osThreadList"
+    ENDDO 0
+)
+
+&head=Var.Value((void*)&g_osThreadList)
+&next=Var.Value((void*)g_osThreadList.next)
+&off=Var.Value(&((osThread_t)0x0)->resource_node)
+
+WHILE &head!=&next
+(
+    &th=&next-&off
+    &name=Var.String(((osThread_t)&th)->name)
+    PRINT "THREADPICK: [&i] &name"
+    IF ("&list"=="")
+        &list="&name"
+    ELSE
+        &list="&list,&name"
+    IF ("&name"=="&want")
+        &hit=&th
+    &next=Var.Value((void*)((osThread_t)&th)->resource_node.next)
+    &i=&i+1
+)
+
+PRINT "THREADPICK: available=&list"
+IF &hit==0
+    PRINT "THREADPICK: no thread named &want"
+
+ENDDO &hit

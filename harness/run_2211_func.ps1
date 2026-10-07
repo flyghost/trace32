@@ -1,0 +1,214 @@
+<#
+  run_2211_func.ps1 - headless SINGLE-FUNCTION runner for the 2211 AP death scene.
+
+  ONE FUNCTION, TWO ENTRIES
+    GUI entry      vendor\2210_trace32\LM620_Restore.cmm   (buttons, DIALOG.*, STOP)
+    headless entry harness\run_2211_func.ps1 + harness\2211_ap_func.cmm.tmpl
+  Both drive the SAME customer scripts in vendor\2210_trace32, which are never
+  modified. Only the source of the parameters differs: a dialog box in the GUI,
+  the command line here. The function registry is harness\functions.json, so the
+  list of functions exists in exactly one place.
+
+  Examples
+    powershell -ExecutionPolicy Bypass -File harness\run_2211_func.ps1 -List
+    powershell -ExecutionPolicy Bypass -File harness\run_2211_func.ps1 -Func show_thread
+    powershell -ExecutionPolicy Bypass -File harness\run_2211_func.ps1 -Func thread_bt -Thread ImsMain
+    powershell -ExecutionPolicy Bypass -File harness\run_2211_func.ps1 -Func all
+
+  -Func all runs every function except the ones measured to hang on this arena
+  (mem_trace, mem_summary); ask for those by name, or add -IncludeUnsafe.
+#>
+param(
+    [string] $Func = 'list',
+    [string] $Thread = 'idle',
+    [int]    $TimeoutSec = 300,
+    [string] $RamdumpDir = '',
+    [string] $OutRoot = '',
+    [switch] $IncludeUnsafe
+)
+$ErrorActionPreference = 'Stop'
+
+$here       = Split-Path -Parent $PSScriptRoot
+$registry   = Join-Path $PSScriptRoot 'functions.json'
+$tmpl       = Join-Path $PSScriptRoot '2211_ap_func.cmm.tmpl'
+$vendorDir  = Join-Path $here 'vendor\2210_trace32'
+$harnessDir = Join-Path $here 'harness'
+$localDir   = Join-Path $here 'local'
+$logDir     = Join-Path $here 'logs'
+$cfgSrc     = Join-Path $here 'configs\g5_screenoff.t32'
+$pathsFile  = Join-Path $localDir 'paths.psd1'
+
+function Read-Utf8([string] $p) { return [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8) }
+function Write-Latin1([string] $p, [string] $t) {
+    $enc = [System.Text.Encoding]::GetEncoding(28591)
+    [System.IO.File]::WriteAllBytes($p, $enc.GetBytes($t))
+}
+function Expand([string] $text, [hashtable] $map) {
+    foreach ($k in @($map.Keys)) { $text = $text.Replace($k, [string]$map[$k]) }
+    return $text
+}
+function Kill-T32 {
+    Get-Process -Name 't32*' -ErrorAction SilentlyContinue | Stop-Process -Force
+    Start-Sleep -Seconds 4
+}
+
+$reg = (Read-Utf8 $registry) | ConvertFrom-Json
+$all = @($reg.functions)
+
+if ($Func -eq 'list') {
+    Write-Host ''
+    Write-Host ('function registry : ' + $registry)
+    Write-Host ('GUI entry         : ' + $reg.gui_entry)
+    Write-Host ''
+    Write-Host ('{0,-14} {1,-7} {2,-42} {3,-12} {4}' -f 'function', 'kind', 'GUI button', 'safe', 'vendor scripts')
+    Write-Host ('{0,-14} {1,-7} {2,-42} {3,-12} {4}' -f '--------', '----', '----------', '----', '--------------')
+    foreach ($f in $all) {
+        $safe = if ($f.safe -eq $false) { 'NO (hangs)' } else { 'yes' }
+        Write-Host ('{0,-14} {1,-7} {2,-42} {3,-12} {4}' -f $f.name, $f.kind, $f.button, $safe, (@($f.vendor) -join ', '))
+    }
+    Write-Host ''
+    exit 0
+}
+
+if (-not (Test-Path -LiteralPath $pathsFile)) {
+    throw 'missing local\paths.psd1 - copy local\paths.psd1.example to local\paths.psd1 and fill in T32_INSTALL'
+}
+$paths = Import-PowerShellDataFile -LiteralPath $pathsFile
+$t32 = Join-Path ($paths.T32_INSTALL.TrimEnd('\')) 'bin\windows64\t32mriscv.exe'
+if (-not (Test-Path -LiteralPath $t32)) { throw ('t32mriscv.exe not found: ' + $t32) }
+if ($RamdumpDir -eq '') { $RamdumpDir = Join-Path $here 'fixtures\2211_deathscene' }
+if (-not (Test-Path -LiteralPath $RamdumpDir)) { throw ('ramdump dir not found: ' + $RamdumpDir) }
+
+$skipped = @()
+if ($Func -eq 'all') {
+    $want = @($all | Where-Object { $_.safe -ne $false })
+    $skipped = @($all | Where-Object { $_.safe -eq $false })
+    if ($IncludeUnsafe) { $want = $all }
+} else {
+    $want = @($all | Where-Object { $_.name -eq $Func })
+}
+if (@($want).Count -eq 0) { throw ("unknown function '" + $Func + "' - run with -List to see the registry") }
+
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+if ($OutRoot -eq '') { $OutRoot = Join-Path $here 'runs\2211_ap_func' }
+$runDir = Join-Path $OutRoot $stamp
+New-Item -ItemType Directory -Force -Path $runDir | Out-Null
+New-Item -ItemType Directory -Force -Path $localDir | Out-Null
+New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+
+# one shared start-up config for every function; only the -s script differs
+$cfg = Join-Path $localDir 'g5_screenoff.t32'
+Write-Latin1 $cfg (Expand (Read-Utf8 $cfgSrc) @{ '__T32_INSTALL__' = $paths.T32_INSTALL.TrimEnd('\') })
+
+Write-Host ''
+Write-Host ('run dir  : ' + $runDir)
+Write-Host ('ramdump  : ' + $RamdumpDir)
+Write-Host ('config   : ' + $cfg)
+Write-Host ('thread   : ' + $Thread + '   (used by the thread_bt function)')
+if (@($skipped).Count -gt 0) {
+    $names = (@($skipped) | ForEach-Object { $_.name }) -join ', '
+    Write-Host ('skipped  : ' + $names + '   (measured to hang on this arena; ask for one by name or add -IncludeUnsafe)') -ForegroundColor Yellow
+}
+Write-Host ''
+
+$rows = @()
+foreach ($f in $want) {
+    $out  = Join-Path $runDir ($f.name + '.txt')
+    $mark = Join-Path $logDir ('func-' + $f.name + '-' + $stamp + '.log')
+    Remove-Item -LiteralPath $out, $mark -ErrorAction SilentlyContinue
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $rc = ''
+    $timedOut = $false
+    $note = ''
+
+    if ($f.kind -eq 'python') {
+        $py = (Get-Command python -ErrorAction SilentlyContinue).Source
+        if (-not $py) { $rc = 'no-python'; $note = 'python not on PATH' }
+        else {
+            $script = Join-Path $here $f.python
+            & $py $script $RamdumpDir $out | Out-Null
+            $rc = $LASTEXITCODE
+        }
+    } else {
+        # The body text itself contains placeholders (__SCRIPT_DIR__, __HARNESS_DIR__),
+        # so it must be expanded BEFORE it is inserted into the template. Expanding the
+        # whole template once is not enough: hashtable order is not deterministic, and a
+        # body substituted early would keep its own __...__ tokens verbatim.
+        $map = @{
+            '__FUNC_NAME__'    = $f.name
+            '__FUNC_BUTTON__'  = $f.button
+            '__FUNC_DESC__'    = $f.desc
+            '__RAMDUMP_DIR__'  = $RamdumpDir
+            '__ELF_NAME__'     = $reg.elf
+            '__OUT_FILE__'     = $out
+            '__MARKER_LOG__'   = $mark
+            '__SCRIPT_DIR__'   = $vendorDir
+            '__HARNESS_DIR__'  = $harnessDir
+            '__PARAM_THREAD__' = $Thread
+        }
+        $body = Expand ((@($f.body) -join "`r`n")) $map
+        $text = Expand (Read-Utf8 $tmpl) ($map + @{ '__FUNC_BODY__' = $body })
+        $left = [regex]::Matches($text, '__[A-Z_]+__')
+        if ($left.Count -gt 0) { throw ('unexpanded placeholder(s) in ' + $f.name + ': ' + (($left | ForEach-Object { $_.Value }) -join ', ')) }
+        $entry = Join-Path $localDir ('func_' + $f.name + '.cmm')
+        Write-Latin1 $entry $text
+
+        Kill-T32
+        $proc = Start-Process -FilePath $t32 -ArgumentList @('-c', ('"' + $cfg + '"'), '-s', ('"' + $entry + '"')) -WorkingDirectory $vendorDir -PassThru
+        if (-not $proc.WaitForExit($TimeoutSec * 1000)) {
+            $timedOut = $true
+            Get-Process -Name 't32*' -ErrorAction SilentlyContinue | Stop-Process -Force
+        } else { $rc = $proc.ExitCode }
+        Get-Process -Name 't32*' -ErrorAction SilentlyContinue | Stop-Process -Force
+        if ($timedOut -and $f.safe -eq $false) { $note = 'TIMEOUT after ' + $TimeoutSec + 's - this IS the measured hang, not a runner bug' }
+        elseif ($timedOut) { $note = 'TIMEOUT after ' + $TimeoutSec + 's' }
+    }
+    $sw.Stop()
+    $sec = [math]::Round($sw.Elapsed.TotalSeconds, 1)
+
+    $lines = 0
+    if (Test-Path -LiteralPath $out) { $lines = @(Get-Content -LiteralPath $out -Encoding Default).Count }
+    $mk = @()
+    if (Test-Path -LiteralPath $mark) { $mk = @(Get-Content -LiteralPath $mark) }
+
+    $ok = $false
+    if ($f.kind -eq 'python') {
+        $ok = ($rc -eq 0) -and ($lines -gt 0)
+    } else {
+        $ok = ($rc -eq 0) -and (-not $timedOut) -and ($lines -gt 0) `
+              -and ($mk -contains 'F00START') -and ($mk -contains 'F01RESTORE') -and ($mk -contains 'F99END')
+    }
+
+    $rows += [pscustomobject]@{ name=$f.name; kind=$f.kind; exit=$rc; sec=$sec; lines=$lines; ok=$ok; note=$note; out=$out }
+    $tag = if ($ok) { '[PASS]' } else { '[FAIL]' }
+    Write-Host ('{0,-14} {1,-7} exit={2,-5} {3,6}s lines={4,-6} {5} {6}' -f $f.name, $f.kind, $rc, $sec, $lines, $tag, $note)
+}
+
+# ---- provenance ------------------------------------------------------------
+$sb = New-Object System.Text.StringBuilder
+[void]$sb.AppendLine('case        : 2211 AP death scene - single-function headless runs')
+[void]$sb.AppendLine('stamp       : ' + $stamp)
+[void]$sb.AppendLine('ramdump     : ' + $RamdumpDir)
+[void]$sb.AppendLine('engine      : vendor\2210_trace32 (customer originals) + harness\2211_ap_func.cmm.tmpl')
+[void]$sb.AppendLine('registry    : harness\functions.json')
+[void]$sb.AppendLine('thread_arg  : ' + $Thread)
+[void]$sb.AppendLine('config      : ' + $cfg)
+[void]$sb.AppendLine('t32         : ' + $t32)
+[void]$sb.AppendLine('t32_cwd     : ' + $vendorDir)
+[void]$sb.AppendLine('timeout_sec : ' + $TimeoutSec)
+[void]$sb.AppendLine('')
+foreach ($r in $rows) {
+    [void]$sb.AppendLine(('func {0,-14} kind={1,-7} exit={2,-5} sec={3,-6} lines={4,-6} ok={5,-6} {6}' -f $r.name, $r.kind, $r.exit, $r.sec, $r.lines, $r.ok, $r.out))
+}
+[System.IO.File]::WriteAllText((Join-Path $runDir 'run.txt'), $sb.ToString(), [System.Text.Encoding]::ASCII)
+
+$bad = @($rows | Where-Object { -not $_.ok })
+Write-Host ''
+if (@($bad).Count -eq 0) {
+    Write-Host ('FUNC-ALL-OK (' + @($rows).Count + ' functions)') -ForegroundColor Green
+    exit 0
+} else {
+    Write-Host ('FUNC-FAILED: ' + ((@($bad) | ForEach-Object { $_.name }) -join ', ')) -ForegroundColor Red
+    exit 1
+}

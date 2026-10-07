@@ -35,6 +35,11 @@ TRACE32 **可以完全无人化**：
 | `cmm\` | 14 个 PRACTICE 脚本 | 批处理 / 抄模板 | ✅ |
 | `harness\` | 2211 死机现场的无人化分析链（模板 + runner + 堆汇总） | `harness\run_2211_ap.ps1` 一键出报告（见 §5.1） | ✅ |
 | `tools\heap_stats_offline.py` | 纯 Python 读 dump 复算 dlmalloc 链 | 堆统计，自动与 arena 的 `used` 对账 | ✅ |
+| `harness\functions.json` | 2211 每个 GUI 功能的注册表（**功能的实现只写在这一处**） | 「一个功能，两个入口」的单一真源（见 §5.2） | ✅ |
+| `harness\run_2211_func.ps1` | 单功能无 GUI 驱动器（`-List` / `-Func <名>` / `-Func all`） | 逐个功能单独跑、单独留档 | ✅ |
+| `harness\2211_ap_func.cmm.tmpl` `harness\thread_pick.cmm` | 单功能入口骨架 + `select_thread.cmm` 的无 GUI 孪生 | 单功能入口的零件 | ✅ |
+| `tools\check_entries_equiv.py` | 单功能报告 ↔ 全量报告的等价判定 | 证明两个入口等价（`EQUIV-OK`） | ✅ |
+| `runs\2211_ap_func\<时间戳>\` | 单功能产物（`<功能名>.txt` + `run.txt`） | 结论证据 | ❌ |
 | `runs\2211_ap\<时间戳>\` | 每次实跑的产物（报告 + `run.txt` + `heap_offline.txt`） | 结论证据 | ❌ |
 | `python\rcl_smoke.py` | RCL 冒烟测试（带断言，退出码 0/1） | 验证整条链 | ✅ |
 | `tools\make_shortcuts.ps1` | 在本机重建 `launchers\*.lnk` | 快捷方式无法入库（见下） | ✅ |
@@ -267,6 +272,51 @@ dlmalloc 内部 typedef（`mbinptr`/`mchunkptr`）与 `sizeof(...)` 在本环境
 且该固件把这个「来源」字段记成**任务名**（`timer`/`main`/…）而不是客户脚本在比较的 `.c` 文件名。
 ⇒ 堆这条线走「arena 描述符（CMM 读）+ chunk 链（Python 离线复算）」两条腿，都能对账。
 
+### 5.2 ★ 一个功能，两个入口（GUI 按钮 ↔ 无 GUI 入口）
+
+结论：**客户脚本一行都不用改，就能让每个按钮都多一个无 GUI 入口**。GUI 的 11 个按钮背后是
+15 个纯脚本，其中只有两个文件含交互（`LM620_Restore.cmm` 的对话框、`select_thread.cmm` 的选线程
+下拉框）；把对话框换成命令行参数，每个按钮就变成一个独立入口，两个入口调用的是**同一批客户脚本**。
+
+| 功能 | GUI 按钮（`vendor\2210_trace32\LM620_Restore.cmm`） | 无 GUI 入口 | 调用的客户脚本 | 等价 |
+|---|---|---|---|---|
+| load | LOAD（L47-48 → `load_ramdump` L209-251） | `-Func load` | `restore.cmm` + `show_sysinfo.cmm` + `errinfo.cmm` | PASS，且**比按钮更全**：GUI 的 SYSINFO/ERRINFO 只进 `dyntext` 字段，永不落文件 |
+| show_thread | ShowThread（L56-60） | `-Func show_thread` | `show_thread.cmm` | PASS |
+| backtrace | BackTrace（L62-69） | `-Func backtrace` | `backtrace.cmm` + `frame.cmm` | PASS |
+| thread_bt | ThreadBT（L71-83，先弹选线程框） | `-Func thread_bt -Thread <名>` | `thread_pick.cmm`（我们的）+ `backtrace.cmm` + `frame.cmm` | PARTIAL（多出 `THREADPICK:` / `Thread:` 两行头，正是客户选择器的等价物） |
+| all_thread_bt | AllThreadBT（L85-89） | `-Func all_thread_bt` | `show_all_backtrace.cmm` | PASS |
+| mailbox | MSG Box（L91-95，按钮名与脚本名不一致） | `-Func mailbox` | `show_mailbox.cmm` | PASS |
+| mem_trace | MemTrace（L97-108） | `-Func mem_trace` | `show_ap_meminfo.cmm` | **不安全**：自由链无环守卫，实测自旋 |
+| mem_summary | MemSummary（L110-121） | `-Func mem_summary` | `show_ap_meminfo_sum.cmm` | **不安全**：内层无 `size==0` 守卫 |
+| thread_swap | ThreadSwap（L123-127） | `-Func thread_swap` | `show_thread_swap.cmm` | PASS |
+| heap | （**没有这个按钮**） | `-Func heap` | `heap_summary.cmm`（我们的） | 替代上面两个不安全按钮 |
+| sysinfo / errinfo | （`dyntext` 字段，L51/L54，不落文件） | `-Func sysinfo` / `-Func errinfo` | `show_sysinfo.cmm` / `errinfo.cmm` | PASS |
+| heap_offline | （GUI 根本做不到） | `-Func heap_offline` | 无（纯 Python） | 与全量 run 的 `heap_offline.txt` **逐字节相同** |
+
+```powershell
+powershell -ExecutionPolicy Bypass -File harness\run_2211_func.ps1 -List              # 看注册表（13 个功能）
+powershell -ExecutionPolicy Bypass -File harness\run_2211_func.ps1 -Func show_thread  # 只跑一个功能
+powershell -ExecutionPolicy Bypass -File harness\run_2211_func.ps1 -Func all -TimeoutSec 120
+python tools\check_entries_equiv.py                                                   # 证明两个入口等价
+```
+
+实测（`runs\2211_ap_func\20261007-213816`，11 个安全功能，总耗时约 50 s）：全部 `[PASS]`；
+`python tools\check_entries_equiv.py` 对全量 run `runs\2211_ap\20261007-213553` 判定 **`EQUIV-OK`**
+（10 个 PASS + `thread_bt` 按预期 PARTIAL）。`-Func all` **主动跳过** `mem_trace` / `mem_summary` 这两个
+实测会自旋的功能（要单独跑就 `-Func <名>`，或 `-IncludeUnsafe` 全跑）。
+
+**模块化的关键不是多写脚本，而是「功能的实现只写一遍」**：每个功能的 PRACTICE 语句体只存在于
+`harness\functions.json`，入口模板只认占位符 ⇒ 加/改一个功能 = 改一行 JSON，不动模板、不动 runner、
+不动客户脚本。
+
+> ⚠️ 本轮实测到一条会**静默出错**的 PRACTICE 坑（写在这里，因为 `thread_bt` 就靠它）：
+> `do script.cmm "&want"` 传进去的是**带引号**的 `"idle"`，等值判断永远不成立；`do script.cmm &want`
+> 才是 `idle`。文件路径用带引号的形式之所以没出事，是因为 TRACE32 打开文件时会剥掉引号——
+> **字符串比较不会**。所以传宏给 `do` 时**不要加引号**（线程名带空格的名字这条路走不通，已记在
+> `harness\thread_pick.cmm` 的注释里）。
+> 另一条：打印 AREA 的宽度会**截断**长行（全量用 `120.`，实测 119 列封顶），两个入口的 AREA 宽度
+> 必须一致，否则同一句话在两边长度不同——第一条 `EQUIV-FAILED` 就是这么抓出来的。
+
 ---
 
 ## 6. 现成可抄的素材（在本目录 / 安装目录里）
@@ -344,7 +394,8 @@ dlmalloc 内部 typedef（`mbinptr`/`mchunkptr`）与 `sizeof(...)` 在本环境
 2. **五段管线的状态**：[1] 构建/烧录/触发 = 已有；[2] `manifest.json` = **已有**（本轮补上，记录
    `fixtures\`+`golden\` 的路径/大小/SHA256——因为夹具本身不入库，靠它离线核对）；
    [3] 传输自检 = **缺**（`python\rcl_smoke.py` 的 FLASH 逐字节断言是最小可用版本，可扩成全片自检）；
-   [4] 分析 = **已有**（2211 AP 现场已跑通，见 §5.1；只有「逐块内存来源表」复现不了，原因见该节）；
+   [4] 分析 = **已有**（2211 AP 现场已跑通，见 §5.1，并已拆成 11 个单功能入口、双入口等价已判定，见 §5.2；
+   只有「逐块内存来源表」复现不了，原因见 §5.1）；
    [5] 断言判定 = **缺**。
 3. **官方 `ramdump.cmm`（1125 行）还没精读**，Cortex-M 移植前值得先读。
 4. **Session 0（无人登录）场景未验证**：若走计划任务“不管用户是否登录运行”或做成服务才需要验证。
@@ -383,8 +434,22 @@ dlmalloc 内部 typedef（`mbinptr`/`mchunkptr`）与 `sizeof(...)` 在本环境
   时落盘，强杀会丢掉最后一个 16 KB 块之后的内容（所以链路必须跑完，且得有边界）；
   ② `((osDlmalloc_t *)&<符号>)->字段` 只在符号名写成**字面量**时可用，经 `do` 宏参数传进来再读会返回原始字节串；
   ③ 没有 `SYStem.Up` 时一切内存读（`Data.Long`、`Var.Value`）都**静默失败**（独立探针必须先跑 `restore.cmm`）；
-  ④ `PRINTF` 带数值参数在本环境不出字，改用 `PRINT "…"+FORMAT.HEX(...)`；`APPEND` 也不接受拼接表达式。
+  ④ （第六轮已收窄）当时以为「`PRINTF` 带数值参数不出字」，其实客户脚本自己就在用
+  `PRINTF "=>THREAD:%16s  Struct:0x%08x" Var.String(...) &addr`，能正常出字；真正不吃的是把 `&宏`
+  直接当 `%` 的实参，以及把 `+FORMAT.HEX(...)` 拼进 `APPEND`。稳妥写法仍是 `PRINT "…"+FORMAT.HEX(...)`。
   期间自建的临时探针（`heap_walk.cmm`、`summarize_heap.py`、`probe_*.cmm`、`runs\_probe\`）**已全部删除**。
+- **一个功能，两个入口（第六轮）**：新增 `harness\functions.json`（注册表：13 个功能，PRACTICE 语句体
+  **只写这一处**）、`harness\2211_ap_func.cmm.tmpl`（单功能入口骨架）、`harness\thread_pick.cmm`
+  （`select_thread.cmm` 的无 GUI 孪生，同一套 `g_osThreadList` 遍历 + 同样的名字等值匹配）、
+  `harness\run_2211_func.ps1`（`-List` / `-Func <名>` / `-Func all`）、`tools\check_entries_equiv.py`
+  （子序列包含判定，证明单功能报告就是全量报告里那一段）。实测 11 个安全功能全 PASS、`EQUIV-OK`，
+  `mem_trace`/`mem_summary` 由 `-Func all` 主动跳过（见 §5.2）。本轮又实测出三条规律：
+  ① `do script.cmm "&x"` 传进去的是**带引号的字符串**（等值判断必不成立），`do script.cmm &x` 才对——
+  文件路径之所以没事，是 TRACE32 打开文件时剥引号；② 打印 AREA 的宽度会**截断**长行（`120.` 实测 119 列
+  封顶），两个入口必须用同一宽度；③ `IF ("字面量"=="&宏")` 的字符串等值判断本身是好用的（这正是
+  `select_thread.cmm` 的写法）。踩坑过程：第一版模板里 `__FUNC_BODY__` 先于 `__SCRIPT_DIR__` 被替换，
+  导致生成脚本里留着 `do __SCRIPT_DIR__\show_thread.cmm`（全部功能零输出）⇒ 改为**先展开 body 再展开模板**，
+  并加一道「展开后不得残留 `__…__`」的断言。
 - `logs\history\` 是搬运前的原始日志（只读证据）；`logs\` 顶层的是在本目录重跑产生的（不入库）。
 - 遗留的可选清理项（**未删**，它们是分析证据）：`experiments\` 下 18 个对照/失败配置与 6 个早期 RCL 试验脚本。
 - 外部的 TRACE32 安装目录与客户启动目录**全程未被修改**。

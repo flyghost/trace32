@@ -20,14 +20,16 @@
 ;  show_ap_meminfo_sum.cmm both call a dlmalloc walker that has no cycle guard
 ;  and no size==0 guard, and both of them spin forever on this arena (measured:
 ;  section 8 of the first ordering, then section 9, each had to be killed after
-;  minutes with ZERO further output). harness\heap_walk.cmm is the same walk
-;  under a hard step budget and reports why it stopped.
+;  minutes with ZERO further output). Their walk also depends on dlmalloc-internal
+;  typedefs (mbinptr / mchunkptr) and sizeof(), which do not evaluate here at all.
+;  harness\heap_summary.cmm replaces it with the arena descriptor that IS reliably
+;  readable; the chunk chain is recomputed offline by tools\heap_stats_offline.py.
 ;
 ;  RUN MUST COMPLETE: the print AREA writes its file only when its 16 KB buffer
 ;  fills or when AREA.Close runs. Measured: killing TRACE32 loses everything
 ;  printed since the last 16 KB boundary - on 2211 the killed run kept sections
 ;  1-6 and silently dropped 7 and 8 even though their markers had been written.
-;  That is why the bounded walk sits LAST and why markers exist as an
+;  That is why the heap section sits LAST and why markers exist as an
 ;  independent progress channel.
 ;
 ;  Two independent output channels, on purpose:

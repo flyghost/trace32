@@ -47,5 +47,5 @@ ELSE
 (
     PRINT "HS98 osMallocTrace=MISSING"
 )
-PRINT "HS99-NOTE per-block Mem Leak Info not reproducible from CMM here; chunk chain is analysed offline by tools\heap_stats_offline.py"
+PRINT "HS99-NOTE per-block Mem Leak Info not reproducible here; chain is analysed offline by tools\heap_stats_offline.py"
 RETURN
