@@ -1,18 +1,17 @@
-<#
-  tests\verify_fixtures.ps1 - check the read-only fixtures and baselines.
+﻿<#
+  tests\verify_fixtures.ps1 - 校验只读 fixture 与基线文件。
   =====================================================================
-  Reads tests\fixtures.sha256 (one "<sha256>  <relpath>" per line) and verifies
-  every listed file byte for byte. These files are git-ignored, so this is the only
-  thing that catches a truncated copy, a half-finished download, or a fixture that
-  was silently overwritten by a run.
+  读取 tests\fixtures.sha256（每行一条 "<sha256>  <relpath>"），把列出的每个文件
+  逐字节校验一遍。这些文件被 git 忽略，所以这里是唯一能抓出「拷贝被截断」「下载没下完」
+  或「fixture 被某次运行悄悄覆盖」的地方。
 
-  Exit code: 0 = every file present and identical, 1 = anything else.
+  退出码：0 = 每个文件都存在且完全相同，1 = 其他任何情况。
 
   Usage: powershell -ExecutionPolicy Bypass -File tests\verify_fixtures.ps1
-  NOTE: keep this file ASCII-only (Windows PowerShell 5.1 reads BOM-less files as ANSI).
+  NOTE: 本文件存为 UTF-8 with BOM（PS 5.1 读无 BOM 文件会乱码）。
 #>
 $ErrorActionPreference = 'Stop'
-$here = Split-Path -Parent $PSScriptRoot          # repo root (this file is in tests\)
+$here = Split-Path -Parent $PSScriptRoot          # 仓库根目录（本文件在 tests\ 下）
 $list = Join-Path $PSScriptRoot 'fixtures.sha256'
 if (-not (Test-Path $list)) { throw ("missing " + $list) }
 

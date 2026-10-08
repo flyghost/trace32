@@ -1,28 +1,28 @@
 ; =============================================================================
-;  2211 AP death scene - headless SINGLE-FUNCTION entry  (TEMPLATE)
+;  2211 AP 死亡现场 - 无界面单函数入口  （模板）
 ;
-;  Expanded by cli\run_2211_func.ps1 into local\func_<name>.cmm.
-;  Edit this file and cmm\functions.json, never the generated copy.
+;  由 cli\run_2211_func.ps1 展开成 local\func_<name>.cmm。
+;  要改请改本文件和 cmm\functions.json，绝不要改生成出来的副本。
 ;
-;  ONE FUNCTION, TWO ENTRIES:
-;    GUI entry      third_party\vendor\2210_trace32\LM620_Restore.cmm  (buttons + DIALOG.* + STOP)
-;    headless entry this script, driven by cli\run_2211_func.ps1
-;  Both call the SAME customer scripts in third_party\vendor\2210_trace32, which are never
-;  modified. Only the source of the parameters differs: a dialog box in the GUI,
-;  the command line here. The GUI wrapper is bypassed because DIALOG.* hangs
-;  forever under SCREEN=OFF, and so is select_thread.cmm (its list walk is
-;  re-issued by cmm\thread_pick.cmm with the thread name from the CLI).
+;  一个函数，两个入口：
+;    GUI 入口       third_party\vendor\2210_trace32\LM620_Restore.cmm  (按钮 + DIALOG.* + STOP)
+;    无界面入口     本脚本，由 cli\run_2211_func.ps1 驱动
+;  两者调用的是 third_party\vendor\2210_trace32 下同一批客户脚本，这些脚本从不
+;  被修改。区别只在参数从哪来：GUI 里来自对话框，这里来自命令行。
+;  GUI 外壳被绕开，是因为 DIALOG.* 在 SCREEN=OFF 下会永久卡死；
+;  select_thread.cmm 同样被绕开（它的链表遍历改由 cmm\thread_pick.cmm 带着
+;  命令行传入的线程名重做）。
 ;
-;  The body of each function lives in cmm\functions.json, so the registry is
-;  the single source of truth: no function is implemented twice.
+;  每个函数的主体放在 cmm\functions.json 里，所以注册表是唯一的真相来源：
+;  没有任何函数被实现两遍。
 ;
-;  SCRIPT PATHS: vendor calls use absolute __SCRIPT_DIR__ paths AND the runner
-;  starts TRACE32 with its working directory set to third_party\vendor\2210_trace32 - both are
-;  needed, because the customer scripts call each other by bare name (restore.cmm
-;  does `do frame.cmm`), which only resolves against that CWD.
+;  脚本路径：对厂商脚本的调用用绝对的 __SCRIPT_DIR__ 路径，同时运行器把 TRACE32
+;  的工作目录设为 third_party\vendor\2210_trace32 - 两者缺一不可，因为客户的
+;  脚本之间用裸名字互相调用（restore.cmm 里写 `do frame.cmm`），只有当前目录是
+;  该目录时才能解析到。
 ;
-;  The report is a print AREA -> __OUT_FILE__ (16 KB buffered, flushed by
-;  AREA.Close); progress markers go to __MARKER_LOG__ on a separate channel.
+;  报告是一个打印 AREA -> __OUT_FILE__（16 KB 缓冲，由 AREA.Close 刷出）；
+;  进度标记走 __MARKER_LOG__ 这个独立通道。
 ; =============================================================================
 ON ERROR CONTinue
 
@@ -45,7 +45,7 @@ PRINT "#  GUI twin: __FUNC_BUTTON__"
 PRINT "#  __FUNC_DESC__"
 PRINT "##################################################################"
 
-; ---- prologue: the state the GUI's LOAD button establishes -----------------
+; ---- 前置步骤：GUI 的 LOAD 按钮所建立的状态 --------------------------------
 do __SCRIPT_DIR__\restore.cmm "&ramdump" "&elf"
 APPEND __MARKER_LOG__ "F01RESTORE"
 

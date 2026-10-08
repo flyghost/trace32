@@ -1,42 +1,42 @@
 ; =============================================================================
-;  2211 AP death scene  -  headless analysis entry (no GUI, no DIALOG.*)
+;  2211 AP 死亡现场  -  无界面分析入口（无 GUI，无 DIALOG.*）
 ;
-;  This file is a TEMPLATE. cli\run_2211_ap.ps1 expands it into
-;  local\run_2211_ap.cmm. Edit the template, never the generated copy.
+;  本文件是模板。cli\run_2211_ap.ps1 会把它展开成 local\run_2211_ap.cmm。
+;  要改就改模板，绝不要改生成出来的副本。
 ;
-;  It drives the customer's ORIGINAL scripts in third_party\vendor\2210_trace32\ unchanged.
-;  Bypassed on purpose:
-;     LM620_Restore.cmm  - GUI wrapper (27x DIALOG.*, STOP); hangs with SCREEN=OFF
-;     select_thread.cmm  - interactive thread picker (4x DIALOG.*, STOP)
-;  Everything else in third_party\vendor\2210_trace32 is DIALOG-free and is called here.
+;  它原样驱动 third_party\vendor\2210_trace32\ 下客户的原版脚本。
+;  有意绕开的部分：
+;     LM620_Restore.cmm  - GUI 外壳（27 处 DIALOG.* + STOP）；在 SCREEN=OFF 下会卡死
+;     select_thread.cmm  - 交互式线程选择器（4 处 DIALOG.* + STOP）
+;  third_party\vendor\2210_trace32 下其余脚本都不含 DIALOG，均在此被调用。
 ;
-;  SCRIPT PATHS: every call uses an absolute __SCRIPT_DIR__ path, AND the runner
-;  starts TRACE32 with its working directory set to third_party\vendor\2210_trace32. Both are
-;  needed: bare `do restore.cmm` resolves against the process CWD, and the
-;  customer's scripts internally call each other by bare name (e.g. restore.cmm
-;  does `do frame.cmm`), which only resolves when that CWD is their own folder.
+;  脚本路径：每次调用都用绝对的 __SCRIPT_DIR__ 路径，同时运行器把 TRACE32 的
+;  工作目录设为 third_party\vendor\2210_trace32。两者缺一不可：裸写的
+;  `do restore.cmm` 是按进程当前目录解析的，而客户的脚本之间又用裸名字互相调用
+;  （例如 restore.cmm 里写 `do frame.cmm`），只有当前目录就是它们自己所在目录时
+;  才能解析到。
 ;
-;  THE ARENA SECTION IS OURS, NOT THE CUSTOMER'S: show_ap_meminfo.cmm and
-;  show_ap_meminfo_sum.cmm both call a dlmalloc walker that has no cycle guard
-;  and no size==0 guard, and both of them spin forever on this arena (measured:
-;  section 8 of the first ordering, then section 9, each had to be killed after
-;  minutes with ZERO further output). Their walk also depends on dlmalloc-internal
-;  typedefs (mbinptr / mchunkptr) and sizeof(), which do not evaluate here at all.
-;  cmm\heap_summary.cmm replaces it with the arena descriptor that IS reliably
-;  readable; the chunk chain is recomputed offline by tools\heap_stats_offline.py.
+;  ARENA 那一节是我们写的，不是客户的：show_ap_meminfo.cmm 和
+;  show_ap_meminfo_sum.cmm 都会调用一个既没有环检测、也没有 size==0 保护的
+;  dlmalloc 遍历器，两者在本 arena 上都会死循环
+;  （实测：先跑的顺序里是第 8 节，后来是第 9 节，都只能跑几分钟后杀掉，
+;  且零输出）。它们的遍历还依赖 dlmalloc 内部 typedef（mbinptr / mchunkptr）
+;  和 sizeof()，而这些在本环境里根本无法求值。
+;  改由 cmm\heap_summary.cmm 使用真正可靠可读的 arena 描述符；
+;  块链由 tools\heap_stats_offline.py 离线重算。
 ;
-;  RUN MUST COMPLETE: the print AREA writes its file only when its 16 KB buffer
-;  fills or when AREA.Close runs. Measured: killing TRACE32 loses everything
-;  printed since the last 16 KB boundary - on 2211 the killed run kept sections
-;  1-6 and silently dropped 7 and 8 even though their markers had been written.
-;  That is why the heap section sits LAST and why markers exist as an
-;  independent progress channel.
+;  运行必须完整跑完：打印 AREA 只在其 16 KB 缓冲写满、或 AREA.Close 执行时
+;  才落盘。实测：杀掉 TRACE32 会丢掉上一个 16 KB 边界之后打印的全部内容 -
+;  在 2211 上，被杀掉的那次运行保住了第 1-6 节，
+;  却静默丢掉了第 7、8 节，尽管它们的 marker 已经写出了。
+;  所以 heap 一节放在最后，
+;  也所以要有 marker 这样一条独立于打印的进度通道。
 ;
-;  Two independent output channels, on purpose:
-;     1) the print AREA   -> __OUT_FILE__   (the human-readable report)
-;     2) APPEND markers   -> __MARKER_LOG__ (progress proof, in case an error
-;        stops the print pipeline before the report is complete)
-;  The ramdump is only READ; nothing is written back into the fixture dir.
+;  两个互相独立的输出通道，这是刻意的：
+;     1) 打印 AREA   -> __OUT_FILE__   （给人看的报告）
+;     2) APPEND 标记 -> __MARKER_LOG__ （进度凭证，以防某个错误在报告写全之前
+;        就中断了打印流水线）
+;  ramdump 只被读取；不会往 fixtures 目录里写任何东西。
 ; =============================================================================
 ON ERROR CONTinue
 
@@ -126,14 +126,14 @@ do __SCRIPT_DIR__\show_thread_swap.cmm
 APPEND __MARKER_LOG__ "H08SWAP"
 PRINT ""
 
-; ---- the dlmalloc arena descriptor, deliberately last ---------------------
-; The vendor's print_dlmalloc_heap.cmm / print_mem_summary_by_file.cmm have no
-; cycle guard and no size==0 guard, and both spin forever on this arena
-; (measured: killed after minutes with zero further output). Their walk also
-; needs the dlmalloc-internal typedefs (mbinptr / mchunkptr) and sizeof(), and
-; those expressions do not evaluate in this environment at all (measured: every
-; line using them silently produces nothing). cmm\heap_summary.cmm therefore
-; reports only what is reliably readable, and states that limit in the output.
+; ---- dlmalloc arena 描述符，刻意放在最后 -----------------------------------
+; 厂商的 print_dlmalloc_heap.cmm / print_mem_summary_by_file.cmm 既没有环检测，
+; 也没有 size==0 保护，两者在本 arena 上都会死循环
+; （实测：跑几分钟零输出后被杀掉）。它们的遍历还需要
+; dlmalloc 内部 typedef（mbinptr / mchunkptr）和 sizeof()，而这些表达式在本环境中
+; 完全无法求值（实测：用到它们的每一行都静默地什么也不输出）。
+; 因此 cmm\heap_summary.cmm 只报告真正可靠可读的内容，
+; 并在输出里写明这一限制。
 PRINT "@@@[9/9] dlmalloc arena summary - AP system mem (cmm\heap_summary.cmm)"
 IF sYmbol.EXIST(g_osApSystemMem)
 (

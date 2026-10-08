@@ -1,18 +1,16 @@
-<#
-  Regenerate third_party\launchers\*.lnk for THIS machine.
+﻿<#
+  为本机重新生成 third_party\launchers\*.lnk。
   ========================================================
-  A .lnk embeds an absolute target path AND the name of the account that created it,
-  so shortcuts cannot be made portable and are git-ignored (**/*.lnk). They also point
-  at the customer GUI assets, which is why they live under third_party\.
-  Run this once after cloning so you can still double-click into a GUI session.
+  .lnk 内嵌了绝对目标路径，还有创建它的账户名，因此快捷方式不可能做成可移植的，
+  并且被 git 忽略（**/*.lnk）。它们还指向客户的 GUI 资源，所以放在 third_party\ 下。
+  克隆仓库后跑一次，之后仍能双击进入 GUI 会话。
 
-  It also materialises local\config_sim.t32 from the committed template
-  gui\config_sim.t32 (which carries SYS=__T32_INSTALL__), and points the
-  shortcuts at that generated copy - not at the template with its placeholder.
+  它还会依据仓库里的模板 gui\config_sim.t32（其中带 SYS=__T32_INSTALL__）生成
+  local\config_sim.t32，并让快捷方式指向生成出来的那份 —— 不是带占位符的模板。
 
   Usage: powershell -ExecutionPolicy Bypass -File tools\make_shortcuts.ps1
-  Requires: local\paths.psd1 (copy local\paths.psd1.example and fill it in).
-  NOTE: keep this file ASCII-only (Windows PowerShell 5.1 reads BOM-less files as ANSI).
+  Requires: local\paths.psd1（复制 local\paths.psd1.example 并填好）。
+  NOTE: 本文件存为 UTF-8 with BOM（PS 5.1 读无 BOM 文件会乱码）。
 #>
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
@@ -24,7 +22,7 @@ $T32 = $paths.T32_INSTALL.TrimEnd('\')
 $localDir = Join-Path $root 'local'
 if (-not (Test-Path $localDir)) { New-Item -ItemType Directory -Path $localDir | Out-Null }
 
-# byte-preserving substitution: the templates are tri-encoding (ASCII / GBK / UTF-8)
+# 保字节替换：这些模板是三编码的（ASCII / GBK / UTF-8）
 $L = [System.Text.Encoding]::GetEncoding(28591)
 $tmpl = Join-Path $root 'gui\config_sim.t32'
 $s = $L.GetString([System.IO.File]::ReadAllBytes($tmpl))

@@ -1,5 +1,5 @@
-; probe1.cmm - headless offline bring-up test (PBI=SIM, SCREEN=OFF)
-; writes evidence to a report file so the result survives an abort
+; probe1.cmm - 无界面离线启动测试（PBI=SIM, SCREEN=OFF）
+; 证据写入报告文件，这样即使中途出错结果也能留下来
 AREA.Create REPORT
 AREA.CLEAR  REPORT
 AREA.OPEN   REPORT "out\logs\probe1.txt"

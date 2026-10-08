@@ -22,7 +22,7 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.dirname(HERE)                                        # repo root (this file is in cli\)
+ROOT = os.path.dirname(HERE)                                        # 仓库根目录（本文件在 cli\ 下）
 sys.path.insert(0, os.path.join(ROOT, "third_party", "trace32_rcl"))  # 免 pip 的 RCL 1.1.5
 
 # 目标固件产物（RT-Thread BSP 根目录）

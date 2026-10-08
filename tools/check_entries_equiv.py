@@ -1,47 +1,40 @@
 #!/usr/bin/env python3
-# -*- coding: ascii -*-
-"""check_entries_equiv.py - prove that one function has two equal entries.
+# -*- coding: utf-8 -*-
+"""check_entries_equiv.py - 证明同一功能的两条入口结果一致。
 
-The GUI entry is third_party\\vendor\\2210_trace32\\LM620_Restore.cmm (buttons,
-DIALOG.*, STOP). The headless entry is cli\\run_2211_func.ps1, which drives the
-SAME customer scripts one function at a time. This checker answers the only
-question that matters: does a single-function run print what the full run printed
-for that function?
+GUI 入口是 third_party\\vendor\\2210_trace32\\LM620_Restore.cmm（按钮、
+DIALOG.*、STOP）。无头入口是 cli\\run_2211_func.ps1，它一次只跑一个功能地驱动
+同一批客户脚本。本检查器只回答唯一要紧的问题：单功能运行打印的内容，是否就是
+完整运行中该功能打印的内容？
 
-How it compares
-  * the full run   : out\\runs\\2211_ap\\<stamp>\\2211_ap_deathscene.txt  (all 9 stages)
-  * one function   : out\\runs\\2211_ap_func\\<stamp>\\<function>.txt
-  * both sides are normalised the same way - trailing whitespace stripped, blank
-    lines dropped, lines starting with '#' or '@@@' dropped - and then every line
-    of the single-function report must appear in the full report IN ORDER
-    (subsequence test). Order matters because it is what catches a function that
-    silently printed a different section.
-  * kind=python functions are compared byte for byte against the full run's
-    artefact of the same name.
+如何比较
+  * 完整运行：out\\runs\\2211_ap\\<stamp>\\2211_ap_deathscene.txt（全部 9 个阶段）
+  * 单功能  ：out\\runs\\2211_ap_func\\<stamp>\\<function>.txt
+  * 两侧做同样的归一化 —— 去掉行尾空白、丢弃空行、丢弃以 '#' 或 '@@@' 开头的行 ——
+    然后单功能报告的每一行都必须按顺序出现在完整报告中（子序列判定）。顺序很要紧，
+    正是它才能抓出某个功能悄悄打印了另一段内容的情况。
+  * kind=python 的功能，与完整运行中同名产物逐字节比较。
 
-Verdicts, driven by cmm\\functions.json
-  equiv=yes      -> PASS when the subsequence test succeeds, FAIL when it does not.
-  equiv=partial  -> PARTIAL when the function's output is the full run's section plus its
-                    own declared diagnostic lines: the registry entry lists them as
-                    "allow_prefix" (thread_bt prints one THREADPICK: line per thread while
-                    searching). PARTIAL is an expected result and does not fail the check -
-                    but "declared partial" is not a free pass: a line that does not match a
-                    declared prefix is FAIL, the total number of own lines is bounded by
-                    --max-drop (default 64), everything else must still appear in order,
-                    and a function that printed nothing at all is FAIL.
-  equiv=no       -> never PASS (reported as PARTIAL at worst).
+判定结果，由 cmm\\functions.json 驱动
+  equiv=yes      -> 子序列判定成功即 PASS，失败即 FAIL。
+  equiv=partial  -> 该功能的输出等于完整运行中的对应段落加上它自己声明的诊断行时为
+                    PARTIAL：注册表条目把它们列为 "allow_prefix"（thread_bt 在搜索
+                    时每线程打印一行 THREADPICK:）。PARTIAL 是预期结果，不会让检查
+                    失败 —— 但「声明 partial」不是免死金牌：不匹配任何已声明前缀的行
+                    一律 FAIL，自身行总数受 --max-drop 约束（默认 64），其余内容仍必须
+                    按顺序出现，而完全没有打印任何内容的功能也是 FAIL。
+  equiv=no       -> 永不 PASS（最宽也只记为 PARTIAL）。
 
-Coverage assertion (why this file exists at all)
-  A checker that only walks the .txt files it finds cannot tell a passing run from
-  an incomplete one: delete a function's output and the loop simply never sees it.
-  So every registry function that -Func all is supposed to run must have an output
-  file, and a missing one is reported as MISSING and fails the check.
+覆盖度断言（本文件存在的根本原因）
+  只遍历它找到的那些 .txt 文件的检查器，分不清「通过的运行」与「残缺的运行」：删掉某个
+  功能的输出，循环就根本看不到它。因此 -Func all 理应运行的每个注册表功能都必须有输出
+  文件，缺一个就记为 MISSING 并让检查失败。
 
-Usage
+用法
   python tools\\check_entries_equiv.py
   python tools\\check_entries_equiv.py <func_run_dir> [<master_run_dir>]
   python tools\\check_entries_equiv.py <func_run_dir> <master_run_dir> --max-drop 6
-Exit code 0 when nothing FAILED and nothing is MISSING, 1 otherwise.
+没有任何 FAILED、也没有 MISSING 时退出码为 0，否则为 1。
 """
 
 import json
@@ -76,7 +69,7 @@ def norm_lines(path):
 
 
 def subsequence(mine, theirs):
-    """Return (matched, first_unmatched). Greedy in-order containment."""
+    """返回 (是否全部匹配, 第一个未匹配的行)。贪心按序包含判定。"""
     i = 0
     for line in mine:
         while i < len(theirs) and theirs[i] != line:
@@ -88,11 +81,11 @@ def subsequence(mine, theirs):
 
 
 def subsequence_with_drops(mine, theirs, max_drop, allow_prefix):
-    """Greedy in-order containment that may ignore lines matching allow_prefix.
+    """贪心按序包含判定，允许忽略匹配 allow_prefix 的行。
 
-    Used only for functions declared equiv=partial: they are allowed to print their own
-    diagnostic lines while searching (thread_bt prints one THREADPICK: line per thread).
-    A line that does not match a declared prefix is a real divergence -> FAIL.
+    只用于声明 equiv=partial 的功能：它们可以在搜索过程中打印自己的诊断行
+    （thread_bt 每线程打印一行 THREADPICK:）。不匹配任何已声明前缀的行属于真实
+    分歧 -> FAIL。
     """
     i = 0
     dropped = []
@@ -106,7 +99,7 @@ def subsequence_with_drops(mine, theirs, max_drop, allow_prefix):
             dropped.append(line)
             if len(dropped) > max_drop:
                 return False, dropped, line
-            continue          # do not advance i: the line is treated as "not ours"
+            continue          # 不推进 i：该行视为「不属于本功能」
         i = j + 1
     return True, dropped, None
 
@@ -141,7 +134,7 @@ def main(argv):
     with open(REGISTRY, "r", encoding="utf-8") as fh:
         reg = json.load(fh)
     funcs = {f["name"]: f for f in reg.get("functions", [])}
-    # what -Func all is expected to produce: every function that is not marked unsafe
+    # -Func all 期望产出什么：所有未被标记 unsafe 的功能
     expected = sorted(n for n, f in funcs.items() if f.get("safe") is not False)
 
     print("single run : " + func_dir)
@@ -193,9 +186,9 @@ def main(argv):
             elif declared == "yes":
                 verdict, note = "FAIL", "first line absent from the full run: " + repr(miss[:70])
             else:
-                # declared partial: it may print its own diagnostic lines while searching,
-                # but only ones whose prefix it declares (allow_prefix); the rest must still
-                # be contained in order, and the total number of own lines is bounded.
+                # 已声明 partial：搜索时可以打印自己的诊断行，
+                # 但仅限于它声明了前缀的行（allow_prefix）；其余内容仍必须按序被包含，
+                # 且自身行总数有上限。
                 allow = f.get("allow_prefix", [])
                 ok2, dropped, miss2 = subsequence_with_drops(mine, master, max_drop, allow)
                 if ok2 and dropped:

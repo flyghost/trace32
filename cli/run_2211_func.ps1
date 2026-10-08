@@ -1,23 +1,23 @@
-<#
-  run_2211_func.ps1 - headless SINGLE-FUNCTION runner for the 2211 AP death scene.
+﻿<#
+  run_2211_func.ps1 - 2211 AP 死亡现场的无界面「单函数」运行器。
 
-  ONE FUNCTION, TWO ENTRIES
-    GUI entry      third_party\vendor\2210_trace32\LM620_Restore.cmm  (buttons, DIALOG.*, STOP)
-    headless entry cli\run_2211_func.ps1 + cli\2211_ap_func.cmm.tmpl
-  Both drive the SAME customer scripts in third_party\vendor\2210_trace32, which are
-  never modified. Only the source of the parameters differs: a dialog box in the GUI,
-  the command line here. The function registry is cmm\functions.json, so the
-  list of functions exists in exactly one place.
+  一个功能，两个入口
+    GUI 入口        third_party\vendor\2210_trace32\LM620_Restore.cmm  （按钮、DIALOG.*、STOP）
+    无界面入口      cli\run_2211_func.ps1 + cli\2211_ap_func.cmm.tmpl
+  两者驱动的是 third_party\vendor\2210_trace32 里同一批客户脚本，这些脚本永不修改。
+  差别只在参数来源：GUI 里是对话框，这里是命令行。函数注册表是 cmm\functions.json，
+  因此函数清单只存在于一处。
 
-  Examples
+  示例
     powershell -ExecutionPolicy Bypass -File cli\run_2211_func.ps1 -List
     powershell -ExecutionPolicy Bypass -File cli\run_2211_func.ps1 -Func show_thread
     powershell -ExecutionPolicy Bypass -File cli\run_2211_func.ps1 -Func thread_bt -Thread ImsMain
     powershell -ExecutionPolicy Bypass -File cli\run_2211_func.ps1 -Func all
 
-  -Func all runs every function except the ones measured to hang on this arena
-  (mem_trace, mem_summary); ask for those by name, or add -IncludeUnsafe.
+  -Func all 会跑除「实测在本 arena 上挂死」之外的所有函数（mem_trace、mem_summary）；
+  要跑这两个需按名字显式指定，或加 -IncludeUnsafe。
 #>
+# 注意：本文件存为 UTF-8 with BOM：PS 5.1 读无 BOM 文件会按 GBK 乱码。
 param(
     [string] $Func = 'list',
     [string] $Thread = 'idle',
@@ -96,7 +96,7 @@ New-Item -ItemType Directory -Force -Path $runDir | Out-Null
 New-Item -ItemType Directory -Force -Path $localDir | Out-Null
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 
-# one shared start-up config for every function; only the -s script differs
+# 每个函数共用的同一份启动配置；只有 -s 脚本不同
 $cfg = Join-Path $localDir 'g5_screenoff.t32'
 Write-Latin1 $cfg (Expand (Read-Utf8 $cfgSrc) @{ '__T32_INSTALL__' = $paths.T32_INSTALL.TrimEnd('\') })
 
@@ -131,10 +131,9 @@ foreach ($f in $want) {
             $rc = $LASTEXITCODE
         }
     } else {
-        # The body text itself contains placeholders (__SCRIPT_DIR__, __CMM_DIR__),
-        # so it must be expanded BEFORE it is inserted into the template. Expanding the
-        # whole template once is not enough: hashtable order is not deterministic, and a
-        # body substituted early would keep its own __...__ tokens verbatim.
+        # 函数体本身也含占位符（__SCRIPT_DIR__、__CMM_DIR__），所以必须先展开它、
+        # 再插入模板。只把整个模板展开一次是不够的：hashtable 的顺序不确定，
+        # 早被替换进去的函数体会原样保留它自己的 __...__ 记号。
         $map = @{
             '__FUNC_NAME__'    = $f.name
             '__FUNC_BUTTON__'  = $f.button
@@ -176,7 +175,7 @@ foreach ($f in $want) {
     if ($f.kind -eq 'python') {
         $ok = ($rc -eq 0) -and ($lines -gt 0)
     } else {
-        # expected markers live in tests\smoke\func.markers (data in tests\, logic here)
+        # 期望的 marker 存放于 tests\smoke\func.markers（数据在 tests\，逻辑在此处）
         $need = @(Get-Content -LiteralPath (Join-Path $here 'tests\smoke\func.markers') |
                   Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } | ForEach-Object { $_.Trim() })
         $mkText = if (Test-Path -LiteralPath $mark) { Get-Content -LiteralPath $mark -Raw } else { '' }
@@ -190,7 +189,7 @@ foreach ($f in $want) {
     Write-Host ('{0,-14} {1,-7} exit={2,-5} {3,6}s lines={4,-6} {5} {6}' -f $f.name, $f.kind, $rc, $sec, $lines, $tag, $note)
 }
 
-# ---- provenance ------------------------------------------------------------
+# ---- 溯源信息 --------------------------------------------------------------
 $sb = New-Object System.Text.StringBuilder
 [void]$sb.AppendLine('case        : 2211 AP death scene - single-function headless runs')
 [void]$sb.AppendLine('stamp       : ' + $stamp)

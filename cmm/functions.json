@@ -2,7 +2,7 @@
   "case": "2211_ap",
   "elf": "cpu-ap.elf",
   "gui_entry": "vendor\\2210_trace32\\LM620_Restore.cmm",
-  "note": "One entry per button of the customer GUI. GUI entry and headless entry call the SAME customer scripts in vendor\\2210_trace32 (never modified); only the source of the parameters differs (a dialog box vs the command line). Bypassed on purpose: the GUI wrapper itself (27x DIALOG.* + STOP) and select_thread.cmm (interactive picker). Safe=false means: measured to spin forever on THIS arena, so 'all' skips it unless you ask for it by name.",
+  "note": "客户 GUI 每个按钮一条记录。GUI 入口与无界面入口调用的是 vendor\\2210_trace32 下同一批客户脚本（从不修改）；区别只在参数从哪来（对话框 vs 命令行）。有意绕开：GUI 外壳本身（27 处 DIALOG.* + STOP）和 select_thread.cmm（交互式选择器）。Safe=false 的含义是：实测在本 arena 上会死循环，所以 'all' 会跳过它，除非你按名字显式指定。",
   "functions": [
     {
       "name": "load",
@@ -12,7 +12,7 @@
       "equiv": "yes",
       "gui": "LM620_Restore.cmm:48 -> load_ramdump (L209-251)",
       "vendor": ["restore.cmm", "show_sysinfo.cmm", "errinfo.cmm"],
-      "desc": "load the ramdump bins + elf, then report SYSINFO / ERRINFO; the GUI keeps both in dyntext, so they never reach its file",
+      "desc": "加载 ramdump 的 bin + elf，然后输出 SYSINFO / ERRINFO；GUI 把两者都放在 dyntext 里，所以它们从不会写进它的文件",
       "body": [
         "Frame.view /Locals /Args",
         "SETUP.DIS AbiNames",
@@ -32,7 +32,7 @@
       "equiv": "yes",
       "gui": "LM620_Restore.cmm:57-60",
       "vendor": ["show_thread.cmm"],
-      "desc": "thread table: name / priority / state / stack / mailbox counters",
+      "desc": "线程表：名字 / 优先级 / 状态 / 栈 / 邮箱计数",
       "body": ["do __SCRIPT_DIR__\\show_thread.cmm"]
     },
     {
@@ -43,7 +43,7 @@
       "equiv": "yes",
       "gui": "LM620_Restore.cmm:63-69",
       "vendor": ["backtrace.cmm", "frame.cmm"],
-      "desc": "backtrace from exc_trace (the exception frame) and decode that register frame",
+      "desc": "从 exc_trace（异常帧）回溯调用栈，并解码该寄存器帧",
       "body": [
         "&start=Var.Value(exc_trace)",
         "&end=&start+0x1000",
@@ -60,7 +60,7 @@
       "allow_prefix": ["THREADPICK:", "Thread:"],
       "gui": "LM620_Restore.cmm:72-83 (calls select_thread.cmm, a dialog)",
       "vendor": ["thread_pick.cmm (ours)", "backtrace.cmm", "frame.cmm"],
-      "desc": "backtrace ONE chosen thread; the name comes from -Thread <name> (default idle, the GUI's own default). equiv=partial because two of our own lines are not in the full run: thread_pick.cmm prints one THREADPICK: line per thread while searching, and the picked thread is echoed as Thread: (mirroring LM620_Restore.cmm:79) - both are declared in allow_prefix",
+      "desc": "只回溯一个选定的线程；名字来自 -Thread <name>（默认 idle，即 GUI 自己的默认值）。equiv=partial 是因为有两行是我们自己加的、不在完整运行里：thread_pick.cmm 在搜索时对每个线程打印一行 THREADPICK:，选中线程再以 Thread: 回显（对应 LM620_Restore.cmm:79）—— 两者都已在 allow_prefix 中声明",
       "body": [
         "do __CMM_DIR__\\thread_pick.cmm &want",
         "ENTRY &found",
@@ -89,7 +89,7 @@
       "equiv": "yes",
       "gui": "LM620_Restore.cmm:86-89",
       "vendor": ["show_all_backtrace.cmm"],
-      "desc": "backtrace every thread in g_osThreadList, using the customer's own traversal",
+      "desc": "用客户自己的遍历方式回溯 g_osThreadList 里的每个线程",
       "body": ["do __SCRIPT_DIR__\\show_all_backtrace.cmm"]
     },
     {
@@ -100,7 +100,7 @@
       "equiv": "yes",
       "gui": "LM620_Restore.cmm:92-95",
       "vendor": ["show_mailbox.cmm"],
-      "desc": "mailbox / message queue contents. The button is labelled MSG Box but the script behind it is show_mailbox.cmm.",
+      "desc": "邮箱 / 消息队列内容。按钮标签是 MSG Box，但背后跑的脚本是 show_mailbox.cmm。",
       "body": ["do __SCRIPT_DIR__\\show_mailbox.cmm"]
     },
     {
@@ -111,8 +111,8 @@
       "equiv": "no",
       "gui": "LM620_Restore.cmm:98-108 (branches on cpu_name==ap)",
       "vendor": ["show_ap_meminfo.cmm"],
-      "unsafe_reason": "show_ap_meminfo.cmm calls print_dlmalloc_heap.cmm, whose free-list walk has no cycle guard; measured to spin with zero output on this arena. Use the 'heap' function instead.",
-      "desc": "per-heap detail for the AP heaps (system mem / share buf / up node / modem share buf). Unbounded walker - see unsafe_reason.",
+      "unsafe_reason": "show_ap_meminfo.cmm 会调用 print_dlmalloc_heap.cmm，后者的空闲链表遍历没有环检测；实测在本 arena 上会零输出死循环。请改用 'heap' 功能。",
+      "desc": "AP 各堆的明细（system mem / share buf / up node / modem share buf）。无界遍历器 —— 见 unsafe_reason。",
       "body": ["do __SCRIPT_DIR__\\show_ap_meminfo.cmm"]
     },
     {
@@ -123,8 +123,8 @@
       "equiv": "no",
       "gui": "LM620_Restore.cmm:111-121 (branches on cpu_name==ap)",
       "vendor": ["show_ap_meminfo_sum.cmm"],
-      "unsafe_reason": "show_ap_meminfo_sum.cmm calls print_mem_summary_by_file.cmm, whose chunk loop has no size==0 guard; measured to spin with zero output on this arena. Use the 'heap' function instead.",
-      "desc": "heap summary by file. Unbounded walker - see unsafe_reason.",
+      "unsafe_reason": "show_ap_meminfo_sum.cmm 会调用 print_mem_summary_by_file.cmm，后者的块循环没有 size==0 保护；实测在本 arena 上会零输出死循环。请改用 'heap' 功能。",
+      "desc": "按文件汇总的堆信息。无界遍历器 —— 见 unsafe_reason。",
       "body": ["do __SCRIPT_DIR__\\show_ap_meminfo_sum.cmm"]
     },
     {
@@ -135,7 +135,7 @@
       "equiv": "yes",
       "gui": "LM620_Restore.cmm:124-127",
       "vendor": ["show_thread_swap.cmm"],
-      "desc": "thread/IRQ swap arrays; the lowest-yield script of the set - it prints only a few raw addresses on this scene",
+      "desc": "线程/中断切换数组；这一组里收益最低的脚本 —— 在本现场只打印出几个裸地址",
       "body": ["do __SCRIPT_DIR__\\show_thread_swap.cmm"]
     },
     {
@@ -146,7 +146,7 @@
       "equiv": "yes",
       "gui": "n/a",
       "vendor": ["heap_summary.cmm (ours)"],
-      "desc": "the dlmalloc arena descriptor, read with the idioms that do evaluate here; the chunk chain is recomputed offline",
+      "desc": "dlmalloc arena 描述符，用在本环境确实能求值的写法读取；块链离线重算",
       "body": ["do __CMM_DIR__\\heap_summary.cmm &g_osApSystemMem"]
     },
     {
@@ -157,7 +157,7 @@
       "equiv": "yes",
       "gui": "LM620_Restore.cmm:51, 244-246",
       "vendor": ["show_sysinfo.cmm"],
-      "desc": "current thread + interrupt nesting, as text",
+      "desc": "当前线程 + 中断嵌套深度，以文本形式给出",
       "body": [
         "do __SCRIPT_DIR__\\show_sysinfo.cmm",
         "ENTRY &info",
@@ -172,7 +172,7 @@
       "equiv": "yes",
       "gui": "LM620_Restore.cmm:54, 247-249",
       "vendor": ["errinfo.cmm"],
-      "desc": "the fault itself: assert (core/file/line/pc) or exception (mcause/mdcause/mepc/mtval) decoded",
+      "desc": "故障本身：assert（core/file/line/pc）或异常（mcause/mdcause/mepc/mtval）的解码结果",
       "body": [
         "do __SCRIPT_DIR__\\errinfo.cmm",
         "ENTRY &info",
@@ -188,7 +188,7 @@
       "equiv": "yes",
       "gui": "n/a",
       "vendor": [],
-      "desc": "the same heap, computed from the raw dump bytes by Python - no TRACE32, no licence, no GUI",
+      "desc": "同一个堆，由 Python 从原始 dump 字节算出 —— 不需要 TRACE32、不需要 licence、不需要 GUI",
       "body": []
     }
   ]

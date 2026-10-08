@@ -1,22 +1,20 @@
-"""heap_stats_offline.py - dlmalloc heap statistics for the 2211 AP death scene,
-computed from the raw dump files alone (no TRACE32, no licence, deterministic).
+"""heap_stats_offline.py - 2211 AP 死机现场的 dlmalloc 堆统计，
+仅凭原始 dump 文件计算（不用 TRACE32、不需 licence、结果确定）。
 
-Why offline: the vendor's own walkers (vendor\\2210_trace32\\print_dlmalloc_heap.cmm
-and print_mem_summary_by_file.cmm) have no cycle guard and their expressions need the
-dlmalloc-internal typedefs (mbinptr / mchunkptr) plus sizeof(), none of which evaluate
-in this environment - measured, they spin on this arena.  The arena descriptor and the
-chunk chain, however, are plain memory, and the dump files are byte-exact copies of it
-(verified: readback via TRACE32 Data.SAVE.Binary matched the files with 0 mismatches).
+为什么走离线：厂商自带的那些 walker（vendor\\2210_trace32\\print_dlmalloc_heap.cmm
+和 print_mem_summary_by_file.cmm）没有环路保护，其表达式又依赖 dlmalloc 内部的
+typedef（mbinptr / mchunkptr）以及 sizeof()，这些在本环境里全都无法求值 —— 实测它们
+会在这个 arena 上空转。但 arena 描述符和 chunk 链本身只是普通内存，而 dump 文件正是它的
+逐字节副本（已验证：经 TRACE32 Data.SAVE.Binary 读回，与文件 0 处不符）。
 
-Walk spec taken from print_dlmalloc_heap.cmm:
-    sentinel of bin i      :  av_ + 8*i      (fd at +8, bk at +12)
-    start                  :  p = sentinel->bk, then p = p->bk
-    inner                  :  q = p + (p->size & ~1), advance q += (q->size & ~1)
-                              stop when (q_next->size & 1) != 1 or size < 0x10
-    top                    :  bin_at(1)->fd  =  r32(av_ + 8)
+遍历规则取自 print_dlmalloc_heap.cmm：
+    第 i 个 bin 的哨兵 :  av_ + 8*i      (fd 在 +8，bk 在 +12)
+    起点               :  p = sentinel->bk，接着 p = p->bk
+    内层               :  q = p + (p->size & ~1)，推进 q += (q->size & ~1)
+                          当 (q_next->size & 1) != 1 或 size < 0x10 时停止
+    top                :  bin_at(1)->fd  =  r32(av_ + 8)
 
-Acceptance is quantitative: the sum of the enumerated chunk sizes must reproduce the
-arena's `used` field.
+验收是定量的：枚举出的 chunk 大小之和必须复现 arena 的 `used` 字段。
 """
 import argparse
 import os
@@ -26,8 +24,8 @@ import sys
 sys.stdout.reconfigure(errors="backslashreplace")
 
 DLM_ADDR, PSRAM_ADDR, IRAM_ADDR = 0x00010000, 0x80000000, 0x10200000
-DEFAULT_ARENA = 0x80164CB8          # g_osApSystemMem of this scene (see run report HSA2)
-DEFAULT_AV = 0x00010008             # dlmalloc static bin array in the DLM window
+DEFAULT_ARENA = 0x80164CB8          # 本现场的 g_osApSystemMem（见运行报告 HSA2）
+DEFAULT_AV = 0x00010008             # DLM 窗口内的 dlmalloc 静态 bin 数组
 SIZEOFCHUNK = 0x10
 ARENA_OFF = {"num": 0x00, "total": 0x08, "used": 0x10, "max_used": 0x14, "user_used": 0x18}
 
@@ -73,7 +71,7 @@ class Dumps(object):
 
 
 def walk(d):
-    """enumerate the used blocks exactly as the vendor walker would"""
+    """完全按厂商 walker 的做法枚举已用的块"""
     av = DEFAULT_AV
     top = d.r32(av + 8)
     blocks, seen = [], set()
@@ -148,8 +146,8 @@ def main():
                      if fld["used"] and abs(delta) < 0x1000 else "MISMATCH - check the dump"))
     emit("")
 
-    # First payload word is an owner tag (thread name) in this build; the vendor
-    # calls the same field `file`, but its values here are RTOS thread names.
+    # 在本 build 中，payload 的第一个字是 owner 标签（线程名）；厂商把同一字段
+    # 称作 `file`，但它在这里的取值其实是 RTOS 线程名。
     acct, unresolved = {}, 0
     for q, size in blocks:
         ptr = d.r32(q + 8)

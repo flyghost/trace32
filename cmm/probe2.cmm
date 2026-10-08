@@ -1,4 +1,4 @@
-; probe2.cmm - avoid AREA, write evidence with APPEND (literal path)
+; probe2.cmm - 不用 AREA，改用 APPEND（字面量路径）写证据
 APPEND out\logs\probe2.log "P1-START"
 APPEND out\logs\probe2.log "P2-BEFORE-CPU"
 ON ERROR CONTinue

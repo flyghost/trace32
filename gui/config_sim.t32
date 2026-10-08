@@ -1,16 +1,16 @@
 
 
-; Environment variables
+; 环境变量
 OS=
 ID=T32
 SYS=__T32_INSTALL__
 ; TMP=__T32_START_TEMP__
-; or for dynamic use of the environment variable
+; 或用于动态引用环境变量
 ; TMP=${environment_variable_name}
 
 
-; USB information 
+; USB 信息
 PBI=SIM
 
-; Printer settings 
+; 打印机设置
 PRINTER=WINDOWS

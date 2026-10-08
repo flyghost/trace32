@@ -1,27 +1,27 @@
-; heap_summary.cmm - AP dlmalloc arena summary for the headless report.
+; heap_summary.cmm - 供无界面报告使用的 AP dlmalloc arena 摘要。
 ;
-; Why this file exists instead of calling the vendor's print_dlmalloc_heap.cmm:
-;   * print_dlmalloc_heap.cmm / print_mem_summary_by_file.cmm have no cycle guard and
-;     no size==0 guard; measured, they spin forever on this arena (killed after
-;     minutes with zero further output).
-;   * their walk needs the dlmalloc-internal typedefs (mbinptr / mchunkptr) and
-;     `sizeof(...)`, and those expressions do NOT evaluate in this environment
-;     (measured: every line using them silently produces nothing).
-;   * the per-block attribute list (Mem Leak Info) therefore cannot be reproduced
-;     from CMM here.  Cross-check: the customer's own golden output has the
-;     "Memory Summary By File" block completely empty as well, and the per-block
-;     trace field that the vendor script prints as "File (.c)" holds RTOS task
-;     names in this firmware build.
-; What IS reliably readable is the arena descriptor: it is a global of type
-; osDlmalloc_t, and `((osDlmalloc_t *)&<symbol>)->field` works - but only with the
-; symbol spelled out as a literal.  Handing the symbol over through a `do` macro
-; argument does NOT work: measured, the same expression then returns the raw
-; register dump string instead of a value, which is why the caller's &memheap is
-; used for nothing but a human-readable label here.
-; The chunk chain is analysed offline instead: tools\heap_stats_offline.py walks the
-; dump files and reproduces this arena's `used` field (see heap_offline.txt).
+; 为什么要有这个文件，而不直接调用厂商的 print_dlmalloc_heap.cmm：
+;   * print_dlmalloc_heap.cmm / print_mem_summary_by_file.cmm 既没有环检测，
+;     也没有 size==0 保护；实测它们在本 arena 上会死循环（跑了几分钟仍然
+;     零输出，只能杀掉）。
+;   * 它们的遍历需要 dlmalloc 内部 typedef（mbinptr / mchunkptr）以及
+;     `sizeof(...)`，而这些表达式在本环境中根本无法求值
+;     （实测：用到它们的每一行都静默地什么也不输出）。
+;   * 因此逐块属性列表（Mem Leak Info）在这里无法用 CMM 复现。
+;     交叉验证：客户自己的 golden 输出里 "Memory Summary By File" 块同样
+;     完全为空；而厂商脚本打印成 "File (.c)" 的逐块 trace 字段，
+;     在本固件版本中装的其实是 RTOS 任务名，并不指向任何源文件。
+;     两处现象一致，说明这是本 arena 的固有限制，而不是我们实现有误。
+; 真正可靠可读的是 arena 描述符：它是类型为 osDlmalloc_t 的全局变量，
+; `((osDlmalloc_t *)&<符号名>)->field` 可用 —— 但仅当符号名以字面量写死。
+; 也就是说，通过 `do` 宏参数把符号名传进去是不行的：
+; 实测此时同一表达式返回的是原始寄存器转储字符串，而不是数值；
+; 所以调用方传进来的 &memheap 在这里起不到任何作用，
+; 只当作人可读的标签用。
+; 块链改为离线分析：tools\heap_stats_offline.py 遍历 dump 文件并复现本 arena 的
+; `used` 字段（见 heap_offline.txt）。
 ;
-;   ENTRY &memheap   (= the symbol g_osApSystemMem handed over by the caller)
+;   ENTRY &memheap   （= 调用方传进来的符号 g_osApSystemMem）
 ON ERROR CONTinue
 LOCAL &v
 PRINT "==================== Heap Arena Summary ===================="

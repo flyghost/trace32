@@ -1,30 +1,28 @@
-# =============================================================================
-#  cli\run_2211_ap.ps1 - headless extraction of the 2211 AP death scene
+﻿# =============================================================================
+#  cli\run_2211_ap.ps1 - 无界面提取 2211 AP 死亡现场
 #
-#  Drives the customer's original 2210 TRACE32 scripts against the 2211 binary
-#  death scene in fixtures\2211_deathscene, with no GUI and no human clicking.
+#  用客户原始的 2210 TRACE32 脚本驱动 fixtures\2211_deathscene 中的 2211 二进制
+#  死亡现场，全程无 GUI、无需人工点击。
 #
-#  Layout: this file lives in cli\ (one level under the repo root); the repo root is
-#  derived from $PSScriptRoot.
+#  目录布局：本文件位于 cli\（仓库根下一级）；仓库根由 $PSScriptRoot 推出。
 #
-#  Output goes to out\runs\2211_ap\<timestamp>\ (gitignored):
-#      2211_ap_deathscene.txt   the captured analysis
-#      run.txt                  provenance: what was run, exit code, hashes
-#  Progress markers go to out\logs\2211ap-<timestamp>.log (gitignored).
+#  输出写入 out\runs\2211_ap\<时间戳>\（已 gitignore）：
+#      2211_ap_deathscene.txt   捕获到的分析结果
+#      run.txt                  溯源：跑了什么、退出码、哈希
+#  进度 marker 写入 out\logs\2211ap-<时间戳>.log（已 gitignore）。
 #
-#  The fixture directory is only read. third_party\ scripts are never modified.
+#  fixture 目录只读。third_party\ 下的脚本永不修改。
 #
-#  Exit code: 0 only when the process exited 0, every marker in
-#  tests\smoke\2211_ap.markers was seen, and the report is non-empty. Printing the
-#  markers is not the same as asserting them - earlier revisions exited 0 even when
-#  the chain died halfway.
+#  退出码：仅当进程退出码为 0、tests\smoke\2211_ap.markers 中的每个 marker 都
+#  出现过、且报告非空时才为 0。打印 marker 不等于断言 marker —— 早先的版本即使
+#  整条链路中途断掉也仍然退出 0。
 #
-#  Usage:
+#  用法：
 #      powershell -ExecutionPolicy Bypass -File cli\run_2211_ap.ps1
 #      ... -TimeoutSec 600
 #      ... -RamdumpDir D:\some\other\dump
 #
-#  ASCII only on purpose: Windows PowerShell 5.1 reads a BOM-less script as ANSI.
+#  故意只用 ASCII：本文件存为 UTF-8 with BOM：PS 5.1 读无 BOM 文件会按 GBK 乱码。
 # =============================================================================
 [CmdletBinding()]
 param(
@@ -34,13 +32,13 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$here      = Split-Path -Parent $PSScriptRoot          # repo root (this file is in cli\)
+$here      = Split-Path -Parent $PSScriptRoot          # 仓库根（本文件位于 cli\）
 $localDir  = Join-Path $here 'local'
 $logsDir   = Join-Path $here 'out\logs'
 $scriptDir = Join-Path $here 'third_party\vendor\2210_trace32'
 $cmmDir    = Join-Path $here 'cmm'
 
-# ---------------------------------------------------------------- 1. machine paths
+# ---------------------------------------------------------------- 1. 机器路径
 $pathsFile = Join-Path $localDir 'paths.psd1'
 if (-not (Test-Path $pathsFile)) {
     throw "missing $pathsFile - copy local\paths.psd1.example to local\paths.psd1 and set T32_INSTALL"
@@ -51,23 +49,23 @@ $t32exe = Join-Path $paths.T32_INSTALL 'bin\windows64\t32mriscv.exe'
 if (-not (Test-Path $t32exe))  { throw "t32mriscv.exe not found: $t32exe" }
 if (-not (Test-Path $scriptDir)) { throw "customer script dir not found: $scriptDir" }
 
-# ---------------------------------------------------------------- 2. ramdump input
+# ---------------------------------------------------------------- 2. ramdump 输入
 if (-not $RamdumpDir) { $RamdumpDir = Join-Path $here 'fixtures\2211_deathscene' }
 $RamdumpDir = (Resolve-Path $RamdumpDir).Path
 foreach ($need in 'cpu-ap.elf','IRAM.bin','PSRAM.bin','ap_ilm.bin','ap_dlm.bin') {
     if (-not (Test-Path (Join-Path $RamdumpDir $need))) { throw "$need not found in $RamdumpDir" }
 }
 
-# ---------------------------------------------------------------- 3. run directory
+# ---------------------------------------------------------------- 3. 运行目录
 $stamp  = Get-Date -Format 'yyyyMMdd-HHmmss'
 $runDir = Join-Path $here "out\runs\2211_ap\$stamp"
 New-Item -ItemType Directory -Force -Path $runDir,$localDir,$logsDir | Out-Null
 $outFile   = Join-Path $runDir '2211_ap_deathscene.txt'
 $markerLog = Join-Path $logsDir "2211ap-$stamp.log"
 
-# ---------------------------------------------------------------- 4. expand templates
-# Byte-preserving Latin-1 round trip: TRACE32 scripts in this workspace are a mix
-# of ASCII / GBK / UTF-8, so re-encoding them as UTF-8 would corrupt them.
+# ---------------------------------------------------------------- 4. 展开模板
+# 保字节的 Latin-1 往返：本工作区里的 TRACE32 脚本是 ASCII / GBK / UTF-8 混用，
+# 若按 UTF-8 重新编码会把它们弄坏。
 function Expand-Template {
     param([string]$Src, [string]$Dst, [hashtable]$Map)
     $bytes = [System.IO.File]::ReadAllBytes($Src)
@@ -90,14 +88,14 @@ Expand-Template (Join-Path $here 'cli\2211_ap_analyze.cmm.tmpl')          $entry
     '__RUN_STAMP__'   = $stamp
 }
 
-# ---------------------------------------------------------------- 5. kill stale instances
-# A leftover TRACE32 instance makes the next start exit 2 or hang.
+# ---------------------------------------------------------------- 5. 清理残留实例
+# 残留的 TRACE32 实例会让下一次启动退出 2 或挂死。
 Get-Process -Name 't32*' -ErrorAction SilentlyContinue | Stop-Process -Force
 Start-Sleep -Seconds 4
 
-# ---------------------------------------------------------------- 6. run
-# WorkingDirectory is the customer script folder on purpose: their scripts call
-# each other by bare name (`do frame.cmm`), which resolves against the process CWD.
+# ---------------------------------------------------------------- 6. 运行
+# 故意把 WorkingDirectory 设为客户脚本目录：他们的脚本用裸文件名互相调用
+# （`do frame.cmm`），而这是按进程 CWD 解析的。
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
 $proc = Start-Process -FilePath $t32exe `
                       -ArgumentList @('-c', "`"$cfg`"", '-s', "`"$entry`"") `
@@ -109,7 +107,7 @@ $sw.Stop()
 
 Get-Process -Name 't32*' -ErrorAction SilentlyContinue | Stop-Process -Force
 
-# ---------------------------------------------------------------- 7. report
+# ---------------------------------------------------------------- 7. 报告
 "exit={0}  elapsed={1}s  timeout={2}s" -f $code, [int]$sw.Elapsed.TotalSeconds, $TimeoutSec
 
 if (Test-Path $outFile) {
@@ -125,15 +123,13 @@ if (Test-Path $outFile) {
 "markers: {0}" -f $markerLog
 if (Test-Path $markerLog) { Get-Content $markerLog | ForEach-Object { "  $_" } }
 
-# NOTE: the per-block heap attribute list (Mem Leak Info / Memory Summary By File)
-# is NOT part of this report. The customer's own golden output has that block empty
-# as well, and the CMM expressions its walker needs (mbinptr/mchunkptr casts,
-# sizeof) do not evaluate in this environment - see cmm\heap_summary.cmm.
+# 注意：逐块堆属性列表（Mem Leak Info / Memory Summary By File）不属于本报告。
+# 客户自己的 golden 输出里该块同样是空的，而且其 walker 所需的 CMM 表达式
+# （mbinptr/mchunkptr 强转、sizeof）在本环境里求不出值 —— 见 cmm\heap_summary.cmm。
 
-# --------------------------------------------- 7b. offline heap statistics (no T32)
-# The chunk chain itself can be reconstructed from the byte-exact dump files and
-# checked against the arena's `used` field, so the heap question is answered by a
-# deterministic Python step instead of a CMM walk that cannot terminate.
+# --------------------------------------------- 7b. 离线堆统计（不依赖 T32）
+# chunk 链本身可以从逐字节精确的 dump 文件重建，并与 arena 的 `used` 字段核对，
+# 所以堆的问题改由一个确定性的 Python 步骤回答，而不用无法终止的 CMM 遍历。
 $heapTxt   = Join-Path $runDir 'heap_offline.txt'
 $heapLine  = 'skipped (python not on PATH)'
 $pythonExe = (Get-Command python -ErrorAction SilentlyContinue).Source
@@ -151,9 +147,9 @@ if ($pythonExe) {
     Write-Host 'heap   : skipped (python not on PATH)'
 }
 
-# --------------------------------------------- 8. gate: markers + exit + report
-# Everything that decides PASS/FAIL is asserted here, so the exit code cannot say
-# "ok" while the chain stopped early.
+# --------------------------------------------- 8. 闸门：marker + 退出码 + 报告
+# 所有决定 PASS/FAIL 的断言都在这里，所以退出码不可能在链路提前中断时还说
+# "ok"。
 $markerFile = Join-Path $here 'tests\smoke\2211_ap.markers'
 $missing = @()
 $want = @()

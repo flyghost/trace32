@@ -1,25 +1,24 @@
-<#
-  tests\run_all.ps1 - the ONE test entry point for this repository.
+﻿<#
+  tests\run_all.ps1 - 本仓库唯一的测试入口。
   =================================================================
-  Runs every verification stage in order and returns a single exit code. Nothing else
-  in the tree is a test entry: cli\ holds the automation that is also useful on its
-  own, tests\ holds the data it is judged against.
+  按顺序跑完每个验证阶段，只返回一个退出码。树里没有别的东西算测试入口：cli\ 放的是
+  本身也有用的自动化，tests\ 放的是用来评判它的数据。
 
-  Stages
-    1 fixtures : tests\verify_fixtures.ps1        - SHA256 of every read-only fixture
-    2 smoke    : cli\run_smoke.ps1                - batch markers + RCL byte checks
-    3 full    : cli\run_2211_ap.ps1              - all 9 stages of the 2211 death scene
-    4 one-by-one: cli\run_2211_func.ps1 -Func all - every safe GUI function, headless
-    5 equiv    : tools\check_entries_equiv.py     - do the two entries agree?
+  阶段
+    1 fixtures : tests\verify_fixtures.ps1        - 对每个只读 fixture 校验 SHA256
+    2 smoke    : cli\run_smoke.ps1                - 批处理标记 + RCL 逐字节校验
+    3 full    : cli\run_2211_ap.ps1              - 2211 死机现场的全部 9 个阶段
+    4 one-by-one: cli\run_2211_func.ps1 -Func all - 每个安全的 GUI 功能，无头运行
+    5 equiv    : tools\check_entries_equiv.py     - 两条入口的结果一致吗？
 
-  Usage
+  用法
     powershell -ExecutionPolicy Bypass -File tests\run_all.ps1
-    ... -SkipSmoke        (stages 1,3,4,5: no RT-Thread BSP needed)
-    ... -SkipT32          (only stages 1 and 5: nothing is launched, pure file checks)
+    ... -SkipSmoke        （阶段 1,3,4,5：不需要 RT-Thread BSP）
+    ... -SkipT32          （只跑阶段 1 和 5：不启动任何东西，纯文件检查）
 
-  Exit code 0 only when every stage that ran passed.
+  只有当跑过的每个阶段都通过时，退出码才是 0。
 
-  NOTE: keep this file ASCII-only (Windows PowerShell 5.1 reads BOM-less files as ANSI).
+  NOTE: 本文件存为 UTF-8 with BOM（PS 5.1 读无 BOM 文件会乱码）。
 #>
 [CmdletBinding()]
 param(
@@ -28,7 +27,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$here = Split-Path -Parent $PSScriptRoot          # repo root (this file is in tests\)
+$here = Split-Path -Parent $PSScriptRoot          # 仓库根目录（本文件在 tests\ 下）
 $ps   = (Get-Command powershell -ErrorAction SilentlyContinue).Source
 if (-not $ps) { throw 'powershell.exe not found on PATH' }
 
@@ -40,8 +39,8 @@ function Invoke-Stage([string] $name, [string] $file, [string[]] $extra) {
         return @{ name = $name; rc = 99; skipped = $true }
     }
     $argv = @('-ExecutionPolicy', 'Bypass', '-File', $file) + $extra
-    # | Out-Host: without it the child's stdout joins this function's return value
-    # and the summary below would print one row per output line.
+    # | Out-Host：没有它，子进程的 stdout 会并进本函数的返回值，
+    # 下面的汇总就会每个输出行打印一行。
     & $ps @argv | Out-Host
     return @{ name = $name; rc = $LASTEXITCODE; skipped = $false }
 }

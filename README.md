@@ -149,7 +149,7 @@ powershell -ExecutionPolicy Bypass -File tests\run_all.ps1 -SkipT32 # 只校验�
 
 ---
 
-## 3. ★ 六条铁律（全是踩过的坑）
+## 3. ★ 七条铁律（全是踩过的坑）
 
 ### 铁律 1：配置文件必须用空行分组
 `KEY=VALUE` 之间**必须有空行**，不能全部连排。否则 PowerView 会开一个标题为
@@ -201,6 +201,20 @@ TRACE32 会停在错误对话框上：**既不生成日志、也不退出**。
 ⚠️ 这条是本轮实测时**先被它骗过一次**才总结出来的：在临时目录里跑相对路径探针，
 因为那儿没有 `out\logs\`，写入失败，于是得出了「相对路径不生效」的错误结论。
 ⇒ `cli\run_smoke.ps1` 会先把 `out\logs\` 建出来；自写脚本时也要先确保目录存在。
+
+### 铁律 7：自研文件的注释写中文，但 `.ps1`/`.psd1` 必须存成 **UTF-8 with BOM**
+本仓库自研文件（`cli\`、`cmm\`、`tools\`、`tests\`、`configs\`、`gui\`）的注释一律中文，编码按类型分两档：
+
+| 类型 | 编码 | 原因 |
+|---|---|---|
+| `.ps1` / `.psd1` | **UTF-8 with BOM** | Windows PowerShell 5.1 读**无 BOM**文件时按 ANSI(GBK) 解码：中文注释变乱码**并直接破坏解析**（实测：本仓库 `local\check_cn_comments.ps1` 就是这么挂的，报一堆 `Unexpected token`） |
+| `.py` / `.cmm` / `.tmpl` / `.t32` / `.json` | **UTF-8 without BOM** | Python 3 默认 UTF-8；TRACE32 已能跑含 UTF-8 中文注释的客户脚本（见 §6）；`ConvertFrom-Json` / `Get-Content -Encoding UTF8` 正常 |
+
+- 客户资产（`third_party\`）**一个字都不改**——它们的编码是三态混杂（§6），一次「另存为」就可能毁掉。
+- 改这些非 ASCII 文件时一律**保字节**（Latin-1 往返）替换，绝不整篇重写。
+- 机械校验：`powershell -ExecutionPolicy Bypass -File local\check_cn_comments.ps1`
+  （非注释行对照 `HEAD`、BOM/编码报告、GBK 乱码探针，全绿打印 `CN-COMMENTS-OK`）。
+- **`.t32` 的空行一个字都不许动**（见铁律 1）——改注释时尤其容易手滑。
 
 ---
 
@@ -405,10 +419,10 @@ python tools\check_entries_equiv.py                                             
 
   同一个词「脚本」在 `third_party\vendor\2210_trace32\restore.cmm` 里显示为 `脚本`（UTF-8），
   在 `show_thread_swap.cmm` 里显示为 `½Å±¾`（GBK 被按 UTF-8 读）——
-  **一次「用编辑器另存」就可能毁掉注释或让解析器报错。** 自写脚本一律纯 ASCII；
-  必须改这些模板时，用**保字节**替换（decode/encode 都走 Latin-1），不要用普通「另存为」。
-  同理，`cli\run_smoke.ps1` 与 `tools\make_shortcuts.ps1` 都刻意只写 ASCII，
-  因为 Windows PowerShell 5.1 会把无 BOM 文件按 ANSI/GBK 读，非 ASCII 会毁掉解析。
+  **一次「用编辑器另存」就可能毁掉注释或让解析器报错。** 必须改这些模板时，用**保字节**替换
+  （decode/encode 都走 Latin-1），不要用普通「另存为」。
+- 我方自研文件则相反：注释**全部中文**，且 `.ps1`/`.psd1` 存成 **UTF-8 with BOM**
+  （Windows PowerShell 5.1 会把无 BOM 文件按 ANSI/GBK 读，非 ASCII 会直接毁掉解析）——见铁律 7。
 
 ### 6.1 ★ 无 GUI 化的支点：客户脚本是「GUI 包装层 + 纯 CLI 内核」两层
 
@@ -534,6 +548,16 @@ python tools\check_entries_equiv.py                                             
 - `docs\history\` 是搬运前的原始日志（只读证据）；`out\logs\` 里的是在本目录重跑产生的（不入库）。
 - 遗留的可选清理项（**未删**，它们是分析证据）：`attic\` 下 18 个对照/失败配置与 6 个早期 RCL 试验脚本。
 - 外部的 TRACE32 安装目录与客户启动目录**全程未被修改**。
+- **注释中文化（第八轮）**：把 35 个纯 ASCII 的自研文件（`cli\` 3 个 runner + 2 个模板、`cmm\` 16 个脚本
+  + 注册表、`configs\` 5 个 + `gui\config_sim.t32`、`tests\` 2 个、`tools\` 3 个、`local\paths.psd1.example`）
+  的英文注释全改成中文，**代码与输出文本一个字节没动**——`.ps1`/`.psd1` 存成 UTF-8 with BOM，
+  `.py`/`.cmm`/`.t32`/`.tmpl`/`.json` 保持 UTF-8 无 BOM（理由见铁律 7）。
+  验收不是靠眼睛看，而是三条机械闸门：
+  ① PowerShell 用 `[Parser]::ParseInput` 比 **HEAD vs 当前的非注释 token 序列**（注释是 `Comment` token，剔除后必须逐 token 相同，
+  这样连「输出字符串被顺手改了」也能抓到）；② `.cmm`/`.t32`/`.tmpl` 剔除 `;` 注释行后与 `HEAD` 逐行比对（含空行，
+  等于同时守住铁律 1 的空行分组）；③ `cmm\functions.json` 用 `json.load` 比结构（只允许 `desc`/`note`/`unsafe_reason`
+  这类人读文本变，键名、`cmd`/`body`/`safe`/`allow_prefix` 必须逐字相同）。
+  三条全绿 + `tests\run_all.ps1` 全量回归通过才算完。
 
 ---
 
