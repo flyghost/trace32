@@ -400,11 +400,17 @@ python tools\check_entries_equiv.py                                             
   所以绕过 GUI 层就同时保住了夹具的只读性。
 - `third_party\vendor\2110_trace32\frame.cmm` = 从 dump 里的栈帧恢复寄存器，用的就是
   `Register.Set PC Var.Value(((struct rt_hw_stack_frame*)&cpu_frame)->… )`
-  ⇒ **Cortex-M4 版主要是字段改名**（`r0-r3/r12/lr/pc/xpsr`）。
-- `third_party\vendor\2110_trace32\backtrace.cmm` 靠解码返回地址前的指令位（RISC-V 专用）过滤假回溯 ⇒ Thumb-2 版**必须重写**。
+  ⇒ Cortex-M4 版的移植主要是字段改名（`r0-r3/r12/lr/pc/xpsr`）—— **但那属于 ARM 冒烟轨，不是本项目主线**：
+  2210/2211 是 RISC-V RV32，这份 `frame.cmm` 本身就是给 RISC-V 用的。
+- `third_party\vendor\2110_trace32\backtrace.cmm` 靠解码返回地址前的指令位（RISC-V 专用）过滤假回溯 ⇒ 若要 Thumb-2 版必须重写；**本项目主线是 RISC-V，这一份可以直接用**。
 - `<T32_INSTALL>\demo\arm\etc\ramdump\ramdump.cmm`（33862 B / **1125 行**）= **Lauterbach 官方 ARM ramdump 脚本**，
   厂商设计意图就是“离线 dump + 在仿真器里还原”（内含 `IF !SIMULATOR() → PRINT %ERROR` 守卫），
-  并用 `ENTRY %LINE &sArguments` + `&bDialog` 做「GUI 弹窗 / 命令行直跑」双模。**尚未精读，是首选参考。**
+  并用 `ENTRY %LINE &sArguments` + `&bDialog` 做「GUI 弹窗 / 命令行直跑」双模。**已精读**（结论见设计文档 §3.1：
+  `L44-60` 的七行骨架就是"一个脚本两个入口"的官方写法）。
+  **RISC-V 侧还有一份更贴近主线的**：`<T32_INSTALL>\demo\riscv\etc\ramdump\ramdump.cmm`（28822 B / **969 行**）。
+- `<T32_INSTALL>\demo\riscv\kernel\` 下有 **10 个 RISC-V RTOS 感知文件**（embos / fiasco / freertos 55 KB /
+  linux 301 KB / nuttx 14.5 KB / pikeos / rtems / threadx / ucos-ii / zephyr）——**没有 rtthread**，
+  但它们是"2210 感知文件"的**结构模板**（先读 `nuttx\nuttx.t32`，92 行）。见设计文档 §3 图 3-1b 与 §11。
 - `<T32_INSTALL>\demo\practice\logfile\area_log.cmm`（60 行）= 输出落盘官方姿势
   （`AREA.OPEN REPORT &filename` + `IF (SYStem.Mode()==0)` 当断言）。
 - `<T32_INSTALL>\demo\practice\unittest\lbtest.cmm` + `test_example_minimal.cmm` = **自带单元测试框架**，
@@ -460,11 +466,16 @@ python tools\check_entries_equiv.py                                             
 
 > **方案出处**：本节的缺口、以及把它们补上来的五步迁移，已整理成带图的设计文档
 > [`docs\design\trace32-architecture-design.html`](docs/design/trace32-architecture-design.html)（第十三轮）。
+> 该文档 **§11 是 v3 修订**（范围收敛到 2210 / RISC-V；`cmm\src_2210\` 经授权可重构）——
+> **本节与 §11 冲突时以 §11 为准**，摘要见下面第 6 条。
 
 1. **TRACE32 没有 RT-Thread 内核感知。**
-   `<T32_INSTALL>\demo\arm\kernel\` 下有 67 个 RTOS 目录（freertos / threadx / ucos / liteos / zephyr …）**没有 rtthread**，
-   整个安装目录按文件名搜 `rt[-_]?thread` **零命中**。
+   `<T32_INSTALL>\demo\arm\kernel\` 下 67 个 RTOS 目录（freertos / threadx / ucos / liteos / zephyr …）
+   与 `\demo\riscv\kernel\` 下 10 个目录（embos / fiasco / freertos / linux / nuttx / pikeos / rtems / threadx / ucos-ii / zephyr）
+   里**都没有 rtthread**，整个安装目录按文件名搜 `rt[-_]?thread` **零命中**。
    ⇒ 线程列表 / 每线程栈用量 / 全线程回溯**必须自己写**。
+   **但没有 rtthread 感知文件 ≠ 没有可抄的**：RISC-V 侧那 10 个就是**结构模板**（先读 `nuttx\nuttx.t32`，只有 92 行；
+   再看 `freertos\freertos.t32` 55 KB / 257 行的完整规模）。详见设计文档 §3 图 3-1b 与 §11。
    先例：客户为自研 RTOS 手写的 `<平台>_trace32\` 下的 `.men`(13045 B) + `.t32`(37132 B) 菜单与任务配置。
 2. **五段管线的状态**：[1] 构建/烧录/触发 = 已有；[2] `tests\ramdump.sha256` = **已有**（第七轮补上，记录
    `ramdump\` 各文件的路径与 SHA256——因为死机现场本身不入库，靠它离线核对）；
@@ -475,10 +486,17 @@ python tools\check_entries_equiv.py                                             
    少一条即 `exit 1`，见 §1.2；`tools\check_entries_equiv.py` 也加了覆盖断言，缺一个功能就是 `FAIL`。
    **仍缺**内容级断言——把报告与基线做归一化 diff；基线应当是**本仓库自己产出并经人工确认的报告**（`out\runs\`），
    第十一轮已删掉从 `ramdump\` 复制出来的那份冗余 `tests\expected\` 副本）。
-3. **官方 `ramdump.cmm`（1125 行）还没精读**，Cortex-M 移植前值得先读。
+3. **官方 `ramdump.cmm` 已精读**（arm 版 33862 B / 1125 行；RISC-V 版 28822 B / 969 行），结论写进了设计文档 §3.1
+   （`L44-60` 的"一个脚本两个入口"骨架 + `TASK.CONFIG` 的挂法与关法）。**仍待做的是照它生成"可自恢复包"**：
+   从现场那 9 个 bin 反生成 `restore_<stamp>.cmm` + `meta.json`（不碰任何只读资产）。
 4. **Session 0（无人登录）场景未验证**：若走计划任务“不管用户是否登录运行”或做成服务才需要验证。
    用户始终在已登录桌面跑自动化的话，这条不适用。
 5. 自动化机器上 TRACE32 的**并发实例数 / 授权上限**未确认（仿真模式下未见限制）。
+6. **v3 修订（范围与授权变化）**：死机现场只有 **2210 / 2211（RISC-V RV32）**——2110 / 3510 没有现场，
+   只留档作参考；`t32marm.exe` + STM32F407ZG + RT-Thread 那条线是**冒烟轨**（只回答"环境与三条通道还活着吗"），
+   **Cortex-M4 / Thumb-2 的移植议题不属于本项目**。同时 `cmm\src_2210\` 已获授权**重构**，方案上限因此从
+   "套壳"变成"一个引擎 + 三份数据"。执行顺序见设计文档 §11：**S0 = 动引擎之前先抓 oracle 快照**
+   （改造前的报告基线），否则"我没改坏"无法证明。
 
 ---
 
