@@ -78,7 +78,7 @@ function Expand-Template {
 $cfg   = Join-Path $localDir 'analyze.t32'
 $entry = Join-Path $localDir 'run_2211_ap.cmm'
 
-Expand-Template (Join-Path $here 'configs\g5_screenoff.t32')              $cfg   @{ '__T32_INSTALL__' = $paths.T32_INSTALL }
+Expand-Template (Join-Path $here 'configs\sim-batch.t32')              $cfg   @{ '__T32_INSTALL__' = $paths.T32_INSTALL }
 Expand-Template (Join-Path $here 'cli\2211_ap_analyze.cmm.tmpl')          $entry @{
     '__RAMDUMP_DIR__' = $RamdumpDir
     '__OUT_FILE__'    = $outFile
@@ -174,7 +174,7 @@ $meta = @(
     "bypassed    : LM620_Restore.cmm (GUI wrapper), select_thread.cmm (interactive)"
     "heap        : cmm\heap_summary.cmm (arena descriptor only; vendor heap walker spins on this arena)"
     "heap_offline: $heapLine"
-    "config      : configs\g5_screenoff.t32 (PBI=SIM, SCREEN=OFF)"
+    "config      : configs\sim-batch.t32 (PBI=SIM, SCREEN=OFF)"
     "t32         : $t32exe"
     "t32_cwd     : $scriptDir"
     "markers     : $markerLog"

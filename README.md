@@ -84,7 +84,7 @@ Trace32_Auto\
 | `tests\verify_fixtures.ps1` | 按 `tests\fixtures.sha256` 逐条校验夹具 | 证明夹具没被改过 | ✅ |
 | `tests\smoke\*.markers` | 三条链各自的期望 marker（5 / 12 / 3 条） | 闸门的数据源：**数据与代码分开** | ✅ |
 | `tests\fixtures.sha256` | 9 个夹具 + 1 个基线的 SHA256（`<hash>  <相对路径>`） | 不入库件的完整性凭据 | ✅ |
-| `configs\` | 3 个无人化启动配置（最小形态 / 纯批处理 / RCL over TCP 20000），每个开头都有中文注释头 | 起实例用（`-c`） | ✅ |
+| `configs\` | 3 个无人化启动配置（`sim-minimal` / `sim-batch` / `sim-rcl-tcp-20000`），每个开头都有中文注释头 | 起实例用（`-c`） | ✅ |
 | `docs\history\` | 原始实测日志（只读证据） | 复盘 | ✅ |
 | `attic\configs\` | 18 个对照 / 失败配置（`zz*` `v*` `cfg_*` `config_auto`） | **空行分组定律的证据** | ✅ |
 | `attic\python\` | 早期 RCL 试验脚本 `rcl_test.py` … `rcl_test6.py` | 迭代痕迹 | ✅ |
@@ -164,7 +164,7 @@ powershell -ExecutionPolicy Bypass -File tests\run_all.ps1 -SkipT32 # 只校验�
 | `attic\configs\zz4.t32` | 删开头两行空行、其余保留 | ✅ exit=0 |
 | `attic\configs\config_auto.t32` / `v1_leadblank.t32` | `OS=/ID=/SYS=/PBI=/PRINTER=` 连排 | ❌ 超时或 exit=2、无日志 |
 
-最小可用形态见 `configs\m1_min.t32`。
+最小可用形态见 `configs\sim-minimal.t32`。
 
 ### 铁律 2：无窗口模式下 `DIALOG.*` 会永久挂死
 `SCREEN=OFF` 时执行 `DIALOG.OK "..."` **无超时、无报错地永久卡住**，`QUIT` 永远不会到达；
@@ -562,8 +562,10 @@ python tools\check_entries_equiv.py                                             
   再接原来那几组 `KEY=VALUE`，**原有字节一个没动**）；删掉两个只被文档引用的早期样本
   `g1_full.t32`（`RCL=NETASSIST` 20000）与 `g4_port20001.t32`（`NETASSIST` 20001）——同类形态在
   `attic\configs\` 的对照配置与 git 历史里仍可查，并行实例的做法改写成"复制一份、改 `PORT=`"。
+  本轮同时把三个配置按用途改名：`sim-minimal.t32` / `sim-batch.t32` / `sim-rcl-tcp-20000.t32`
+  （`sim-` 前缀标明后端是模拟器 `PBI=SIM`；旧名 `m1_min` / `g5_screenoff` / `g3_nettcp` 不再使用）。
   顺带实测确认：**TRACE32 的 `.t32` 配置能吃 UTF-8 中文注释**。加注释头后 `tests\run_all.ps1` 全绿
-  （冒烟走 `g3_nettcp`、2211 走 `g5_screenoff`）；另外用 `gui\config_sim.t32`（注释夹在各组之内）单独起了
+  （冒烟走 `sim-rcl-tcp-20000`、2211 走 `sim-batch`）；另外用 `gui\config_sim.t32`（注释夹在各组之内）单独起了
   一次带界面的实例，`-s` 脚本正常执行、进程自己退出 0（探针日志 `CN-T32-CONFIG-OK`）⇒ 上一轮把该文件
   的注释翻成中文没有破坏客户那条 GUI 启动路径。
 

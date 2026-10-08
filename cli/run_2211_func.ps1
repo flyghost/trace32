@@ -35,7 +35,7 @@ $vendorDir  = Join-Path $here 'third_party\vendor\2210_trace32'
 $cmmDir     = Join-Path $here 'cmm'
 $localDir   = Join-Path $here 'local'
 $logDir     = Join-Path $here 'out\logs'
-$cfgSrc     = Join-Path $here 'configs\g5_screenoff.t32'
+$cfgSrc     = Join-Path $here 'configs\sim-batch.t32'
 $pathsFile  = Join-Path $localDir 'paths.psd1'
 
 function Read-Utf8([string] $p) { return [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8) }
@@ -97,7 +97,7 @@ New-Item -ItemType Directory -Force -Path $localDir | Out-Null
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 
 # 每个函数共用的同一份启动配置；只有 -s 脚本不同
-$cfg = Join-Path $localDir 'g5_screenoff.t32'
+$cfg = Join-Path $localDir 'sim-batch.t32'
 Write-Latin1 $cfg (Expand (Read-Utf8 $cfgSrc) @{ '__T32_INSTALL__' = $paths.T32_INSTALL.TrimEnd('\') })
 
 Write-Host ''

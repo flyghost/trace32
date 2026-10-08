@@ -2,7 +2,7 @@
 """
 TRACE32 无人化冒烟测试（RCL / TCP 通道）
 =========================================
-前置：先用 configs\\g3_nettcp.t32 启动一个 TRACE32 实例
+前置：先用 configs\\sim-rcl-tcp-20000.t32 启动一个 TRACE32 实例
       （PBI=SIM 仿真后端 + SCREEN=OFF 无窗口 + RCL=NETTCP PORT=20000）。
       或直接跑同目录的 run_smoke.ps1，它会自动起实例、跑本脚本、收尾。
 

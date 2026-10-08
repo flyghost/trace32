@@ -14,7 +14,7 @@
   先做配置：把 local\paths.psd1.example 复制为 local\paths.psd1，填入
   T32_INSTALL / BSP_DIR。本仓库任何地方都不硬编码机器路径。提交进仓库的脚本
   只带占位符，运行时由本脚本替换后写入 local\ 下生成的文件（已 gitignore）：
-      configs\g3_nettcp.t32 中的 __T32_INSTALL__ -> local\smoke.t32
+      configs\sim-rcl-tcp-20000.t32 中的 __T32_INSTALL__ -> local\smoke.t32
       cmm\restore.cmm       中的 __BSP_DIR__     -> local\run_restore.cmm
   其余占位符（__TMP_DIR__、__T32_START_TEMP__）只存在于历史文件中；
   config_sim.t32 里的那个由 tools\make_shortcuts.ps1 处理。
@@ -74,7 +74,7 @@ function Expand-Template([string]$src, [string]$dst, [hashtable]$map) {
     Write-Host ('  generated ' + $dst.Replace($here, '.'))
 }
 Write-Host '===== expanding machine-local templates =====' -ForegroundColor Cyan
-Expand-Template (Join-Path $here 'configs\g3_nettcp.t32') (Join-Path $localDir 'smoke.t32') @{ '__T32_INSTALL__' = $paths.T32_INSTALL.TrimEnd('\') }
+Expand-Template (Join-Path $here 'configs\sim-rcl-tcp-20000.t32') (Join-Path $localDir 'smoke.t32') @{ '__T32_INSTALL__' = $paths.T32_INSTALL.TrimEnd('\') }
 Expand-Template (Join-Path $here 'cmm\restore.cmm') (Join-Path $localDir 'run_restore.cmm') @{ '__BSP_DIR__' = $paths.BSP_DIR }
 $cfg = Join-Path $localDir 'smoke.t32'
 $runCmm = Join-Path $localDir 'run_restore.cmm'
