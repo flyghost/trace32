@@ -76,7 +76,7 @@ if (-not (Test-Path -LiteralPath $pathsFile)) {
 $paths = Import-PowerShellDataFile -LiteralPath $pathsFile
 $t32 = Join-Path ($paths.T32_INSTALL.TrimEnd('\')) 'bin\windows64\t32mriscv.exe'
 if (-not (Test-Path -LiteralPath $t32)) { throw ('t32mriscv.exe not found: ' + $t32) }
-if ($RamdumpDir -eq '') { $RamdumpDir = Join-Path $here 'fixtures\2211_deathscene' }
+if ($RamdumpDir -eq '') { $RamdumpDir = Join-Path $here 'ramdump\2211_deathscene' }
 if (-not (Test-Path -LiteralPath $RamdumpDir)) { throw ('ramdump dir not found: ' + $RamdumpDir) }
 
 $skipped = @()

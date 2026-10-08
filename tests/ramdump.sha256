@@ -1,0 +1,21 @@
+# trace32-auto 死机现场（ramdump）与期望基线的完整性清单（替代旧 manifest.json）
+# 一行一条：<sha256>  <相对本仓库根的路径，正斜杠>
+# 这些文件都不入库（.gitignore 第 5/7 块），但这份清单入库，用于离线复现。
+# 校验：powershell -ExecutionPolicy Bypass -File tests\verify_ramdump.ps1
+# 注意：本文件是无 BOM 的 UTF-8；PowerShell 5.1 的 Get-Content 默认按 GBK 解码，请加 -Encoding UTF8。
+#
+# 加载地址等语义信息不放这里（契约要少），见 README「死机现场」一节：
+#   IRAM.bin  0x10200000 与 0xC0200000   PSRAM.bin 0x40000000 与 0x80000000
+#   ap_ilm.bin 0x00008000                ap_dlm.bin 0x00010000
+#   cp_ilm.bin 0x00008000                cp_dlm.bin 0x00010000
+#   0xC8031000.xip 文件名即加载地址       cpu-ap.elf /NoCODE /RelPath（只取符号表）
+76970747f8f69c839d5edb003edddf4892386ccf9ccccc9033b93a29e33662f6  ramdump/2211_deathscene/cpu-ap.elf
+4b64dfc9fe17fbf58541757cd36ea571f965bf639f2349b34763f33a77bea479  ramdump/2211_deathscene/IRAM.bin
+33260e1d484e5b1d6e38f696317673907046f6e0cc2e583f4f332e23bc5a159d  ramdump/2211_deathscene/PSRAM.bin
+3511db84964b7a1692649e42214e8524381bdc64d04261199a95ae75b4610092  ramdump/2211_deathscene/ap_ilm.bin
+0158e70316928f5101b6db07e8973748a031a281062d6545ce10fdd5014cdecf  ramdump/2211_deathscene/ap_dlm.bin
+3cdd6d36e1dfb2093ae4640b675a287e833ffdb407736657e4aa15baf78b5c5e  ramdump/2211_deathscene/cp_ilm.bin
+abe8cb5b8ca12580386557741cdb705ebe2c05eb6163b8e3f28d0d09957f0c4d  ramdump/2211_deathscene/cp_dlm.bin
+913ad9bfeaccc6a3eb42e0dad284cf1457ab823734b343c3018c9fafed9f3825  ramdump/2211_deathscene/0xC8031000.xip
+04c86256ab75679df1ecce5faa82ff0e16ba6e18cbd1eca2c58fe7c16f2fb3df  ramdump/2211_deathscene/ap_PrintData.txt
+04c86256ab75679df1ecce5faa82ff0e16ba6e18cbd1eca2c58fe7c16f2fb3df  tests/expected/2211_ap_PrintData.txt

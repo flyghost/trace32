@@ -1,18 +1,18 @@
 ﻿<#
-  tests\verify_fixtures.ps1 - 校验只读 fixture 与基线文件。
+  tests\verify_ramdump.ps1 - 校验只读死机现场（ramdump）与期望基线。
   =====================================================================
-  读取 tests\fixtures.sha256（每行一条 "<sha256>  <relpath>"），把列出的每个文件
-  逐字节校验一遍。这些文件被 git 忽略，所以这里是唯一能抓出「拷贝被截断」「下载没下完」
-  或「fixture 被某次运行悄悄覆盖」的地方。
+  读取 tests\ramdump.sha256（每行一条 "<sha256>  <relpath>"），把列出的每个文件
+  逐字节校验一遍。这些文件被 git 忽略（ramdump\ 与 tests\expected\），所以这里是唯一
+  能抓出「拷贝被截断」「下载没下完」或「现场被某次运行悄悄覆盖」的地方。
 
   退出码：0 = 每个文件都存在且完全相同，1 = 其他任何情况。
 
-  Usage: powershell -ExecutionPolicy Bypass -File tests\verify_fixtures.ps1
+  Usage: powershell -ExecutionPolicy Bypass -File tests\verify_ramdump.ps1
   NOTE: 本文件存为 UTF-8 with BOM（PS 5.1 读无 BOM 文件会乱码）。
 #>
 $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $PSScriptRoot          # 仓库根目录（本文件在 tests\ 下）
-$list = Join-Path $PSScriptRoot 'fixtures.sha256'
+$list = Join-Path $PSScriptRoot 'ramdump.sha256'
 if (-not (Test-Path $list)) { throw ("missing " + $list) }
 
 $ok = 0; $bad = 0; $missing = 0; $bytes = 0
@@ -41,7 +41,7 @@ foreach ($line in (Get-Content -LiteralPath $list -Encoding UTF8)) {
     }
 }
 Write-Host ""
-Write-Host ("fixtures: ok={0} bad={1} missing={2}  total={3} bytes" -f $ok, $bad, $missing, $bytes)
-if ($bad -eq 0 -and $missing -eq 0 -and $ok -gt 0) { Write-Host 'FIXTURES-OK' -ForegroundColor Green; exit 0 }
-Write-Host 'FIXTURES-FAILED' -ForegroundColor Red
+Write-Host ("ramdump: ok={0} bad={1} missing={2}  total={3} bytes" -f $ok, $bad, $missing, $bytes)
+if ($bad -eq 0 -and $missing -eq 0 -and $ok -gt 0) { Write-Host 'RAMDUMP-OK' -ForegroundColor Green; exit 0 }
+Write-Host 'RAMDUMP-FAILED' -ForegroundColor Red
 exit 1

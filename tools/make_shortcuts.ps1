@@ -5,7 +5,7 @@
   并且被 git 忽略（**/*.lnk）。它们还指向客户的 GUI 资源，所以放在 third_party\ 下。
   克隆仓库后跑一次，之后仍能双击进入 GUI 会话。
 
-  它还会依据仓库里的模板 gui\config_sim.t32（其中带 SYS=__T32_INSTALL__）生成
+  它还会依据仓库里的模板 configs\sim-gui.t32（其中带 SYS=__T32_INSTALL__）生成
   local\config_sim.t32，并让快捷方式指向生成出来的那份 —— 不是带占位符的模板。
 
   Usage: powershell -ExecutionPolicy Bypass -File tools\make_shortcuts.ps1
@@ -24,7 +24,7 @@ if (-not (Test-Path $localDir)) { New-Item -ItemType Directory -Path $localDir |
 
 # 保字节替换：这些模板是三编码的（ASCII / GBK / UTF-8）
 $L = [System.Text.Encoding]::GetEncoding(28591)
-$tmpl = Join-Path $root 'gui\config_sim.t32'
+$tmpl = Join-Path $root 'configs\sim-gui.t32'
 $s = $L.GetString([System.IO.File]::ReadAllBytes($tmpl))
 $s = $s.Replace('__T32_INSTALL__', $T32)
 $s = $s.Replace('__T32_START_TEMP__', (Join-Path $T32 'Temp'))

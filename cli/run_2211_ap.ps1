@@ -1,7 +1,7 @@
 ﻿# =============================================================================
 #  cli\run_2211_ap.ps1 - 无界面提取 2211 AP 死亡现场
 #
-#  用客户原始的 2210 TRACE32 脚本驱动 fixtures\2211_deathscene 中的 2211 二进制
+#  用客户原始的 2210 TRACE32 脚本驱动 ramdump\2211_deathscene 中的 2211 二进制
 #  死亡现场，全程无 GUI、无需人工点击。
 #
 #  目录布局：本文件位于 cli\（仓库根下一级）；仓库根由 $PSScriptRoot 推出。
@@ -11,7 +11,7 @@
 #      run.txt                  溯源：跑了什么、退出码、哈希
 #  进度 marker 写入 out\logs\2211ap-<时间戳>.log（已 gitignore）。
 #
-#  fixture 目录只读。third_party\ 下的脚本永不修改。
+#  ramdump 死机现场是只读输入。third_party\ 下的脚本永不修改。
 #
 #  退出码：仅当进程退出码为 0、tests\smoke\2211_ap.markers 中的每个 marker 都
 #  出现过、且报告非空时才为 0。打印 marker 不等于断言 marker —— 早先的版本即使
@@ -50,7 +50,7 @@ if (-not (Test-Path $t32exe))  { throw "t32mriscv.exe not found: $t32exe" }
 if (-not (Test-Path $scriptDir)) { throw "customer script dir not found: $scriptDir" }
 
 # ---------------------------------------------------------------- 2. ramdump 输入
-if (-not $RamdumpDir) { $RamdumpDir = Join-Path $here 'fixtures\2211_deathscene' }
+if (-not $RamdumpDir) { $RamdumpDir = Join-Path $here 'ramdump\2211_deathscene' }
 $RamdumpDir = (Resolve-Path $RamdumpDir).Path
 foreach ($need in 'cpu-ap.elf','IRAM.bin','PSRAM.bin','ap_ilm.bin','ap_dlm.bin') {
     if (-not (Test-Path (Join-Path $RamdumpDir $need))) { throw "$need not found in $RamdumpDir" }

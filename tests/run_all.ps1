@@ -5,7 +5,7 @@
   本身也有用的自动化，tests\ 放的是用来评判它的数据。
 
   阶段
-    1 fixtures : tests\verify_fixtures.ps1        - 对每个只读 fixture 校验 SHA256
+    1 ramdump  : tests\verify_ramdump.ps1        - 对每个只读 fixture 校验 SHA256
     2 smoke    : cli\run_smoke.ps1                - 批处理标记 + RCL 逐字节校验
     3 full    : cli\run_2211_ap.ps1              - 2211 死机现场的全部 9 个阶段
     4 one-by-one: cli\run_2211_func.ps1 -Func all - 每个安全的 GUI 功能，无头运行
@@ -46,7 +46,7 @@ function Invoke-Stage([string] $name, [string] $file, [string[]] $extra) {
 }
 
 $results = @()
-$results += Invoke-Stage '1/5 fixtures (tests\verify_fixtures.ps1)' 'tests\verify_fixtures.ps1' @()
+$results += Invoke-Stage '1/5 ramdump (tests\verify_ramdump.ps1)' 'tests\verify_ramdump.ps1' @()
 
 if (-not $SkipT32) {
     if (-not $SkipSmoke) {

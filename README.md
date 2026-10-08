@@ -30,27 +30,25 @@ TRACE32 **可以完全无人化**：
 
 ```
 Trace32_Auto\
-├─ cmm\          底层：无 GUI 的 PRACTICE 内核，只被调用（不含 DIALOG/STOP）        ✅
-├─ gui\          上层①：GUI 按钮入口（客户 config_sim.t32）                        ✅
-├─ cli\          上层②：脚本入口（PowerShell + Python），与 gui\ 平级             ✅
+├─ cmm\          底层：无 GUI 的 PRACTICE 内核，只被调用（内附 src_2210\ 待改造副本） ✅+❌
+├─ cli\          上层入口：脚本入口（PowerShell + Python）                          ✅
 ├─ tools\        独立小工具（算哈希、判等价、重建快捷方式）                          ✅
 ├─ tests\        全部测试只在这一处（唯一入口 tests\run_all.ps1）                   ✅
-├─ configs\      起实例用的 .t32 配置（带 4 个占位符）                              ✅
-├─ docs\         文档与历史证据（docs\history\ 是原始实测日志）                      ✅
-├─ attic\        归档：18 个对照/失败配置 + 6 个早期 RCL 试验脚本（分析证据）        ✅
+├─ configs\      起实例用的 .t32 配置（含客户 GUI 原件 sim-gui.t32）                ✅
+├─ docs\         文档与历史证据（docs\history\ 原始日志 + docs\rcl-api-notes.md）    ✅
+├─ attic\        归档：18 个对照/失败配置 + 6 个早期 RCL 试验 + 13 个早期探针        ✅
 ├─ third_party\  非本项目所有：客户脚本 vendor\、客户快捷方式、Lauterbach RCL SDK    ❌
-├─ src_2210\     客户 2210 脚本的一份可改造副本（后期改造用，暂不纳管）              ❌
-├─ fixtures\     2211 死机现场夹具（只读输入）                                      ❌
+├─ ramdump\      2211 死机现场（只读输入）                                          ❌
 ├─ out\          运行产物：out\runs\（报告）、out\logs\（marker 日志）              ❌
-├─ local\        本机真实路径 + 运行时生成的配置/脚本                               ❌
-└─ private\      客户报告原件与敏感信息排查记录                                     ❌
+└─ local\        本机真实路径 + 运行时生成的配置/脚本                               ❌
 ```
 
-调用方向只有一条。**`gui\` 与 `cli\` 平级**，都往下调 `cmm\`，彼此不互相调用：
+调用方向只有一条。**GUI 路径（`third_party\launchers\*.lnk` + `configs\sim-gui.t32`）与脚本路径（`cli\`）平级**，
+都往下调 `cmm\`，彼此不互相调用：
 
 ```
-      gui\config_sim.t32                    cli\*.ps1 / cli\*.py
-   （客户 GUI 启动配置）                （PowerShell 驱动器 + Python RCL）
+    third_party\launchers\*.lnk            cli\*.ps1 / cli\*.py
+  （客户 GUI 快捷方式，-c sim-gui.t32）  （PowerShell 驱动器 + Python RCL）
               │                                    │
               └───────────────┬────────────────────┘
                               ▼
@@ -62,14 +60,14 @@ Trace32_Auto\
 > **契约刻意压到最少**（应「防止契约爆炸」的要求）：只有 **2 类**——
 > ① `cmm\functions.json`（2211 每个功能的实现只写在这一处，入口模板只认占位符）；
 > ② `configs\` 的占位符约定（`__T32_INSTALL__` / `__BSP_DIR__` / `__TMP_DIR__` / `__T32_START_TEMP__`，见 §4.0）。
-> 另加 1 份 `tests\fixtures.sha256`（不入库件的哈希，一行一条）。
+> 另加 1 份 `tests\ramdump.sha256`（不入库件的哈希，一行一条）。
 > **没有** json schema、**没有**插件协议、**没有** manifest 注册表。
 
 ### 1.1 逐项导航
 
 | 路径 | 内容 | 用途 | 入库 |
 |---|---|---|---|
-| `cmm\` | 17 个 PRACTICE 脚本（14 个探针/模板 + `functions.json` + `heap_summary.cmm` + `thread_pick.cmm`） | 底层内核；**不含任何 GUI 语句**，可被 GUI 与脚本同时调用 | ✅ |
+| `cmm\` | 4 个成品：`restore.cmm`（冒烟链）、`heap_summary.cmm`（2211 堆遍历）、`thread_pick.cmm`（选线程）、`functions.json`（注册表）；另有 `cmm\src_2210\`（待改造的客户副本） | 底层内核；**不含任何 GUI 语句**，可被 GUI 与脚本同时调用 | ✅（`src_2210\` ❌） |
 | `cli\run_smoke.ps1` | 一键冒烟（批处理 + RCL 两阶段，带 marker 闸门） | 环境自检，**先跑这个** | ✅ |
 | `cli\run_2211_ap.ps1` | 2211 现场全量分析（9 段 → 报告 + 离线堆统计） | 一键出报告（见 §5.1） | ✅ |
 | `cli\2211_ap_analyze.cmm.tmpl` | 上面那条链的 CMM 模板（`__CMM_DIR__` 等占位符展开） | 全量入口的骨架 | ✅ |
@@ -81,14 +79,15 @@ Trace32_Auto\
 | `tools\heap_stats_offline.py` | 纯 Python 读 dump 复算 dlmalloc 链 | 堆统计，自动与 arena 的 `used` 对账 | ✅ |
 | `tools\make_shortcuts.ps1` | 在本机重建 `third_party\launchers\*.lnk` | 快捷方式无法入库 | ✅ |
 | `tests\run_all.ps1` | **唯一测试入口**：夹具哈希 → 冒烟 → 2211 全量 → 单功能 → 等价判定 | 测试集中在这一处（见 §1.2） | ✅ |
-| `tests\verify_fixtures.ps1` | 按 `tests\fixtures.sha256` 逐条校验夹具 | 证明夹具没被改过 | ✅ |
+| `tests\verify_ramdump.ps1` | 按 `tests\ramdump.sha256` 逐条校验死机现场 | 证明现场没被改过 | ✅ |
 | `tests\smoke\*.markers` | 三条链各自的期望 marker（5 / 12 / 3 条） | 闸门的数据源：**数据与代码分开** | ✅ |
-| `tests\fixtures.sha256` | 9 个夹具 + 1 个基线的 SHA256（`<hash>  <相对路径>`） | 不入库件的完整性凭据 | ✅ |
-| `configs\` | 3 个无人化启动配置（`sim-minimal` / `sim-batch` / `sim-rcl-tcp-20000`），每个开头都有中文注释头 | 起实例用（`-c`） | ✅ |
+| `tests\ramdump.sha256` | 9 个现场文件 + 1 个基线的 SHA256（`<hash>  <相对路径>`） | 不入库件的完整性凭据 | ✅ |
+| `configs\` | 4 个配置：客户 GUI 原件 `sim-gui.t32` + 3 个无人化配置（`sim-minimal` / `sim-batch` / `sim-rcl-tcp-20000`），每个开头都有中文注释头 | 起实例用（`-c`） | ✅ |
 | `docs\history\` | 原始实测日志（只读证据） | 复盘 | ✅ |
+| `docs\rcl-api-notes.md` | Python RCL 的可用调用、错误原文、接口速查 | §4.4 的出处（原客户报告第 7 节的非客户部分） | ✅ |
 | `attic\configs\` | 18 个对照 / 失败配置（`zz*` `v*` `cfg_*` `config_auto`） | **空行分组定律的证据** | ✅ |
 | `attic\python\` | 早期 RCL 试验脚本 `rcl_test.py` … `rcl_test6.py` | 迭代痕迹 | ✅ |
-| `gui\config_sim.t32` | 客户现成的 GUI 启动配置 | 派生无人化配置的**源头** | ✅ |
+| `attic\cmm\` | 13 个早期探针（`s1`–`s5` 符号查询试探、`sym`/`sym2`、`probe1`–`probe4`、`mini`、`gui_test`） | 迭代痕迹 + 铁律 2 的复现件 | ✅ |
 | `local\` | 你的真实路径（`paths.psd1`）+ 运行时生成的配置/脚本 | 本机私事 | ❌ |
 | `out\runs\2211_ap\<时间戳>\` | 全量产物（报告 + `run.txt` + `heap_offline.txt`） | 结论证据 | ❌ |
 | `out\runs\2211_ap_func\<时间戳>\` | 单功能产物（`<功能名>.txt` + `run.txt`） | 结论证据 | ❌ |
@@ -96,10 +95,9 @@ Trace32_Auto\
 | `third_party\trace32_rcl\` | 解包好的 RCL 1.1.5（`lauterbach_trace32_rcl-1.1.5`） | 免 pip，`sys.path.insert` 即可 import | ❌ 第三方许可 |
 | `third_party\launchers\*.lnk` | 客户 GUI 快捷方式**原件** | 内部硬编码绝对路径 + 创建者账号名 | ❌ 用 `tools\` 重建 |
 | `third_party\vendor\{2100,2110,2210,3510}_trace32\` | 客户现成的 TRACE32 **GUI** 脚本族（含 `.svn`） | 移植抄写的主要参考，**冻结只读** | ❌ 客户版权 |
-| `src_2210\` | `third_party\vendor\2210_trace32` 的副本（17 件，去掉了 `.svn`） | **留给后期彻底改造**；目前与原件逐字节相同 | ❌ 暂不纳管 |
-| `fixtures\2211_deathscene\` | 死机现场数据（`cpu-ap.elf` 25 MB、`IRAM.bin`、`PSRAM.bin`、`ap_ilm/dlm.bin`、`0xC8031000.xip`） | 无人化跑的夹具输入，**冻结只读** | ❌ 35 MB + 内网痕迹 |
+| `cmm\src_2210\` | `third_party\vendor\2210_trace32` 的副本（17 件，去掉了 `.svn`） | **留给后期彻底改造**；目前与原件逐字节相同 | ❌ 暂不纳管 |
+| `ramdump\2211_deathscene\` | 死机现场数据（`cpu-ap.elf` 25 MB、`IRAM.bin`、`PSRAM.bin`、`ap_ilm/dlm.bin`、`0xC8031000.xip`） | 无人化跑的**只读输入**，冻结 | ❌ 35 MB + 内网痕迹 |
 | `tests\expected\2211_ap_PrintData.txt` | 从夹具里复制出来的基线输出 | 夹具里那份**会被下一次运行覆盖**，比对只认这份 | ❌ |
-| `private\` | 客户报告原件（14 节 HTML）+ 敏感信息排查记录 | 只留本机，必要时放私有仓库 | ❌ |
 | `LICENSE` `NOTICE` | Apache-2.0 全文 + 版权与归属声明 | 许可（见 §9） | ✅ |
 
 ### 1.2 测试怎么跑（`tests\` 是唯一测试路径）
@@ -107,22 +105,22 @@ Trace32_Auto\
 ```powershell
 cd <repo>
 powershell -ExecutionPolicy Bypass -File tests\run_all.ps1          # 全部
-powershell -ExecutionPolicy Bypass -File tests\run_all.ps1 -SkipT32 # 只校验夹具哈希
+powershell -ExecutionPolicy Bypass -File tests\run_all.ps1 -SkipT32 # 只校验现场哈希
 ```
 
 `run_all.ps1` 依次用子进程跑 5 段，逐段打印退出码，末尾给 `TESTS-OK` / `TESTS-FAILED`：
-夹具 SHA256（10/10）→ 冒烟（5 marker）→ 2211 全量（13 marker）→ 单功能 `-Func all`（11 PASS）→ 两入口等价（`EQUIV-OK`）。
+死机现场 SHA256（10/10）→ 冒烟（5 marker）→ 2211 全量（12 marker）→ 单功能 `-Func all`（11 PASS）→ 两入口等价（`EQUIV-OK`）。
 **每个 runner 都有 marker 闸门**：期望的 marker 名单放在 `tests\smoke\*.markers` 里，
 少一条就 `exit 1`（不再只看进程退出码这种假绿）。
 
 > ### ★ 冻结边界
-> `third_party\vendor\`、`fixtures\`、`tests\expected\` 三处是客户资产副本，**只读**：任何脚本、任何实验都不许写入。
+> `third_party\vendor\`、`ramdump\`、`tests\expected\` 三处是客户资产副本，**只读**：任何脚本、任何实验都不许写入。
 > 本项目**不依赖也不链接**外部的客户启动目录（本机另有一份，不在本仓库），只用本目录内的副本。
 > ⚠️ `third_party\launchers\*.lnk` 的 `-c` 参数指向那个外部目录里的 `config_sim.t32`，按上述口径**这三个原始快捷方式不可用**，
 > 只能当「客户原本怎么启动」的参考；它们的内部字符串还带着本机绝对路径与创建者账号名，所以**不入库**——
 > 要双击启动就用 `tools\make_shortcuts.ps1` 在本机重建（重建版指向下面这份配置）。
-> **`gui\config_sim.t32` 本身可以直接用**：它的 `SYS=__T32_INSTALL__` 指的是**安装目录**（不是那个外部启动目录），
-> 运行时替换成真实路径后，`<T32_INSTALL>\bin\windows64\t32mriscv.exe -c <repo>\local\config_sim.t32` 就能起客户的 GUI 环境。
+> **`configs\sim-gui.t32` 本身可以直接用**：它的 `SYS=__T32_INSTALL__` 指的是**安装目录**（不是那个外部启动目录），
+> 运行时替换成真实路径后，`<T32_INSTALL>\bin\windows64\t32mriscv.exe -c <repo>\local\sim-gui.t32` 就能起客户的 GUI 环境。
 > 无人化配置应当从这份**派生**（只加 `SCREEN=OFF` + `RCL=NETTCP`），以保证 `SYS=` 与客户一致、不会漂移。
 > 根目录只有 **5 个文件**：`README.md`、`LICENSE`、`NOTICE`、`.gitignore`、`.gitattributes`。
 
@@ -135,7 +133,7 @@ powershell -ExecutionPolicy Bypass -File tests\run_all.ps1 -SkipT32 # 只校验�
   - 启动器：`bin\windows64\t32marm.exe`（ARM，45.4 MB）；另有 `t32mriscv.exe`、`t32mceva.exe`
   - 远程控制 CLI：`bin\windows64\t32rem.exe`（PE 子系统 = 3，控制台程序）
   - 手册：`<T32_INSTALL>\pdf\{app_remote_control.pdf, app_python.pdf, api_remote_c.pdf, app_t32start.pdf}`
-- 生效配置的真实位置是**本目录的 `gui\config_sim.t32` 一类文件**，
+- 生效配置的真实位置是**本目录的 `configs\sim-gui.t32` 一类文件**，
   而**不是**安装根的 `config.t32`（那里面只有 `PRINTER=WINDOWS`）。
   ⇒ 客户既有文档《TRACE32脚本离线分析与远程控制方案.md》说“在 `config.t32` 中添加 RCL/PORT/PACKLEN”**文件指错了**。
 - Python：实测 `python --version` = **3.13.2**；**RCL 未通过 pip 安装**（沙箱禁止 pip 建临时目录），
@@ -169,7 +167,7 @@ powershell -ExecutionPolicy Bypass -File tests\run_all.ps1 -SkipT32 # 只校验�
 ### 铁律 2：无窗口模式下 `DIALOG.*` 会永久挂死
 `SCREEN=OFF` 时执行 `DIALOG.OK "..."` **无超时、无报错地永久卡住**，`QUIT` 永远不会到达；
 诊断时只表现为“日志少了几行”。`AREA.view` 则无害。
-复现脚本：`cmm\gui_test.cmm`（实测 30 秒未退出，日志只写到 `G2-AFTER-AREAVIEW`）。
+复现脚本：`attic\cmm\gui_test.cmm`（实测 30 秒未退出，日志只写到 `G2-AFTER-AREAVIEW`）。
 ⇒ **从 GUI 抄脚本时，必须把所有 `DIALOG.*` 删干净。**
 
 ### 铁律 3：每次实验前先杀干净 `t32*` 并等待约 4 秒
@@ -203,7 +201,7 @@ TRACE32 会停在错误对话框上：**既不生成日志、也不退出**。
 ⇒ `cli\run_smoke.ps1` 会先把 `out\logs\` 建出来；自写脚本时也要先确保目录存在。
 
 ### 铁律 7：自研文件的注释写中文，但 `.ps1`/`.psd1` 必须存成 **UTF-8 with BOM**
-本仓库自研文件（`cli\`、`cmm\`、`tools\`、`tests\`、`configs\`、`gui\`）的注释一律中文，编码按类型分两档：
+本仓库自研文件（`cli\`、`cmm\`、`tools\`、`tests\`、`configs\`）的注释一律中文，编码按类型分两档：
 
 | 类型 | 编码 | 原因 |
 |---|---|---|
@@ -226,10 +224,10 @@ TRACE32 会停在错误对话框上：**既不生成日志、也不退出**。
 
 | 占位符 | 出现在 | 含义 |
 |---|---|---|
-| `__T32_INSTALL__` | `configs\*.t32`、`gui\config_sim.t32`、`attic\configs\*.t32` | TRACE32 安装目录（含 `bin\windows64\`） |
+| `__T32_INSTALL__` | `configs\*.t32`（含 `sim-gui.t32`）、`attic\configs\*.t32` | TRACE32 安装目录（含 `bin\windows64\`） |
 | `__BSP_DIR__` | `cmm\*.cmm` | RT-Thread BSP 产物目录（`rtthread.bin` **无连字符** + `rt-thread.elf` **有连字符**） |
 | `__TMP_DIR__` | `attic\configs\*.t32`（历史对照） | 早期临时工作区 |
-| `__T32_START_TEMP__` | `gui\config_sim.t32` 注释行 | 客户启动目录的 `Temp` |
+| `__T32_START_TEMP__` | `configs\sim-gui.t32` 注释行 | 客户启动目录的 `Temp` |
 
 ```powershell
 Copy-Item local\paths.psd1.example local\paths.psd1    # 然后按本机情况改里面两行
@@ -280,7 +278,7 @@ print(bytes(dbg.memory.read(a, length=20)).hex())
 dbg.fnc("Var.Value(sizeof(ramdump_exception_t))")  # 52
 ```
 BSP 路径走环境变量 `RAMDUMP_BSP_DIR`（`cli\run_smoke.ps1` 会设置），不写死在代码里。
-已知可用/不可用的调用、错误原文，见客户报告第 7 节（原件在 `private\`）；最简可用示例见 `cli\rcl_smoke.py`。
+已知可用/不可用的调用、错误原文，见 [`docs\rcl-api-notes.md`](docs/rcl-api-notes.md)（第十轮从已删除的客户报告第 7 节里提炼）；最简可用示例见 `cli\rcl_smoke.py`。
 
 ### 4.5 两个实例并行
 需要同时跑两个实例时，复制一份 `configs\` 里的配置、把 `PORT=` 改成另一个端口（例如 20001）即可，实测互不干扰。
@@ -448,9 +446,10 @@ python tools\check_entries_equiv.py                                             
 说明 2210 是 2110 的分支演进；2210 独有 `print_mem_summary_by_file.cmm`、`show_ap_meminfo_sum.cmm`、`show_thread_swap.cmm`。
 `show_thread_swap.cmm` 用 `//` 当注释（PRACTICE 注释是 `;`）、`&time2`/`&time_irq_idle` 未 `LOCAL` ⇒ **疑似坏文件，别当模板抄**。
 
-> **客户标识说明**：`third_party\vendor\` 与 `private\` 不入库，所以本文对平台一律用**目录编号**指代
+> **客户标识说明**：`third_party\vendor\` 不入库，所以本文对平台一律用**目录编号**指代
 > （`2100`/`2110`/`2210`/`3510`），不写客户产品名、项目代号与供应商名称；
-> 平台 ↔ 产品名的对照与客户版权头出处，只留在本机的 `private\` 里。
+> 平台 ↔ 产品名的对照与客户版权头出处**不再保存在本仓库**（第十轮删掉了 `private\`），
+> 需要时从 `third_party\vendor\` 各目录的 `.cmm` 版权头与 `.svn\wc.db` 里查。
 
 ---
 
@@ -461,8 +460,8 @@ python tools\check_entries_equiv.py                                             
    整个安装目录按文件名搜 `rt[-_]?thread` **零命中**。
    ⇒ 线程列表 / 每线程栈用量 / 全线程回溯**必须自己写**。
    先例：客户为自研 RTOS 手写的 `<平台>_trace32\` 下的 `.men`(13045 B) + `.t32`(37132 B) 菜单与任务配置。
-2. **五段管线的状态**：[1] 构建/烧录/触发 = 已有；[2] `tests\fixtures.sha256` = **已有**（本轮补上，记录
-   `fixtures\`+`tests\expected\` 的路径/大小/SHA256——因为夹具本身不入库，靠它离线核对）；
+2. **五段管线的状态**：[1] 构建/烧录/触发 = 已有；[2] `tests\ramdump.sha256` = **已有**（第七轮补上，记录
+   `ramdump\`+`tests\expected\` 的路径/大小/SHA256——因为死机现场本身不入库，靠它离线核对）；
    [3] 传输自检 = **缺**（`cli\rcl_smoke.py` 的 FLASH 逐字节断言是最小可用版本，可扩成全片自检）；
    [4] 分析 = **已有**（2211 AP 现场已跑通，见 §5.1，并已拆成 11 个单功能入口、双入口等价已判定，见 §5.2；
    只有「逐块内存来源表」复现不了，原因见 §5.1）；
@@ -477,6 +476,9 @@ python tools\check_entries_equiv.py                                             
 ---
 
 ## 8. 附：本目录写入历史
+
+> 下面是逐轮记录（历史原文保留）。被后续轮次改掉的路径以**最后一轮**为准——例如 `gui\config_sim.t32`
+> 在第七轮建立、第十轮并入 `configs\sim-gui.t32`；`fixtures\` 在第五轮命名、第十轮改名 `ramdump\`。
 
 - **搬运**：把旧临时工作区（`rt-thread-ros` 下的 `trace32_tmp\`）里的分析产物搬运/重编到本目录，
   并把 `cmm\` 内脚本的输出路径从旧的 `trace32_tmp\out` 统一改为本目录的 `out\logs\`。
@@ -568,6 +570,24 @@ python tools\check_entries_equiv.py                                             
   （冒烟走 `sim-rcl-tcp-20000`、2211 走 `sim-batch`）；另外用 `gui\config_sim.t32`（注释夹在各组之内）单独起了
   一次带界面的实例，`-s` 脚本正常执行、进程自己退出 0（探针日志 `CN-T32-CONFIG-OK`）⇒ 上一轮把该文件
   的注释翻成中文没有破坏客户那条 GUI 启动路径。
+- **顶层目录收敛（第十轮）**：按「一个目录一件事」把五处含糊命名收拢，**内容一律不动**（只搬位置、改名、改引用）：
+  ① `gui\config_sim.t32` → **`configs\sim-gui.t32`**（客户 GUI 原件归到配置目录，`gui\` 目录取消 ⇒ 顶层少一个目录）；
+  ② `fixtures\` → **`ramdump\`**（`fixtures` 是测试圈行话，现场就叫 dump；`.gitignore` 第 7 块同步换成 `**/ramdump/`）；
+  ③ `cmm\` 里 13 个**无代码引用**的早期探针（`s1`–`s5` 符号查询试探、`sym`/`sym2`、`probe1`–`probe4`、`mini`、
+     `gui_test`）→ **`attic\cmm\`**；`cmm\` 只剩 4 个被引用的成品（`restore.cmm`、`heap_summary.cmm`、
+     `thread_pick.cmm`、`functions.json`）⇒ 每个名字都自解释；
+  ④ 顶层 `src_2210\` → **`cmm\src_2210\`**（用户决定：待改造的客户副本就近放在内核目录里；`.gitignore` 用的是
+     反锚定规则 `**/src_2210/`，换了位置照样命中、照样不入库）；
+  ⑤ `private\`（客户报告原件 14 节 HTML + 敏感信息排查记录）**删除**；其中唯一被本文引用的内容（RCL 可用调用与
+     错误原文）提炼成 **`docs\rcl-api-notes.md`** 入库；平台↔产品名对照随之不再保留（需要时从 `third_party\vendor\`
+     各目录的 `.cmm` 版权头与 `.svn\wc.db` 里查）。删除前把两份原件复制到本仓之外的临时目录留作最后一手。
+  配套改动：`tests\fixtures.sha256` → `tests\ramdump.sha256`、`tests\verify_fixtures.ps1` → `tests\verify_ramdump.ps1`
+  （输出标记改 `RAMDUMP-OK`/`RAMDUMP-FAILED`）、`tests\run_all.ps1`、`.gitignore` 第 5/6/7/9 块与文件头注释、
+  `tools\make_shortcuts.ps1`、`cli\run_2211_ap.ps1`、`cli\run_2211_func.ps1`、
+  `cli\2211_ap_analyze.cmm.tmpl`、`configs\sim-gui.t32`（加了注释头交代来历，原有字节没动）。
+  验收：搬迁前后 **610 个文件**（含不入库件）的 relpath→SHA256 快照逐条对得上（零丢失）；
+  `git check-ignore -v --no-index` 逐条实测 `ramdump/`、`cmm/src_2210/`、`private/` 仍被忽略、该入库的仍可跟踪；
+  最后跑 `tests\run_all.ps1` 全量回归。
 
 ---
 
@@ -576,5 +596,5 @@ python tools\check_entries_equiv.py                                             
 本仓库以 **Apache License 2.0** 发布：全文见 [LICENSE](LICENSE)，版权与归属声明见 [NOTICE](NOTICE)。
 
 许可证只覆盖**本仓库内的内容**（脚手架、脚本、实测结论与文档）。
-`third_party\vendor\`（客户 TRACE32 脚本）、`fixtures\`/`tests\expected\`（死机现场数据）与 `third_party\trace32_rcl\`（Lauterbach RCL SDK）
+`third_party\vendor\`（客户 TRACE32 脚本）、`ramdump\`/`tests\expected\`（死机现场数据）与 `third_party\trace32_rcl\`（Lauterbach RCL SDK）
 **都不在本仓库内**，各自的权利归属不变——见 §1 与 `.gitignore`。

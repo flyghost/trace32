@@ -1,0 +1,25 @@
+; ============================================================
+; 客户 TRACE32 PowerView 的 GUI 启动配置（原件）
+;   第十轮从 gui\config_sim.t32 挪进 configs\ 并改名 sim-gui.t32。
+;   谁在用：third_party\launchers\ 下那 3 个 .lnk（当 -c 参数用）。
+;   特征：没有 SCREEN=OFF、没有 RCL → 会开图形界面，供人工调试。
+;   派生：configs\sim-batch.t32、configs\sim-rcl-tcp-20000.t32 都从这里改出来。
+;   下面原有的空行与 KEY=VALUE 一个字节没动（空行是语法，见 README 铁律 1）。
+; ============================================================
+
+
+
+; 环境变量
+OS=
+ID=T32
+SYS=__T32_INSTALL__
+; TMP=__T32_START_TEMP__
+; 或用于动态引用环境变量
+; TMP=${environment_variable_name}
+
+
+; USB 信息
+PBI=SIM
+
+; 打印机设置
+PRINTER=WINDOWS
