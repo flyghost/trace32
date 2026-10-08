@@ -1,4 +1,4 @@
-# trace32-auto 死机现场（ramdump）与期望基线的完整性清单（替代旧 manifest.json）
+# trace32-auto 死机现场（ramdump）的完整性清单（替代旧 manifest.json）
 # 一行一条：<sha256>  <相对本仓库根的路径，正斜杠>
 # 这些文件都不入库（.gitignore 第 5/7 块），但这份清单入库，用于离线复现。
 # 校验：powershell -ExecutionPolicy Bypass -File tests\verify_ramdump.ps1
@@ -18,4 +18,3 @@
 abe8cb5b8ca12580386557741cdb705ebe2c05eb6163b8e3f28d0d09957f0c4d  ramdump/2211_deathscene/cp_dlm.bin
 913ad9bfeaccc6a3eb42e0dad284cf1457ab823734b343c3018c9fafed9f3825  ramdump/2211_deathscene/0xC8031000.xip
 04c86256ab75679df1ecce5faa82ff0e16ba6e18cbd1eca2c58fe7c16f2fb3df  ramdump/2211_deathscene/ap_PrintData.txt
-04c86256ab75679df1ecce5faa82ff0e16ba6e18cbd1eca2c58fe7c16f2fb3df  tests/expected/2211_ap_PrintData.txt

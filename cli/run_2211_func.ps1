@@ -39,9 +39,10 @@ $cfgSrc     = Join-Path $here 'configs\sim-batch.t32'
 $pathsFile  = Join-Path $localDir 'paths.psd1'
 
 function Read-Utf8([string] $p) { return [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8) }
-function Write-Latin1([string] $p, [string] $t) {
-    $enc = [System.Text.Encoding]::GetEncoding(28591)
-    [System.IO.File]::WriteAllBytes($p, $enc.GetBytes($t))
+function Write-Utf8([string] $p, [string] $t) {
+    # 生成件（local\sim-batch.t32 与 local\func_*.cmm）的源是 UTF-8 且含中文注释；
+    # Latin-1 编码器会把每个非 Latin-1 字符换成 '?'（第十一轮实测 93-372 个/文件），故按 UTF-8 写回。
+    [System.IO.File]::WriteAllText($p, $t, (New-Object System.Text.UTF8Encoding($false)))
 }
 function Expand([string] $text, [hashtable] $map) {
     foreach ($k in @($map.Keys)) { $text = $text.Replace($k, [string]$map[$k]) }
@@ -98,7 +99,7 @@ New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 
 # 每个函数共用的同一份启动配置；只有 -s 脚本不同
 $cfg = Join-Path $localDir 'sim-batch.t32'
-Write-Latin1 $cfg (Expand (Read-Utf8 $cfgSrc) @{ '__T32_INSTALL__' = $paths.T32_INSTALL.TrimEnd('\') })
+Write-Utf8 $cfg (Expand (Read-Utf8 $cfgSrc) @{ '__T32_INSTALL__' = $paths.T32_INSTALL.TrimEnd('\') })
 
 Write-Host ''
 Write-Host ('run dir  : ' + $runDir)
@@ -151,7 +152,7 @@ foreach ($f in $want) {
         $left = [regex]::Matches($text, '__[A-Z_]+__')
         if ($left.Count -gt 0) { throw ('unexpanded placeholder(s) in ' + $f.name + ': ' + (($left | ForEach-Object { $_.Value }) -join ', ')) }
         $entry = Join-Path $localDir ('func_' + $f.name + '.cmm')
-        Write-Latin1 $entry $text
+        Write-Utf8 $entry $text
 
         Kill-T32
         $proc = Start-Process -FilePath $t32 -ArgumentList @('-c', ('"' + $cfg + '"'), '-s', ('"' + $entry + '"')) -WorkingDirectory $vendorDir -PassThru

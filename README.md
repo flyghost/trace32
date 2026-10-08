@@ -35,8 +35,8 @@ Trace32_Auto\
 ├─ tools\        独立小工具（算哈希、判等价、重建快捷方式）                          ✅
 ├─ tests\        全部测试只在这一处（唯一入口 tests\run_all.ps1）                   ✅
 ├─ configs\      起实例用的 .t32 配置（含客户 GUI 原件 sim-gui.t32）                ✅
-├─ docs\         文档与历史证据（docs\history\ 原始日志 + docs\rcl-api-notes.md）    ✅
-├─ attic\        归档：18 个对照/失败配置 + 6 个早期 RCL 试验 + 13 个早期探针        ✅
+├─ docs\         文档（docs\rcl-api-notes.md）                                      ✅
+├─ attic\        归档：18 个对照/失败配置 + 6 个早期 RCL 试验 + 13 个早期探针 + 7 个原始日志 ✅
 ├─ third_party\  非本项目所有：客户脚本 vendor\、客户快捷方式、Lauterbach RCL SDK    ❌
 ├─ ramdump\      2211 死机现场（只读输入）                                          ❌
 ├─ out\          运行产物：out\runs\（报告）、out\logs\（marker 日志）              ❌
@@ -81,9 +81,9 @@ Trace32_Auto\
 | `tests\run_all.ps1` | **唯一测试入口**：夹具哈希 → 冒烟 → 2211 全量 → 单功能 → 等价判定 | 测试集中在这一处（见 §1.2） | ✅ |
 | `tests\verify_ramdump.ps1` | 按 `tests\ramdump.sha256` 逐条校验死机现场 | 证明现场没被改过 | ✅ |
 | `tests\smoke\*.markers` | 三条链各自的期望 marker（5 / 12 / 3 条） | 闸门的数据源：**数据与代码分开** | ✅ |
-| `tests\ramdump.sha256` | 9 个现场文件 + 1 个基线的 SHA256（`<hash>  <相对路径>`） | 不入库件的完整性凭据 | ✅ |
+| `tests\ramdump.sha256` | 9 个现场文件的 SHA256（`<hash>  <相对路径>`） | 不入库件的完整性凭据 | ✅ |
 | `configs\` | 4 个配置：客户 GUI 原件 `sim-gui.t32` + 3 个无人化配置（`sim-minimal` / `sim-batch` / `sim-rcl-tcp-20000`），每个开头都有中文注释头 | 起实例用（`-c`） | ✅ |
-| `docs\history\` | 原始实测日志（只读证据） | 复盘 | ✅ |
+| `attic\logs\` | 原始实测日志（只读证据；第十一轮从 `docs\history\` 移入，让 `docs\` 只留文档） | 复盘 | ✅ |
 | `docs\rcl-api-notes.md` | Python RCL 的可用调用、错误原文、接口速查 | §4.4 的出处（原客户报告第 7 节的非客户部分） | ✅ |
 | `attic\configs\` | 18 个对照 / 失败配置（`zz*` `v*` `cfg_*` `config_auto`） | **空行分组定律的证据** | ✅ |
 | `attic\python\` | 早期 RCL 试验脚本 `rcl_test.py` … `rcl_test6.py` | 迭代痕迹 | ✅ |
@@ -97,7 +97,6 @@ Trace32_Auto\
 | `third_party\vendor\{2100,2110,2210,3510}_trace32\` | 客户现成的 TRACE32 **GUI** 脚本族（含 `.svn`） | 移植抄写的主要参考，**冻结只读** | ❌ 客户版权 |
 | `cmm\src_2210\` | `third_party\vendor\2210_trace32` 的副本（17 件，去掉了 `.svn`） | **留给后期彻底改造**；目前与原件逐字节相同 | ❌ 暂不纳管 |
 | `ramdump\2211_deathscene\` | 死机现场数据（`cpu-ap.elf` 25 MB、`IRAM.bin`、`PSRAM.bin`、`ap_ilm/dlm.bin`、`0xC8031000.xip`） | 无人化跑的**只读输入**，冻结 | ❌ 35 MB + 内网痕迹 |
-| `tests\expected\2211_ap_PrintData.txt` | 从夹具里复制出来的基线输出 | 夹具里那份**会被下一次运行覆盖**，比对只认这份 | ❌ |
 | `LICENSE` `NOTICE` | Apache-2.0 全文 + 版权与归属声明 | 许可（见 §9） | ✅ |
 
 ### 1.2 测试怎么跑（`tests\` 是唯一测试路径）
@@ -109,12 +108,12 @@ powershell -ExecutionPolicy Bypass -File tests\run_all.ps1 -SkipT32 # 只校验�
 ```
 
 `run_all.ps1` 依次用子进程跑 5 段，逐段打印退出码，末尾给 `TESTS-OK` / `TESTS-FAILED`：
-死机现场 SHA256（10/10）→ 冒烟（5 marker）→ 2211 全量（12 marker）→ 单功能 `-Func all`（11 PASS）→ 两入口等价（`EQUIV-OK`）。
+死机现场 SHA256（9/9）→ 冒烟（5 marker）→ 2211 全量（12 marker）→ 单功能 `-Func all`（11 PASS）→ 两入口等价（`EQUIV-OK`）。
 **每个 runner 都有 marker 闸门**：期望的 marker 名单放在 `tests\smoke\*.markers` 里，
 少一条就 `exit 1`（不再只看进程退出码这种假绿）。
 
 > ### ★ 冻结边界
-> `third_party\vendor\`、`ramdump\`、`tests\expected\` 三处是客户资产副本，**只读**：任何脚本、任何实验都不许写入。
+> `third_party\vendor\`、`ramdump\` 两处是客户资产副本，**只读**：任何脚本、任何实验都不许写入。
 > 本项目**不依赖也不链接**外部的客户启动目录（本机另有一份，不在本仓库），只用本目录内的副本。
 > ⚠️ `third_party\launchers\*.lnk` 的 `-c` 参数指向那个外部目录里的 `config_sim.t32`，按上述口径**这三个原始快捷方式不可用**，
 > 只能当「客户原本怎么启动」的参考；它们的内部字符串还带着本机绝对路径与创建者账号名，所以**不入库**——
@@ -210,7 +209,7 @@ TRACE32 会停在错误对话框上：**既不生成日志、也不退出**。
 
 - 客户资产（`third_party\`）**一个字都不改**——它们的编码是三态混杂（§6），一次「另存为」就可能毁掉。
 - 改这些非 ASCII 文件时一律**保字节**（Latin-1 往返）替换，绝不整篇重写。
-- 机械校验：`powershell -ExecutionPolicy Bypass -File local\check_cn_comments.ps1`
+- 机械校验：`powershell -ExecutionPolicy Bypass -File local\check_cn_comments.ps1`（该脚本是**本机工具**，不入库；仓库里能复现的是 `tests\run_all.ps1`）
   （非注释行对照 `HEAD`、BOM/编码报告、GBK 乱码探针，全绿打印 `CN-COMMENTS-OK`）。
 - **`.t32` 的空行一个字都不许动**（见铁律 1）——改注释时尤其容易手滑。
 
@@ -461,13 +460,14 @@ python tools\check_entries_equiv.py                                             
    ⇒ 线程列表 / 每线程栈用量 / 全线程回溯**必须自己写**。
    先例：客户为自研 RTOS 手写的 `<平台>_trace32\` 下的 `.men`(13045 B) + `.t32`(37132 B) 菜单与任务配置。
 2. **五段管线的状态**：[1] 构建/烧录/触发 = 已有；[2] `tests\ramdump.sha256` = **已有**（第七轮补上，记录
-   `ramdump\`+`tests\expected\` 的路径/大小/SHA256——因为死机现场本身不入库，靠它离线核对）；
+   `ramdump\` 各文件的路径与 SHA256——因为死机现场本身不入库，靠它离线核对）；
    [3] 传输自检 = **缺**（`cli\rcl_smoke.py` 的 FLASH 逐字节断言是最小可用版本，可扩成全片自检）；
    [4] 分析 = **已有**（2211 AP 现场已跑通，见 §5.1，并已拆成 11 个单功能入口、双入口等价已判定，见 §5.2；
    只有「逐块内存来源表」复现不了，原因见 §5.1）；
    [5] 断言判定 = **半有**（第七轮补上「marker 闸门」：三条链各自的期望 marker 存 `tests\smoke\*.markers`，
    少一条即 `exit 1`，见 §1.2；`tools\check_entries_equiv.py` 也加了覆盖断言，缺一个功能就是 `FAIL`。
-   **仍缺**内容级断言——即把报告与 `tests\expected\` 基线做归一化 diff）。
+   **仍缺**内容级断言——把报告与基线做归一化 diff；基线应当是**本仓库自己产出并经人工确认的报告**（`out\runs\`），
+   第十一轮已删掉从 `ramdump\` 复制出来的那份冗余 `tests\expected\` 副本）。
 3. **官方 `ramdump.cmm`（1125 行）还没精读**，Cortex-M 移植前值得先读。
 4. **Session 0（无人登录）场景未验证**：若走计划任务“不管用户是否登录运行”或做成服务才需要验证。
    用户始终在已登录桌面跑自动化的话，这条不适用。
@@ -547,7 +547,7 @@ python tools\check_entries_equiv.py                                             
   阶段失败也 `exit 0`（比如冒烟阶段 A 0/5 marker 仍返回成功），现在改为**按 marker 判定**；
   `run_smoke.ps1` 原来给 `-ArgumentList` 传的是未加引号的数组，路径含空格就会静默失败，现已显式加引号；
   非 ASCII 文件（`.cmm` 三态编码、GBK/UTF-8 混杂）一律用 **Latin-1 保字节**方式改路径，绝不用 UTF-8 重写。
-- `docs\history\` 是搬运前的原始日志（只读证据）；`out\logs\` 里的是在本目录重跑产生的（不入库）。
+- `attic\logs\` 是搬运前的原始日志（第十一轮从 `docs\history\` 移入，只读证据）；`out\logs\` 里的是在本目录重跑产生的（不入库）。
 - 遗留的可选清理项（**未删**，它们是分析证据）：`attic\` 下 18 个对照/失败配置与 6 个早期 RCL 试验脚本。
 - 外部的 TRACE32 安装目录与客户启动目录**全程未被修改**。
 - **注释中文化（第八轮）**：把 35 个纯 ASCII 的自研文件（`cli\` 3 个 runner + 2 个模板、`cmm\` 16 个脚本
@@ -588,6 +588,27 @@ python tools\check_entries_equiv.py                                             
   验收：搬迁前后 **610 个文件**（含不入库件）的 relpath→SHA256 快照逐条对得上（零丢失）；
   `git check-ignore -v --no-index` 逐条实测 `ramdump/`、`cmm/src_2210/`、`private/` 仍被忽略、该入库的仍可跟踪；
   最后跑 `tests\run_all.ps1` 全量回归。
+- **第十一轮（三处边界收口 + 一个活 bug）**：用户复盘 `docs\history\`、`local\`、`tests\expected\` 三处后定下：
+- ① `docs\history\` → **`attic\logs\`**：运行日志属历史证据，与 `attic\` 里的失败配置同类，`docs\` 只留文档。
+  因 `attic\` 不在 `logs\` 的白名单里，`.gitignore` 第 3 块补 `!**/attic/logs/*.log` 与 `!**/attic/logs/*.txt`。
+- ② **删掉 `tests\expected\`**（2.8 MB，与 `ramdump\2211_deathscene\ap_PrintData.txt` 逐字节相同：
+  SHA256 都是 `04c86256…b3df`）。它当初的动机是「夹具既是输入又是输出、会被覆盖」，而改成 headless 后这个前提已不成立；
+  且**没有任何代码把它当期望值**——现在的判据是 marker 闸门（5/12/3 条）+ 堆遍历自检 + 双入口等价。
+  `tests\ramdump.sha256` 由 10 条减到 9 条。将来做内容级断言时，基线要用**本仓库自己产出的报告**（`out\runs\`），不是客户手点的 txt。
+- ③ **修一个活 bug**：`cli\run_2211_func.ps1` 的展开函数用 `[Encoding]::GetEncoding(28591)`（Latin-1）写盘，
+  而源（`configs\sim-batch.t32`、`cmm\functions.json`）是 UTF-8 且含中文注释 ⇒ 每个非 Latin-1 字符被写成 `?`
+  （实测 `local\func_*.cmm` 308–372 个、`local\sim-batch.t32` 93 个）。命令都是 ASCII，所以回归照绿、**静默**；
+  但注释全毁，且将来若有中文 `PRINT` 文本会被吃掉。改为 `Write-Utf8`（`UTF8Encoding($false)`，无 BOM）写回，重跑 `-Func all` 复核 `?` 归零。
+- ④ 清掉 `local\` 里 6 类一次性残留：`commit_msg_*.txt` ×4、`migration_snapshot\`、`snap_pre\`/`snap_post\`、
+  `g5_screenoff.t32`（改名前）、`gui_probe.t32`/`gui_probe.cmm`/`probe_cn.cmm`（临时探针）。
+  留在 `local\` 的只有：`paths.psd1`(+`.example`)、`check_cn_comments.ps1`、`check_py_ast.py` 与运行时生成的 `smoke.t32`/`run_restore.cmm`/`analyze.t32`/`run_2211_ap.cmm`/`sim-batch.t32`/`func_*.cmm`。
+- ⑤ **顺带查掉等价检查器的一个隐患**：`tools\check_entries_equiv.py` 的归一化只丢 `#` 开头的行，
+  而 banner 里那行功能描述是长中文 —— 编码修好后行变长，TRACE32 的打印 AREA 会把它**折行**，
+  折出来的续行不以 `#` 开头，于是泄漏进比对，4 个功能被误判 `FAIL`（此前描述退化成 `?`、行短、不折行，
+  所以这个隐患一直没暴露）。改为「两行 `#####` 围栏之间的 banner **整块丢弃**」（围栏只在 64 行内配对，
+  防止残缺报告吃掉正文）；另外把 stdout/stderr 放宽成 `errors="replace"`，
+  免得报告里出现 GBK 编不出的字节时 `print` 直接抛 `UnicodeEncodeError` 而不是给判定结果。
+  修完：`EQUIV-OK`（pass=10 partial=1 fail=0 missing=0），`tests\run_all.ps1` 五段全绿 `TESTS-OK`。
 
 ---
 
@@ -596,5 +617,5 @@ python tools\check_entries_equiv.py                                             
 本仓库以 **Apache License 2.0** 发布：全文见 [LICENSE](LICENSE)，版权与归属声明见 [NOTICE](NOTICE)。
 
 许可证只覆盖**本仓库内的内容**（脚手架、脚本、实测结论与文档）。
-`third_party\vendor\`（客户 TRACE32 脚本）、`ramdump\`/`tests\expected\`（死机现场数据）与 `third_party\trace32_rcl\`（Lauterbach RCL SDK）
+`third_party\vendor\`（客户 TRACE32 脚本）、`ramdump\`（死机现场数据）与 `third_party\trace32_rcl\`（Lauterbach RCL SDK）
 **都不在本仓库内**，各自的权利归属不变——见 §1 与 `.gitignore`。

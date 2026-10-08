@@ -2,8 +2,8 @@
 # Trace32_Auto —— .gitignore
 # 原则：1) 本机路径、内网地址、客户身份信息一律不入库
 #       2) 只排除「产物 / 元数据 / 本机垃圾 / 受版权或授权约束的件」
-#       3) 入库：cmm\（除 src_2210\）cli\ tools\ tests\（除 tests\expected\）
-#          configs\ docs\ attic\ README* LICENSE NOTICE
+#       3) 入库：cmm\（除 src_2210\）cli\ tools\ tests\ configs\ docs\
+#          attic\ README* LICENSE NOTICE
 # ★ 反锚定约定（2026-10-08 起强制）：本文件里所有"保护性"规则一律写成
 #   `**/<名字>/` 或去斜杠的 `<名字>/`，**不许**写成 `dir/sub/` 这种根锚定形式。
 #   原因：含中间斜杠的模式锚定到本文件所在目录，目录一改名/下移就静默失效，
@@ -27,11 +27,12 @@
 **/venv/
 
 # ── 3. 运行时日志与临时目录 ────────────────────────────────
-# 只忽略"产物型"日志；docs\history\ 是留档证据，必须入库。
+# 只忽略"产物型"日志；attic\logs\ 是留档证据，必须入库。
 **/logs/*.log
 **/logs/*.txt
 **/logs/*.out
-!**/logs/history/
+!**/attic/logs/*.log
+!**/attic/logs/*.txt
 **/Temp/
 **/Temp_*/
 *.tmp
@@ -64,12 +65,11 @@ Thumbs.db
 # 改造成型、去客户身份之后再解除忽略并入库（见 README）。
 **/src_2210/
 
-# ── 7. 死机现场与期望基线（★ 必排除）──────────────────────
+# ── 7. 死机现场（★ 必排除）──────────────────────────────
 # ramdump\（2211 死机现场原始字节，约 34 MB，ELF 里带内网构建路径与账号痕迹）
-# 与 tests\expected\（从现场复制出来的基线输出）都不入库。
+# 这一处都不入库（第十一轮删掉了从现场复制出来、与它逐字节相同的 tests\expected\ 冗余基线）。
 # 完整性清单：tests\ramdump.sha256（哈希 + 相对路径，一行一条）。
 **/ramdump/
-**/tests/expected/
 **/golden/
 # 旧目录名 fixtures\ 留作"资产类"防线（第十轮已改名 ramdump\，见 README §8）。
 **/fixtures/

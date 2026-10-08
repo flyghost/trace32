@@ -10,9 +10,13 @@ DIALOG.*、STOP）。无头入口是 cli\\run_2211_func.ps1，它一次只跑一
 如何比较
   * 完整运行：out\\runs\\2211_ap\\<stamp>\\2211_ap_deathscene.txt（全部 9 个阶段）
   * 单功能  ：out\\runs\\2211_ap_func\\<stamp>\\<function>.txt
-  * 两侧做同样的归一化 —— 去掉行尾空白、丢弃空行、丢弃以 '#' 或 '@@@' 开头的行 ——
-    然后单功能报告的每一行都必须按顺序出现在完整报告中（子序列判定）。顺序很要紧，
-    正是它才能抓出某个功能悄悄打印了另一段内容的情况。
+  * 两侧做同样的归一化 —— 去掉行尾空白、丢弃空行、丢弃以 '#' 或 '@@@' 开头的行、
+    丢弃被两行 '#####' 围栏夹住的**整个 banner 块** —— 然后单功能报告的每一行都必须按
+    顺序出现在完整报告中（子序列判定）。顺序很要紧，正是它才能抓出某个功能悄悄打印了
+    另一段内容的情况。
+  * banner 块必须**整块**丢弃，不能只丢 '#' 开头的行：banner 里那行功能描述是长中文，
+    TRACE32 的打印 AREA 会按宽度把它折行，折出来的续行不再以 '#' 开头（第十一轮实测：
+    生成件的编码修好之后描述不再退化成 '?'，行变长才触发折行，续行就泄漏进了比对）。
   * kind=python 的功能，与完整运行中同名产物逐字节比较。
 
 判定结果，由 cmm\\functions.json 驱动
@@ -41,6 +45,15 @@ import json
 import os
 import sys
 
+# 控制台是 GBK 时，报告里任何 GBK 编不出的字节（例如未匹配行里残留的拉丁-1 字符）
+# 会让 print 抛 UnicodeEncodeError，而不是给出判定结果。这里只放宽错误处理、**不换编码**，
+# 所以 GBK 能表示的字符（包括中文）仍然正常显示，只有真的编不出的才退化成 '?'。
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FUNC_RUNS = os.path.join(ROOT, "out", "runs", "2211_ap_func")
 MASTER_RUNS = os.path.join(ROOT, "out", "runs", "2211_ap")
@@ -54,15 +67,43 @@ def newest_dir(parent):
     return os.path.join(parent, names[-1]) if names else None
 
 
+FENCE_CHARS = set("#")
+BANNER_MAX_LINES = 64
+
+
+def _is_fence(line):
+    """整行只有 '#'、且不短于 8 个字符 —— banner 块的围栏。"""
+    return len(line) >= 8 and set(line) <= FENCE_CHARS
+
+
 def norm_lines(path):
+    """读报告后归一化：丢空行、丢 '#' / '@@' 开头的行、丢整块 banner。
+
+    banner 被两行 '#####' 围栏夹住，里面那行功能描述是长中文，TRACE32 的打印 AREA
+    会按宽度把它折行，折出来的续行**不再以 '#' 开头** —— 所以只丢 '#' 行是不够的，
+    必须把围栏之间的内容整块丢掉。围栏配对只在 64 行以内成立；超时就把开围栏当普通
+    行处理，免得到一个残缺报告把后面的真实内容整段吃掉。
+    """
     with open(path, "r", encoding="latin-1") as fh:
-        raw = fh.read().splitlines()
+        raw = [l.rstrip() for l in fh.read().splitlines()]
     out = []
-    for line in raw:
-        line = line.rstrip()
+    i = 0
+    while i < len(raw):
+        line = raw[i]
+        if _is_fence(line):
+            end = None
+            for j in range(i + 1, min(len(raw), i + 1 + BANNER_MAX_LINES)):
+                if _is_fence(raw[j]):
+                    end = j
+                    break
+            if end is not None:
+                i = end + 1
+                continue
+        i += 1
         if not line:
             continue
-        if line.lstrip().startswith("#") or line.lstrip().startswith("@@"):
+        stripped = line.lstrip()
+        if stripped.startswith("#") or stripped.startswith("@@"):
             continue
         out.append(line)
     return out
