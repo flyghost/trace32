@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>TRACE32 脚本工程化设计 · Trace32_Auto</title>
+<style>
+:root{
+  --ink:#1a1d21; --ink2:#4a5259; --ink3:#79828b;
+  --bg:#ffffff; --bg2:#f7f8fa; --bg3:#eef1f5;
+  --line:#d8dee6; --line2:#c3ccd6;
+  --blue:#1668c1; --blue-bg:#eaf3fd;
+  --green:#1a7f4b; --green-bg:#e8f7ef;
+  --amber:#a86200; --amber-bg:#fff5e2;
+  --red:#b42318; --red-bg:#fdeceb;
+  --purple:#6b3fa0; --purple-bg:#f3ecfb;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:16px/1.75 -apple-system,"Segoe UI","Microsoft YaHei","PingFang SC","Hiragino Sans GB",sans-serif;
+}
+.wrap{display:flex; align-items:flex-start; gap:0; max-width:1500px; margin:0 auto}
+nav{
+  position:sticky; top:0; flex:0 0 262px; max-height:100vh; overflow:auto;
+  padding:22px 14px 40px 20px; border-right:1px solid var(--line); background:var(--bg2);
+  font-size:13.5px; line-height:1.6;
+}
+nav h4{margin:0 0 10px; font-size:12px; letter-spacing:.14em; color:var(--ink3); text-transform:uppercase}
+nav a{display:block; color:var(--ink2); text-decoration:none; padding:2.5px 0; border-left:2px solid transparent; padding-left:8px}
+nav a:hover{color:var(--blue); background:#fff}
+nav a.sub{padding-left:20px; font-size:12.7px; color:var(--ink3)}
+main{flex:1 1 auto; min-width:0; padding:34px 46px 120px}
+
+h1{font-size:30px; line-height:1.3; margin:0 0 6px}
+h2{font-size:23px; margin:56px 0 4px; padding-top:16px; border-top:3px solid var(--ink); }
+h2 .num{color:var(--blue); margin-right:10px}
+h3{font-size:18px; margin:30px 0 8px}
+h4{font-size:15.5px; margin:22px 0 6px; color:var(--ink2)}
+p{margin:9px 0}
+ul,ol{margin:9px 0; padding-left:24px}
+li{margin:4px 0}
+code{font-family:Consolas,"Cascadia Mono","Courier New",monospace; font-size:13.5px; background:var(--bg3); padding:1px 5px; border-radius:4px; color:#22262b}
+pre{font-family:Consolas,"Cascadia Mono","Courier New",monospace; font-size:13px; line-height:1.55;
+  background:#fbfcfd; border:1px solid var(--line); border-left:4px solid var(--line2); border-radius:6px;
+  padding:12px 14px; overflow-x:auto; margin:12px 0; color:#22262b}
+pre b{color:var(--blue); font-weight:600}
+pre i{color:var(--ink3); font-style:normal}
+.lead{font-size:17px; color:var(--ink2)}
+.tag{display:inline-block; font-size:12px; padding:1px 8px; border-radius:20px; border:1px solid var(--line2); color:var(--ink2); background:#fff; margin-left:6px; vertical-align:2px}
+.badge{display:inline-block; font-size:11.5px; font-weight:600; padding:1px 7px; border-radius:4px; white-space:nowrap}
+.ok{background:var(--green-bg); color:var(--green); border:1px solid #b7e2c9}
+.half{background:var(--amber-bg); color:var(--amber); border:1px solid #f0d59b}
+.no{background:var(--red-bg); color:var(--red); border:1px solid #f2bbb7}
+.info{background:var(--blue-bg); color:var(--blue); border:1px solid #b8d8f7}
+
+.meta{width:100%; border-collapse:collapse; margin:18px 0 8px; font-size:13.8px}
+.meta td{border:1px solid var(--line); padding:6px 10px; vertical-align:top}
+.meta td:first-child{width:132px; background:var(--bg2); color:var(--ink2); font-weight:600}
+
+/* ---- 通用图元 ---- */
+.dgm{border:1px solid var(--line); border-radius:8px; background:var(--bg2); padding:16px 16px 12px; margin:16px 0}
+.dgm .cap{font-size:12.5px; color:var(--ink3); margin-top:10px; border-top:1px dashed var(--line2); padding-top:8px}
+.dgm .cap b{color:var(--ink2)}
+.row{display:flex; align-items:stretch; gap:0; flex-wrap:wrap}
+.row.mid{align-items:center}
+.col{display:flex; flex-direction:column; gap:6px; flex:1 1 0; min-width:0}
+.node{flex:1 1 0; min-width:0; background:#fff; border:1px solid var(--line2); border-left:4px solid var(--blue);
+  border-radius:6px; padding:8px 11px; font-size:13.4px; line-height:1.5}
+.node b{display:block; font-size:13.8px; color:var(--ink)}
+.node .m{color:var(--ink3); font-size:12.4px}
+.node.g{border-left-color:var(--green)} .node.a{border-left-color:var(--amber)}
+.node.r{border-left-color:var(--red)} .node.p{border-left-color:var(--purple)}
+.node.k{border-left-color:var(--ink3)}
+.wide{flex:2 1 0}
+.narrow{flex:0 0 auto; width:auto}
+.arw{flex:0 0 auto; align-self:center; padding:0 8px; color:var(--ink3); font-size:17px; line-height:1}
+.arw small{display:block; font-size:10.5px; text-align:center; color:var(--ink3)}
+.down{text-align:center; color:var(--ink3); font-size:17px; line-height:1.1; margin:2px 0}
+.down small{display:block; font-size:10.5px}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:12px}
+.grid4{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
+.card{background:#fff; border:1px solid var(--line); border-radius:7px; padding:11px 13px; font-size:13.6px}
+.card h5{margin:0 0 6px; font-size:14px; color:var(--blue)}
+.card.o h5{color:var(--ink)}
+.card .q{font-size:12.6px; color:var(--ink3)}
+
+/* ---- 分层图 ---- */
+.layers{display:flex; flex-direction:column; gap:7px}
+.layer{display:flex; align-items:flex-start; gap:12px; background:#fff; border:1px solid var(--line2); border-radius:6px; padding:9px 12px}
+.layer .id{flex:0 0 34px; font-weight:700; color:#fff; background:var(--ink2); border-radius:4px; text-align:center; font-size:13px; line-height:1.5; padding:1px 0}
+.layer .bd{flex:1 1 auto; min-width:0; font-size:13.5px}
+.layer .bd b{font-size:14px}
+.layer .bd .m{color:var(--ink3); font-size:12.5px}
+.layer.l0 .id{background:#0f6b3f} .layer.l1 .id{background:#1668c1} .layer.l2 .id{background:#b42318}
+.layer.l3 .id{background:#a86200} .layer.l4 .id{background:#6b3fa0} .layer.l5 .id{background:#4a5259}
+.layer .right{flex:0 0 auto; font-size:12.3px; color:var(--ink3); text-align:right; max-width:220px}
+
+/* ---- 提示框 ---- */
+.tip,.warn,.note,.quote{border-radius:7px; padding:11px 14px; margin:14px 0; font-size:14px; border:1px solid}
+.tip{background:var(--green-bg); border-color:#b7e2c9}
+.tip::before{content:"学习要点 "; font-weight:700; color:var(--green)}
+.warn{background:var(--red-bg); border-color:#f2bbb7}
+.warn::before{content:"坑 "; font-weight:700; color:var(--red)}
+.note{background:var(--amber-bg); border-color:#f0d59b}
+.note::before{content:"注意 "; font-weight:700; color:var(--amber)}
+.quote{background:#fbfcfd; border-color:var(--line2); border-left:4px solid var(--purple); color:var(--ink2); font-family:Consolas,monospace; font-size:13px; white-space:pre-wrap}
+
+/* ---- 表格 ---- */
+table.data{width:100%; border-collapse:collapse; margin:14px 0; font-size:13.4px}
+table.data th,table.data td{border:1px solid var(--line); padding:6px 9px; text-align:left; vertical-align:top}
+table.data th{background:var(--bg3); font-weight:600; color:var(--ink2)}
+table.data tr:nth-child(even) td{background:#fcfdfe}
+table.data td.c,table.data th.c{text-align:center}
+table.data code{background:transparent; padding:0}
+
+/* ---- 树 ---- */
+.tree{font-family:Consolas,"Cascadia Mono",monospace; font-size:12.9px; line-height:1.62; white-space:pre; overflow-x:auto;
+  background:#fbfcfd; border:1px solid var(--line); border-radius:7px; padding:13px 15px; margin:14px 0}
+.tree em{color:var(--ink3); font-style:normal}
+.tree b{color:var(--blue); font-weight:600}
+.tree s{color:var(--green); text-decoration:none}
+.tree u{color:var(--red); text-decoration:none}
+.kv{font-size:13.6px}
+.kv b{display:inline-block; min-width:150px; color:var(--ink2)}
+hr.thin{border:0; border-top:1px dashed var(--line2); margin:34px 0}
+.footnote{font-size:12.6px; color:var(--ink3)}
+@media (max-width:1080px){
+  nav{display:none}
+  main{padding:22px 18px 80px}
+  .grid3,.grid4{grid-template-columns:1fr 1fr}
+}
+@media (max-width:700px){ .grid2,.grid3,.grid4{grid-template-columns:1fr} }
+@media print{ nav{display:none} main{padding:0} h2{page-break-after:avoid} .dgm{page-break-inside:avoid} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <h4>目录</h4>
+  <a href="#s0">0 · 三十秒摘要</a>
+  <a href="#s1">1 · 为什么需要设计</a>
+  <a class="sub" href="#s1-1">1.1 现状五层</a>
+  <a class="sub" href="#s1-2">1.2 三个真实事故</a>
+  <a class="sub" href="#s1-3">1.3 现状体检数字</a>
+  <a href="#s2">2 · 参照系 A：Linux 七惯用法</a>
+  <a href="#s3">3 · 参照系 B：官方两件套</a>
+  <a class="sub" href="#s3-1">3.1 导出侧</a>
+  <a class="sub" href="#s3-2">3.2 分析侧（感知层）</a>
+  <a class="sub" href="#s3-3">3.3 官方惯例与更正</a>
+  <a href="#s4">4 · 目标架构</a>
+  <a class="sub" href="#s4-1">4.1 三条设计公理</a>
+  <a class="sub" href="#s4-2">4.2 五层与四条通道</a>
+  <a class="sub" href="#s4-3">4.3 目标目录树</a>
+  <a href="#s5">5 · 四个契约</a>
+  <a class="sub" href="#s5-1">C1 配置分层</a>
+  <a class="sub" href="#s5-2">C2 平台数据化</a>
+  <a class="sub" href="#s5-3">C3 feature 接口</a>
+  <a class="sub" href="#s5-4">C4 输出结构化</a>
+  <a href="#s6">6 · 门禁七层</a>
+  <a href="#s7">7 · 迁移五步</a>
+  <a href="#s8">8 · 前后对照</a>
+  <a href="#s9">9 · 术语表</a>
+  <a href="#s10">10 · 附录：官方资产索引</a>
+</nav>
+
+<main>
+
+<h1>TRACE32 脚本工程化设计</h1>
+<p class="lead">把「手动点 GUI 抓现场」变成「一条命令产出可复现的报告」——<br>
+从本仓库的实测现状、Linux 内核与 Lauterbach 官方工程惯例，推导出一套可落地的目录/契约/门禁/迁移方案。</p>
+
+<table class="meta">
+<tr><td>文档</td><td><code>docs/design/trace32-architecture-design.html</code>（自包含，无外部依赖，可离线打开、可打印）</td></tr>
+<tr><td>读者</td><td>要接手这套脚本的人 / 要把它工程化的人 / 学习者（每节末尾有 <span class="badge ok">学习要点</span>）</td></tr>
+<tr><td>依据</td><td>本仓库实测 + 本机 Lauterbach 官方 demo（<code>&lt;T32_INSTALL&gt;\demo\arm</code>）。<b>凡引用的路径、行号、体积均为实测</b></td></tr>
+<tr><td>状态</td><td>设计文档（方案 v2）。<b>不含</b>代码改动承诺；迁移见 §7，需逐项拍板</td></tr>
+<tr><td>不适用</td><td>不评价客户脚本质量；<b>不修改</b>只读资产（<code>third_party\</code>、<code>cmm\src_2210\</code>、<code>ramdump\</code>）</td></tr>
+</table>
+
+<div class="dgm">
+<div class="row">
+  <div class="node wide"><b>怎么读这份文档</b>
+    <span class="m">① 先读 §1 明白疼在哪 → ② §2/§3 看业界与官方怎么做 → ③ §4/§5 看目标长什么样 → ④ §6 看怎么防回归 → ⑤ §7 看怎么一步步走过去。§8–§10 是查阅用的对照表与索引。</span></div>
+  <div class="node k narrow" style="flex:0 0 260px"><b>一句话</b>
+    <span class="m">设计的核心不是"写更多脚本"，而是<b>把已经跑通的确定性固定成契约</b>，让 GUI、CLI、Python、AI 四个消费者都从同一份真相出发。</span></div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s0"><span class="num">0</span>三十秒摘要</h2>
+
+<p>本仓库已经跑通了一条完整的无人化链路：<b>2211 死机现场 → 13 段无 GUI 分析 → 报告 + 离线堆统计 → 与客户 GUI 的黄金基准判等价</b>。
+它证明了三件事：无头可行、文件契约可行、客户脚本可以一行不改地复用。剩下的问题<b>不是能力，而是形状</b>：地址写死在脚本里、平台差异靠人写分支、输出格式随脚本心情、门禁只覆盖了跑得通的部分。</p>
+
+<div class="dgm">
+  <div class="cap"><b>图 0-1</b> · 本文档要回答的六个问题（也是六章的入口）</div>
+  <div class="grid3">
+    <div class="card"><h5>Q1 为什么现在的写法撑不住？</h5><div class="q">→ §1：三个真实事故 + 体检数字</div></div>
+    <div class="card"><h5>Q2 成熟的工程长什么样？</h5><div class="q">→ §2：Linux 的七条惯用法映射</div></div>
+    <div class="card"><h5>Q3 调试器厂商自己怎么做？</h5><div class="q">→ §3：官方「导出脚本 + OS 感知」两件套</div></div>
+    <div class="card"><h5>Q4 目标架构是什么？</h5><div class="q">→ §4：五层、四条通道、目录树</div></div>
+    <div class="card"><h5>Q5 靠什么保证不退化？</h5><div class="q">→ §5 四契约 + §6 门禁七层</div></div>
+    <div class="card"><h5>Q6 怎么走过去？</h5><div class="q">→ §7：五步迁移，每步都有验收标准</div></div>
+  </div>
+</div>
+
+<div class="dgm">
+  <div class="cap"><b>图 0-2</b> · 这套设计的全部主张，压成一张图</div>
+  <div class="row">
+    <div class="node g"><b>数据是数据</b><span class="m">平台差异（地址、结构体偏移、符号名）放进 <code>platform.json</code>，由工具生成 <code>gen\*.cmm</code>，人不再手写地址</span></div>
+    <div class="arw">＋</div>
+    <div class="node"><b>接口是文件与参数</b><span class="m">不是屏幕与鼠标：<code>ENTRY %LINE &amp;sArguments</code> 进，<code>report.json</code> 出</span></div>
+    <div class="arw">＋</div>
+    <div class="node a"><b>无头是一等公民</b><span class="m">GUI 只是可插拔前端；同一份功能代码同时服务四个入口</span></div>
+    <div class="arw">＋</div>
+    <div class="node r"><b>真相只有一份</b><span class="m">功能的实现写一处（注册表）；门禁自动发现，不硬编码清单</span></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s1"><span class="num">1</span>为什么需要设计</h2>
+
+<h3 id="s1-1">1.1 现状五层：它已经是一套架构，只是没有写下来</h3>
+
+<div class="dgm">
+  <div class="cap"><b>图 1-1</b> · 现状分层（左：层名；中：盘上实体；右：该层的"接口"是什么）</div>
+  <div class="layers">
+    <div class="layer l5"><div class="id">L5</div><div class="bd"><b>人 / AI</b><span class="m">读差异、定位是"解析器 bug / 固件 bug / 用例设计 bug"</span></div><div class="right">接口：报告与 diff，不是调试器窗口</div></div>
+    <div class="layer l4"><div class="id">L4</div><div class="bd"><b>离线分析（纯 Python）</b><span class="m"><code>tools\heap_stats_offline.py</code>、<code>tools\check_entries_equiv.py</code></span></div><div class="right">接口：读 dump/报告字节，毫秒级、可并发、无需 license</div></div>
+    <div class="layer l3"><div class="id">L3</div><div class="bd"><b>文件契约</b><span class="m"><code>out\runs\</code> · <code>out\logs\</code> · <code>tests\*.sha256</code> · <code>tests\smoke\*.markers</code> · <code>cmm\functions.json</code></span></div><div class="right">接口：<b>结论走文件，不走 stdout/退出码</b></div></div>
+    <div class="layer l2"><div class="id">L2</div><div class="bd"><b>TRACE32 + PRACTICE</b><span class="m"><code>configs\</code> → <code>local\</code>（占位符展开）→ <code>cmm\</code> + <code>third_party\vendor\2210_trace32\</code>（t32 的 CWD）</span></div><div class="right">接口：<code>-c &lt;cfg&gt; -s &lt;script&gt;</code>；客户脚本<b>零改动</b></div></div>
+    <div class="layer l1"><div class="id">L1</div><div class="bd"><b>驱动器（PowerShell）</b><span class="m"><code>cli\run_smoke.ps1</code> · <code>cli\run_2211_ap.ps1</code> · <code>cli\run_2211_func.ps1</code> · <code>tests\run_all.ps1</code></span></div><div class="right">接口：起进程、超时兜底、杀 <code>t32*</code>、断言 marker</div></div>
+    <div class="layer l0"><div class="id">L0</div><div class="bd"><b>数据面（只读）</b><span class="m"><code>ramdump\2211_deathscene\</code>（9 件 / 35.6 MB，含客户 GUI 原件 <code>ap_PrintData.txt</code> 2.8 MB）</span></div><div class="right">接口：SHA256 清单；<b>任何人不改</b></div></div>
+  </div>
+</div>
+
+<p>为什么用<b>语言</b>而不是"风格"来分这五层？因为每一层的能力边界是被工具卡死的（详见 §8 对照表）：</p>
+<div class="grid4">
+  <div class="card"><h5>PRACTICE</h5><div class="q">唯一能进调试核的语言，也是客户的语言</div></div>
+  <div class="card"><h5>PowerShell</h5><div class="q">唯一能在 t32 挂死时救场（可杀进程、可超时）</div></div>
+  <div class="card"><h5>Python</h5><div class="q">唯一能无 license、可并发、毫秒级算字节</div></div>
+  <div class="card"><h5>JSON / .t32</h5><div class="q">是<b>契约</b>不是程序：人和机器都读得懂</div></div>
+</div>
+
+<div class="tip">"分层"不是为了好看。判断一个新东西该放哪层，只问一句：<b>它读什么、写什么？</b>读 dump 写报告 → L4；读参数进调试核 → L2；把结论变成一个可 diff 的文件 → L3。</div>
+
+<h3 id="s1-2">1.2 三个真实事故：设计缺陷的第一次代价</h3>
+
+<div class="dgm">
+  <div class="cap"><b>图 1-2</b> · 三个事故的因果链（都发生在"用客户 2210 脚本提取 2211 现场"那一轮）</div>
+
+  <div class="row mid">
+    <div class="node r narrow" style="flex:0 0 190px"><b>事故 A：零输出死循环</b><span class="m">客户 <code>print_dlmalloc_heap.cmm</code> 外层空闲链遍历 <b>没有环检测</b></span></div>
+    <div class="arw">→</div>
+    <div class="node narrow" style="flex:0 0 210px"><b>现象</b><span class="m">脚本永不返回、报告不落盘；只有 <code>marker</code> 证明它跑过</span></div>
+    <div class="arw">→</div>
+    <div class="node g narrow" style="flex:0 0 230px"><b>我们的对策</b><span class="m">自写有界 walker <code>cmm\heap_summary.cmm</code>：步数预算 + 两道缺失守卫 + 每 0x1000 步进度 marker</span></div>
+  </div>
+  <div class="down">▼</div>
+  <div class="row mid">
+    <div class="node r narrow" style="flex:0 0 190px"><b>事故 B：原地自旋</b><span class="m">另一个客户脚本 <code>print_mem_summary_by_file.cmm</code> 的块推进缺 <code>size==0</code> 守卫</span></div>
+    <div class="arw">→</div>
+    <div class="node narrow" style="flex:0 0 210px"><b>现象</b><span class="m">同样静默；监控 480 s 无进展</span></div>
+    <div class="arw">→</div>
+    <div class="node g narrow" style="flex:0 0 230px"><b>我们的对策</b><span class="m">两个客户堆脚本一律<b>不进</b>无头链，改由注册表标记 <code>safe:false</code>，等价判定里记为 <code>partial/no</code></span></div>
+  </div>
+  <div class="down">▼</div>
+  <div class="row mid">
+    <div class="node a narrow" style="flex:0 0 190px"><b>事故 C：报告被截断</b><span class="m">TRACE32 的 print AREA <b>只在 16 KB 缓冲满、或 <code>AREA.Close</code> 时</b>把内容写盘</span></div>
+    <div class="arw">→</div>
+    <div class="node narrow" style="flex:0 0 210px"><b>现象</b><span class="m">杀掉进程后报告恰好 <b>16384 B / 227 行</b>，而 marker 已到第 8 段 ⇒ 后面几段输出全丢</span></div>
+    <div class="arw">→</div>
+    <div class="node g narrow" style="flex:0 0 230px"><b>我们的对策</b><span class="m">整链必须跑到 <code>AREA.Close</code>；marker 作为<b>独立进度通道</b>存在；超时值从 300 s 提到 900 s</span></div>
+  </div>
+
+  <div class="cap"><b>三个事故的共同点：</b>它们都不是"脚本写错了"，而是<b>"没有契约"</b>——进程不会被超时保护、报告没有完整性凭据、输出目录没有原子落盘语义。设计要补的正是这些。</div>
+</div>
+
+<div class="warn">这里有两处<b>关于我自己</b>的诚实记录，因为它们是这套设计的直接理由：<br>
+① 我曾用 <code>[System.Text.Encoding]::Latin1</code> 做二进制提取——该类型在 Windows PowerShell 5.1 下<b>不存在</b>（返回 <code>$null</code>），于是所有敏感信息探针<b>静默假报"无命中"</b>；正确写法是 <code>GetEncoding(28591)</code>。<br>
+② 我曾把"目标目录不存在导致 <code>APPEND</code> 静默失败"误判成"相对路径不生效"，得出过一条<b>错误的铁律</b>。⇒ 凡是靠落盘判定的实验，必须先确认目录存在，并用绝对路径标记证明脚本真的执行过。</div>
+
+<h3 id="s1-3">1.3 现状体检数字（全部实测）</h3>
+
+<div class="dgm">
+  <div class="cap"><b>图 1-3</b> · 仓库规模与关键量（<code>git ls-files</code> = 76 个入库文件，含本文档）</div>
+  <div class="grid3">
+    <div class="card"><h5>资产（只读，不入库）</h5>
+      <div class="kv">
+        <b>ramdump\</b>9 件 / 35 646 924 B<br>
+        <b>third_party\</b>214 件 / 2 183 796 B<br>
+        <b>└ vendor\</b>166 件（客户 4 代脚本）<br>
+        <b>cmm\src_2210\</b>17 件（客户副本）
+      </div></div>
+    <div class="card"><h5>代码与契约（入库）</h5>
+      <div class="kv">
+        <b>cmm\</b>21 件<br>
+        <b>cli\</b>7 件<br>
+        <b>tools\</b>6 件<br>
+        <b>configs\</b>4 件<br>
+        <b>tests\</b>6 件
+      </div></div>
+    <div class="card"><h5>可动 / 留档（不入库）</h5>
+      <div class="kv">
+        <b>out\</b>388 件（运行产物）<br>
+        <b>local\</b>17 件（展开件 + 本机路径）<br>
+        <b>attic\</b>44 件（历史实验）<br>
+        <b>docs\</b>2 件（<code>rcl-api-notes.md</code> + 本文档）
+      </div></div>
+  </div>
+</div>
+
+<table class="data">
+<tr><th style="width:230px">指标</th><th style="width:150px">实测值</th><th>说明与来源</th></tr>
+<tr><td>入库文件</td><td class="c">76</td><td><code>git ls-files</code>；HEAD = <code>6ed145e</code>（第十二轮）之上新增本文档</td></tr>
+<tr><td>占位符</td><td class="c">43 文件 / 173 处</td><td>正则 <code>__[A-Z0-9_]+__</code>。其中<b>真·本机路径</b> 6 种 / 87 处；<b>模板槽位</b> 12 种 / 86 处</td></tr>
+<tr><td>客户脚本占位符</td><td class="c">0</td><td><code>third_party\vendor\</code> 166 件、<code>third_party\launchers\</code> 3 件全零命中 ⇒ 客户资产零改动</td></tr>
+<tr><td>参数化前的手写绝对路径</td><td class="c">131 处</td><td>参数化那一轮清点：<code>cmm\</code> 12 个脚本 + <code>configs\</code> 4 + <code>experiments\</code> 24 + <code>python\</code> 7 + README</td></tr>
+<tr><td>2210 平台的真实机器路径依赖</td><td class="c">2 处</td><td>只做 2211 时，整链 85 处占位符里只有 2 处是机器路径（两个 runner 各 1 处 <code>__T32_INSTALL__</code>）</td></tr>
+<tr><td>已注册的无头功能</td><td class="c">13</td><td><code>cmm\functions.json</code>；对应 GUI 的 11 个按钮；其中 10 个判 <code>PASS</code>、1 个判 <code>partial</code>（<code>thread_bt</code>）</td></tr>
+<tr><td>现有门禁段数</td><td class="c">6</td><td><code>tests\run_all.ps1</code>：编码 → 现场哈希 → 冒烟 → 2211 全量 → 单功能 → 等价判定</td></tr>
+<tr><td>黄金基准</td><td class="c">2 834 432 B</td><td><code>ramdump\2211_deathscene\ap_PrintData.txt</code>（SHA256 <code>04C86256…</code>）：客户 GUI 亲手跑出来的，<b>属于只读现场的一部分</b>。第十一轮已删掉从它复制出来的冗余 <code>tests\expected\</code> 副本。它不含 SYSINFO/ERRINFO——那两项在 GUI 的 dyntext 字段里，不落文件</td></tr>
+</table>
+
+<div class="note">体检数字里最值得注意的一栏是<b>「2210 平台的真实机器路径依赖 = 2 处」</b>。它说明：<b>这套脚本离"换台机器就能跑"只差两个配置值</b>。所以设计的重心不该是"抽象更多"，而是"把剩下的 2 处收进配置、把地址收进数据、把差异变成可 diff 的断言"。</div>
+
+<div class="tip">看数字的方法：<b>不要看"有多少脚本"，要看"有多少处人写的绝对值"</b>。地址、路径、结构体偏移、线程名——每一处手写值都是一个未来会静默出错的地方。</div>
+
+<!-- ============================================================ -->
+<h2 id="s2"><span class="num">2</span>参照系 A：Linux 的七条惯用法 → TRACE32 对应物</h2>
+
+<p>不要把 Linux 当"另一个项目"抄，而是当<b>一个成熟内核工程如何组织"多平台 + 多配置 + 可回归"的经验</b>来读。下面七条都能在本仓库找到落点。</p>
+
+<div class="dgm">
+  <div class="cap"><b>图 2-1</b> · 惯用法映射（左边是 Linux，右边是我们的目标形态，中间是"为什么能对应"）</div>
+  <table class="data">
+  <tr><th style="width:150px">Linux 惯用法</th><th style="width:36px" class="c">→</th><th style="width:230px">TRACE32 对应物</th><th>为什么能对应</th></tr>
+  <tr><td><code>arch/</code> 与 <code>kernel/</code> 分离</td><td class="c">→</td><td><code>platforms\&lt;p&gt;\</code> 与 <code>core\</code></td><td>平台相关的地址/符号是"arch"，跨平台的分析流程是"kernel"。<b>现状：两者混在 <code>cmm\</code> 与 <code>vendor\</code> 之间</b></td></tr>
+  <tr><td><code>Kconfig</code> + <code>.config</code></td><td class="c">→</td><td><code>configs\</code> 分层 + <code>platform.json</code></td><td>"选什么"是数据；一次运行 = <code>base</code> + <code>mode</code> + <code>target</code> 三份拼一份</td></tr>
+  <tr><td><code>make</code> / <code>make run</code></td><td class="c">→</td><td>统一入口（<code>make run PLATFORM=2210 FEATURE=heap</code>）</td><td>把"跑什么"变成一条可复制、可进 CI 的命令行</td></tr>
+  <tr><td><code>make O=out/</code>（源外构建）</td><td class="c">→</td><td><code>out\runs\</code> / <code>out\logs\</code> ✅ <b>已做</b></td><td>产物与源码同目录会污染 diff、被误提交。我们已经把 <code>runs\</code>+<code>logs\</code> 收进 <code>out\</code> 并忽略</td></tr>
+  <tr><td><code>checkpatch.pl</code></td><td class="c">→</td><td><code>tools\t32lint.py</code></td><td>把"踩过的坑"变成机器可查的规则：禁 <code>DIALOG.*</code>、禁绝对路径、<code>WHILE</code> 必须有步数上限</td></tr>
+  <tr><td><code>selftests/</code></td><td class="c">→</td><td><code>tests\{lint,unit,golden,matrix}</code></td><td>分层：贴规则的、不做 I/O 的、要与黄金基准比的、跨用例矩阵的，混在一起就没法挑着跑</td></tr>
+  <tr><td><code>MAINTAINERS</code> / <code>CODEOWNERS</code></td><td class="c">→</td><td><code>OWNERS</code></td><td>只读资产（<code>third_party\</code>、<code>ramdump\</code>）明确标"只读、改动需评审"</td></tr>
+  </table>
+</div>
+
+<div class="dgm">
+  <div class="cap"><b>图 2-2</b> · 一条命令的旅程（现状 vs 目标）</div>
+  <div class="row mid">
+    <div class="node"><b>现状</b><span class="m">人手 <code>cd</code> 到仓库根 → 手动展开 <code>local\*.t32</code> → <code>powershell -File cli\run_2211_ap.ps1</code> → 看 <code>out\runs\&lt;stamp&gt;\</code></span></div>
+    <div class="arw">⟹</div>
+    <div class="node g"><b>目标</b><span class="m"><code>make run PLATFORM=2210 FEATURE=all</code><br>展开、起停、超时、断言、结构化输出、判定，一条命令全包</span></div>
+  </div>
+  <div class="cap">关键差别不在"少敲几个字"，而在<b>命令行即文档</b>：CI、他人、AI 都能从这一行反推出依赖与产物。</div>
+</div>
+
+<div class="tip">Linux 真正值得学的是<b>"分层 + 数据驱动 + 可回归"</b>这三件事，而不是目录名。能不能把这三件事落进一个只有 21 个 <code>.cmm</code> 的小仓库？能——但要点到为止，见 §4.1 的取舍。</div>
+
+<!-- ============================================================ -->
+<h2 id="s3"><span class="num">3</span>参照系 B：Lauterbach 官方的「两件套」</h2>
+
+<p>上一节是类比，这一节是<b>同一条赛道上的标准答案</b>：TRACE32 官方为 Linux 内核准备的东西，就在你本机
+<code>&lt;T32_INSTALL&gt;\demo\arm</code> 里。<b>客户在 2100 那一代抄了它，2210/2211 这一代没抄</b>——这就是我们所有手工地址与堆链爬飞的根源。</p>
+
+<div class="dgm">
+  <div class="cap"><b>图 3-1</b> · 官方资产全景（路径 / 体积 / 行数均为实测）</div>
+  <pre style="margin:0">E:\software\InstallerEdition\DevTools\Trace32\demo\arm\
+├─ <b>etc\ramdump\ramdump.cmm</b>            33 862 B / 1125 行   <i>← 裸机通用「内存现场导出」</i>
+├─ etc\coredump\  sieve.core 208 896 B    <i>← 官方 core dump 三件套</i>
+│                 sievecrash.elf  25 238 B
+│                 sievecrash.c    10 668 B  <i>← 连崩溃源码都给了</i>
+└─ <b>kernel\linux\</b>
+    ├─ readme.txt 724 B                    <i>← 「按内核版本选对应的感知文件」</i>
+    ├─ linux.cmm 595 B                     <i>← 模板入口，指向 board\generic-template</i>
+    ├─ coreload.cmm / core_autoload.cmm / checksymbols.cmm
+    ├─ <b>awareness\</b>
+    │   ├─ ramdump.cmm      41 863 B / 1387 行  <i>← ★ Linux 专用「内存现场导出」</i>
+    │   ├─ <b>linux.t32      303 728 B</b>            <i>← ★ OS 感知描述（类型/参数）</i>
+    │   ├─ <b>linux.men       44 183 B</b>            <i>← ★ 感知菜单</i>
+    │   ├─ app_debug.cmm 29 290 / mod_debug.cmm 31 136   <i>← 用户态 / 内核模块调试</i>
+    │   └─ segv.cmm 4 928 / app_page_load.cmm 4 860      <i>← 聚焦分析脚本</i>
+    ├─ linux-3.x\ linux3.t32 + linux.men    <i>← 感知文件按内核版本分目录</i>
+    └─ board\
+        ├─ generic-template\ linux-attach.cmm / linux-boot.cmm / detect_translation.cmm
+        └─ simulator\ armv7_sim_linux.cmm + bin.zip 24 MB  <i>← 可复现的完整现场</i>
+</pre>
+  <div class="cap"><b>读法：</b><code>etc\ramdump</code> 管"怎么把现场存下来"，<code>kernel\linux</code> 管"怎么让调试器看懂现场"。<b>两件事被物理分开了。</b></div>
+</div>
+
+<h3 id="s3-1">3.1 导出侧：一个脚本、两个入口，产物是「可自恢复包」</h3>
+
+<p><code>ramdump.cmm</code> 头部自己写的 Usage（原文照抄）：</p>
+<div class="quote">;   Usage:
+;   - Interactive:
+;     DO &lt;path_to&gt;/ramdump.cmm
+;     Edit the settings in the dialog and then hit "STORE".
+;   - Script based:
+;     DO &lt;path_to&gt;/ramdump.cmm \
+;       MEM="&lt;comma separated list of absolute memory ranges&gt;" \
+;       SYMBOLFILE="&lt;path to symbolfile&gt;" TRACESAVE=&lt;0|1&gt; STOREFORMAT=&lt;0|1&gt;</div>
+
+<p>骨架只有七行（L44–60，原文）：</p>
+<pre>PRIVATE &amp;sArguments
+PRIVATE &amp;bDialog &amp;sMemoryRanges &amp;sSymbolFile &amp;bTraceSave &amp;nStoreFormat
+ENTRY %LINE &amp;sArguments                       <i>; ← %LINE = 整行剩余参数（一个"参数包"）</i>
+GOSUB checkSanity
+GOSUB parseArguments "&amp;sArguments"
+RETURNVALUES &amp;bDialog &amp;sMemoryRanges &amp;sSymbolFile &amp;bTraceSave &amp;nStoreFormat
+IF (&amp;bDialog)                                 <i>; ★ 交互只是一个可选分支</i>
+(
+  GOSUB showDialog
+  ENDDO
+)</pre>
+
+<div class="dgm">
+  <div class="cap"><b>图 3-2</b> · 「同一份代码服务 GUI 与 CLI」——官方写法 vs 我们的写法</div>
+  <div class="grid2">
+    <div class="card"><h5>官方：分支在<b>里面</b>（L44-60）</h5>
+      <pre style="margin:6px 0">DO ramdump.cmm MEM="..." \
+   SYMBOLFILE="..."          <i>; 无对话框</i>
+           │
+           ▼
+   parseArguments
+           │
+      IF (&amp;bDialog) ──► showDialog   <i>; 只有真交互才弹</i>
+</pre>
+      <div class="q">一份文件、一个入口、零重复。</div></div>
+    <div class="card"><h5>我们：外壳在<b>外面</b></h5>
+      <pre style="margin:6px 0">gui\config_sim.t32 + .lnk
+        │
+        ▼
+LM620_Restore.cmm   <i>; 27 处 DIALOG</i>
+        │  do restore.cmm "&amp;ramdump" "&amp;elf"
+        ▼
+cli\2211_ap_func.cmm.tmpl → local\func_*.cmm
+                            <i>; 无头外壳</i>
+</pre>
+      <div class="q">两份外壳、同一内核；能跑，但重复。</div></div>
+  </div>
+  <div class="cap"><b>结论：</b>要"统一抽象"，正确做法不是重写客户脚本，而是<b>把 DIALOG 收进一个 <code>showDialog</code> 子程序，由 <code>ENTRY %LINE</code> 的参数包决定走哪条</b>。这一步只有在 <code>src_2210</code> 真正成为"我们自己的代码"之后才做（见 §7 步骤④）。</div>
+</div>
+
+<h4>产物：不是一堆 bin，而是一个自带现场描述的包</h4>
+<table class="data">
+<tr><th style="width:250px">产物</th><th style="width:110px">生成位置</th><th>内容（关键行号）</th></tr>
+<tr><td><code>restore_&lt;unixTime&gt;.cmm</code></td><td>L70 起</td><td><b>主恢复脚本</b>（自动生成）：<code>RESet</code> / <code>SYStem.RESet</code> / <code>SYStem.CPU &lt;CPU()&gt;</code> / MMUSPACES·ZONESPACES·MACHINESPACES / <code>CORE.ASSIGN</code> / <code>SYStem.Up</code>（L91-134）</td></tr>
+<tr><td>↳ <b>OS 感知描述</b></td><td>L390-398</td><td><code>TASK.CONFIG "&lt;awareness 文件&gt;" /ACCESS …</code> —— <b>把"用什么感知"一起存进 dump</b></td></tr>
+<tr><td>↳ MMU 描述</td><td>L345-384</td><td><code>MMU.FORMAT &lt;DEFAULTPT&gt; …</code>（由 <code>MMU.DEFAULTPT()</code> / <code>MMU.DEFAULTTRANS.PHYSADDR()</code> 推得）</td></tr>
+<tr><td>↳ 内存引用</td><td>L142 起</td><td>逐 range 的 <code>DO</code>；支持 <code>MEM="&lt;symbol.list.section&gt;"</code> 按符号段展开（L147-169）</td></tr>
+<tr><td><code>&lt;t&gt;_reg_core&lt;i&gt;.cmm</code></td><td>L189-191</td><td>每个逻辑核的寄存器：<code>STOre "./&amp;(sFilename)" Register</code></td></tr>
+<tr><td><code>&lt;t&gt;_spr_core&lt;i&gt;_&lt;mode&gt;.cmm</code></td><td>L252-263</td><td>系统寄存器：<code>PER.STOre … "AArch64"/"AArch32"</code>（按模式分文件）</td></tr>
+<tr><td>内存本体</td><td>—</td><td>二进制（zip）或 <b>SRecord</b>——官方明说后者 "robust against busfaults"</td></tr>
+<tr><td>进度</td><td>全程</td><td><code>SPRINTF &amp;sProgressText "Step: …"</code> —— <b>官方也有"进度通道"</b></td></tr>
+<tr><td>自我守卫</td><td>L78-88</td><td><code>IF !SIMULATOR() ( PRINT %ERROR "Please execute this script in a TRACE32 Simulator!" ENDDO )</code></td></tr>
+</table>
+
+<div class="quote">L329 的注释（官方自己的诚实提醒）：
+; The stored MMU.&lt;&gt;, TRANSlation.&lt;&gt;, TASK.&lt;&gt; commands will be incomplete and/or misleading!</div>
+
+<div class="tip">"dump = 数据 + 自动生成的恢复脚本 + 环境描述" 是这套设计的<b>核心洞见</b>：拿到包的人不需要知道地址，也不需要问导出者"你当时怎么配的"。<br>
+对照我们手上的 2211 现场：9 个平铺 bin + 一个 25 MB 的 <code>cpu-ap.elf</code>，加载地址写死在客户 <code>restore.cmm</code> 里，<b>没有恢复脚本、没有 CPU/MMU/感知描述、没有构建指纹</b>。</div>
+
+<h3 id="s3-2">3.2 分析侧：感知层（awareness）才是主体</h3>
+
+<div class="dgm">
+  <div class="cap"><b>图 3-3</b> · 感知层怎么接进来（原文与行号）</div>
+  <div class="row">
+    <div class="node narrow" style="flex:0 0 300px"><b>① 挂上感知</b>
+      <pre style="margin:6px 0">; load linux kernel awareness
+TASK.CONFIG ~~/demo/arm/kernel/linux/awareness/linux.t32</pre>
+      <span class="m"><code>board\generic-template\linux-attach.cmm</code> L53-54</span></div>
+    <div class="arw">→</div>
+    <div class="node narrow" style="flex:0 0 260px"><b>② 前提：符号表</b>
+      <span class="m">感知靠 <code>.elf</code> 里的类型与符号工作（<b>没有符号就没有感知</b>）。KVM 场景加 <code>/ACCESS H:</code>（<code>linux-attach-vhe.cmm</code> L53）</span></div>
+    <div class="arw">→</div>
+    <div class="node a narrow" style="flex:0 0 250px"><b>③ 陷阱：会被关掉</b>
+      <span class="m"><code>SYStem.Down</code> 会禁用感知，之后必须<b>重新 <code>TASK.CONFIG</code></b>（<code>linux-boot.cmm</code> L183-187 的原注释：「got disabled by <code>SYStem.Down</code>」）</span></div>
+    <div class="arw">→</div>
+    <div class="node g narrow" style="flex:0 0 250px"><b>④ 能力：语义查询</b>
+      <span class="m"><code>TASK.List</code> / <code>TASK.Switch</code> / <code>MMU.&lt;&gt;</code> / <code>sYmbol.List.SECtion</code> —— 而不是手写链表遍历</span></div>
+  </div>
+  <div class="cap">另有两处印证：演示工程 <code>board\simulator\armv7_sim_linux.cmm</code> L211-214 就是 <code>TASK.CONFIG</code> + <code>MENU.ReProgram</code> 两行；<code>detect_translation.cmm</code> L321/L324 直接 <code>PRINTF</code> 出这两条命令。感知文件<b>按内核版本分目录</b>（<code>linux-2.x\</code> / <code>linux-3.x\</code> / <code>awareness\</code>），<code>readme.txt</code> 原话："Please use the appropriate awareness files depending on your kernel version"。</div>
+</div>
+
+<div class="dgm">
+  <div class="cap"><b>图 3-4</b> · 同一个需求的两种活法（左边是 Linux 侧，右边是我们 2210 侧）</div>
+  <div class="grid2">
+    <div class="card o"><h5>官方 Linux：查</h5>
+      <pre style="margin:6px 0">TASK.CONFIG linux.t32
+TASK.List            <i>; 线程列表</i>
+TASK.Switch 1234     <i>; 切到某线程</i>
+MMU.&lt;&gt;               <i>; 地址翻译</i>
+</pre>
+      <div class="q">调试器<b>知道</b>结构体类型与线程链表，脚本只写"问什么"。</div></div>
+    <div class="card"><h5>我们 2210：爬</h5>
+      <pre style="margin:6px 0">WHILE &amp;p != &amp;b
+  &amp;p = Var.Value(((mbinptr)&amp;p)-&gt;bk)
+  ...
+ENDDO
+</pre>
+      <div class="q">调试器只认识"地址和字节"，脚本得自己<b>复现</b> dlmalloc 的链表语义——于是有了事故 A/B。</div></div>
+  </div>
+  <div class="cap"><b>这就是 §7 步骤⑤ 被称为"质变"的原因：</b>把"爬链"换成"查询"，不是优化，是换了一件工具。</div>
+</div>
+
+<div class="note">注意历史脉络：<code>third_party\vendor\2100_trace32\</code> 里就有 <code>oneos.t32</code>（37 132 B）与 <code>oneos.men</code>（13 045 B），客户脚本里也有 <code>TASK.CONFIG "~~~~/oneos.t32"</code> + <code>MENU.ReProgram "~~~~/oneos.men"</code>。<b>2100 那一代是有感知层的；2210/2211 这一代没有</b>，只留下了 <code>OS.PEF()</code> / <code>DIALOG.*</code> 拼出来的手工外壳。</div>
+
+<h3 id="s3-3">3.3 官方工程惯例（可直接抄）与一处更正</h3>
+
+<div class="grid2">
+  <div class="card"><h5>① 头部元数据块</h5>
+    <pre style="margin:6px 0">; @Title:        Ramdump generation script ...
+; @Description:  ...
+; @Keywords:     ...
+; @Props:        ...
+; @Author:       ...
+; @Copyright:    (C) 1989-2022 Lauterbach GmbH,
+;                licensed for use with TRACE32(R) only
+; $Id: ramdump.cm 12059 2026-03-20 15:14:21Z amerkle $
+;
+; Usage:
+;   - Interactive: ...
+;   - Script based: ...
+; Parameters:
+;   MEM=...   SYMBOLFILE=...</pre>
+    <div class="q">本仓库的 <code>@id/@entry/@output</code> 提议<b>不是自创</b>，是这套惯例的扩展。</div></div>
+  <div class="card"><h5>② 机制清单（我上一轮说错过，此处更正）</h5>
+    <div class="kv">
+      <b>PRIVATE</b>文件/模块作用域的量<br>
+      <b>ENTRY %LINE &amp;x</b>整行参数包<br>
+      <b>GOSUB / RETURNVALUES / PARAMETERS</b>带返回值的子程序<br>
+      <b>SPRINTF</b>拼串<br>
+      <b>RePeaT</b>循环<br>
+      <b>OS.FILE() / OS.PSD() / DATE.UnixTime()</b>环境与时间
+    </div>
+    <div class="warn" style="margin:10px 0 0">我曾说 PRACTICE「没有模块系统、没有返回值」——<b>错的</b>。官方脚本把这三个机制用得很足（<code>ramdump.cmm</code> 的 <code>parseArguments</code>/<code>showDialog</code>/<code>storeMemoryRange</code> 就是子程序）。⇒ "现代化" = <b>用足 PRACTICE 已有的机制</b>，不是引入外部范式。</div></div>
+  <div class="card"><h5>③ 占位符惯例</h5>
+    <pre style="margin:6px 0">&lt;tbd&gt;   <i>; 官方模板的占位符</i>
+; please replace all &lt;tbd&gt; placeholders</pre>
+    <div class="q">官方靠<b>人工替换</b>；本仓库靠 <code>local\paths.psd1</code> <b>机器展开</b>（173 处占位符中的 87 处本机路径都从这里来）。这一点我们比官方现代——但代价是"忘了展开会静默走错"。</div></div>
+  <div class="card"><h5>④ 目录与夹具惯例</h5>
+    <div class="kv">
+      <b>demo\&lt;arch&gt;\kernel\&lt;os&gt;\</b>OS 专属脚本与感知<br>
+      <b>board\&lt;board&gt;\</b>板级接入<br>
+      <b>etc\</b>附加工具<br>
+      <b>awareness\</b>感知文件与聚焦分析脚本同居<br>
+      <b>etc\coredump\</b>源码 + ELF + core 三件套<br>
+      <b>board\simulator\</b>脚本 + <code>bin.zip</code>（24–33 MB）
+    </div>
+    <div class="q">最后两条 = <b>"可复现的完整现场"是一等公民</b>。这正是 <code>ramdump\2211_deathscene</code>（含人工基线 <code>ap_PrintData.txt</code>）的思路，但我们缺"产生它的源码与构建信息"。</div></div>
+</div>
+
+<div class="tip">官方也有它做不到的事：<code>demo\arm\kernel\</code> 下 67 个 OS 目录（freertos / threadx / ucos-iii / zephyr / vxworks …）里<b>没有 rtthread</b>。所以"2210 的感知文件"这条路<b>没有现成可抄</b>，要么自己写 <code>rtos.t32</code>，要么承认它需要独立立项（§7 步骤⑤ 因此排在最后）。</div>
+
+<!-- ============================================================ -->
+<h2 id="s4"><span class="num">4</span>目标架构</h2>
+
+<h3 id="s4-1">4.1 三条设计公理（与一条自我约束）</h3>
+
+<div class="dgm">
+  <div class="cap"><b>图 4-1</b> · 公理 → 直接后果</div>
+  <table class="data">
+  <tr><th style="width:210px">公理</th><th style="width:330px">直接后果</th><th>反例（现在就有人这么想）</th></tr>
+  <tr><td><b>A1 无头是一等公民</b><br><span class="footnote">GUI 只是可插拔前端</span></td>
+      <td>功能实现不写在按钮回调里；GUI 外壳只做"收集参数 + 显示结果"</td>
+      <td>"先点 GUI 抓到问题，再考虑怎么自动化" ⇒ 自动化永远追着 GUI 跑</td></tr>
+  <tr><td><b>A2 平台差异是数据</b><br><span class="footnote">不是代码分支</span></td>
+      <td>地址 / 结构体偏移 / 符号名进 <code>platform.json</code>；脚本里只出现名字</td>
+      <td>"2100 和 2210 不一样，那就 <code>IF</code> 一下" ⇒ 分支数随平台数乘性增长</td></tr>
+  <tr><td><b>A3 接口是文件与参数</b><br><span class="footnote">不是屏幕与鼠标</span></td>
+      <td>入口是 <code>ENTRY %LINE</code> / 命令行；出口是 <code>report.json</code> / 退出码</td>
+      <td>"看那个窗口里打印的对不对" ⇒ 不可 diff、不可回归、不可交给 AI</td></tr>
+  <tr><td><b>自我约束：点到为止</b></td>
+      <td><code>core\</code> 只放四件小事（引导 / 输出 / marker / 收尾）；抽象不超过两层；不造框架</td>
+      <td>"我们做一个 PRACTICE 的微内核" ⇒ 调试脚本变成了要调试的软件</td></tr>
+  </table>
+</div>
+
+<div class="warn">为什么强调"点到为止"？因为 <b>PRACTICE 不是编程语言</b>：没有数组、没有真正的作用域链、字符串处理靠 <code>STRing.*</code> 拼、<code>do</code> 不是 include（是"执行另一个文件"）。
+在它上面做三层抽象，复杂度会全部转嫁到"脚本为什么不跑"上——而这正是我们已经花了几轮去查的东西。</div>
+
+<h3 id="s4-2">4.2 目标五层与四条通道</h3>
+
+<div class="dgm">
+  <div class="cap"><b>图 4-2</b> · 四条通道，同一个内核（这是"一个功能，多个入口"的完整形态）</div>
+  <div class="row">
+    <div class="node p narrow" style="flex:0 0 200px"><b>① GUI 通道</b>
+      <span class="m"><code>gui\*.lnk</code><br>+ <code>configs\sim-gui.t32</code><br>→ 客户 <code>LM620_Restore.cmm</code></span></div>
+    <div class="node narrow" style="flex:0 0 200px"><b>② CLI 批处理通道</b>
+      <span class="m"><code>cli\run_*.ps1</code><br><code>-c &lt;cfg&gt; -s &lt;script&gt;</code><br>→ <code>out\runs\</code></span></div>
+    <div class="node narrow" style="flex:0 0 200px"><b>③ RCL 通道（TCP）</b>
+      <span class="m"><code>cli\rcl_smoke.py</code><br><code>dbg.cmd("…")</code><br>逐条下发</span></div>
+    <div class="node narrow" style="flex:0 0 200px"><b>④ 离线通道（无 t32）</b>
+      <span class="m"><code>tools\heap_stats_offline.py</code><br>直接读 dump 字节</span></div>
+  </div>
+  <div class="down">▼ ▼ ▼ <small>四条通道都只是"运输方式"</small></div>
+  <div class="row">
+    <div class="node g wide"><b>同一个功能内核</b>
+      <span class="m"><code>platforms\&lt;p&gt;\features\&lt;id&gt;.cmm</code>（+ <code>core\</code> 提供的引导/输出/marker/收尾）<br>
+      功能的实现<b>只写一遍</b>；注册表 <code>features.json</code> 说明它是谁、要什么、产出什么</span></div>
+  </div>
+  <div class="cap"><b>现状对照：</b>②③④ 已经存在，① 是客户原件；我们已有的"注册表 + 单功能驱动器"本质上就是这张图的雏形（详见 §8）。</div>
+</div>
+
+<div class="dgm">
+  <div class="cap"><b>图 4-3</b> · 目标分层（与图 1-1 同构，但每层职责被切干净）</div>
+  <div class="layers">
+    <div class="layer l5"><div class="id">L5</div><div class="bd"><b>人 / AI</b><span class="m">只读 <code>report.json</code> 与 diff，写结论、提用例</span></div><div class="right">不许进 L1/L2（回归必须无 AI 也能跑）</div></div>
+    <div class="layer l4"><div class="id">L4</div><div class="bd"><b>Python 分析层</b><span class="m">解析 / 断言 / 对账 / 等价判定</span></div><div class="right">纯函数式、可并发、免 license</div></div>
+    <div class="layer l3"><div class="id">L3</div><div class="bd"><b>契约层</b><span class="m"><code>features.json</code> · <code>platform.json</code> · <code>report.json</code> · <code>*.sha256</code> · <code>*.markers</code></span></div><div class="right">人可读、机器可校验、可 diff</div></div>
+    <div class="layer l2"><div class="id">L2</div><div class="bd"><b>PRACTICE 层</b><span class="m"><code>core\</code>（4 件小工具）+ <code>platforms\&lt;p&gt;\</code>（感知 / 生成 / 功能）+ <code>third_party\</code>（只读参考）</span></div><div class="right">只有这里能进调试核</div></div>
+    <div class="layer l1"><div class="id">L1</div><div class="bd"><b>驱动器层</b><span class="m">展开占位符 → 起进程 → 超时兜底 → 杀干净 → 断言 → 落 <code>out\runs\</code></span></div><div class="right">只有这里能救活挂死的 t32</div></div>
+    <div class="layer l0"><div class="id">L0</div><div class="bd"><b>数据面</b><span class="m"><code>ramdump\</code>（现场，含黄金原件）+ <code>third_party\</code>（参考实现）</span></div><div class="right">只读；SHA256 固化</div></div>
+  </div>
+</div>
+
+<h3 id="s4-3">4.3 目标目录树</h3>
+
+<div class="dgm">
+  <div class="cap"><b>图 4-4</b> · 目标目录树（右注：现状里对应的东西；<b>绿=已有</b>，<b>蓝=新增</b>，<b>红=原样保留只读</b>）</div>
+<pre class="tree">Trace32_Auto/
+├── README.md                  <s>已有</s>  <em>导航 + 铁律 + 写入历史</em>
+├── Makefile                   <b>新增</b>  <em>唯一入口：make run PLATFORM=… FEATURE=… / make check</em>
+├── OWNERS                     <b>新增</b>  <em>只读资产的评审归属（third_party / ramdump 与 tests 里的契约文件）</em>
+│
+├── configs/                   <s>已有 4 件</s>
+│   ├── base.t32               <b>新增</b>  <em>SYS/PBI/PRINTER 等"每台机器都要"的（原 sim-minimal）</em>
+│   ├── modes/                 <b>新增</b>  <em>三种运行模式：</em>
+│   │   ├── headless.t32       <em>SCREEN=OFF，无 RCL（原 sim-batch）</em>
+│   │   ├── rcl-tcp.t32        <em>RCL=NETTCP PORT=20000（原 sim-rcl-tcp-20000）</em>
+│   │   └── gui.t32            <em>客户 GUI 原件（原 sim-gui）</em>
+│   └── targets/               <b>新增</b>  <em>每个平台/芯片一份：SYStem.CPU、内存布局引用</em>
+│
+├── core/                      <b>新增</b>  <em>跨平台、只读、四件小事（每件 &lt; 60 行）</em>
+│   ├── entry.cmm              <em>PRIVATE + ENTRY %LINE 参数包解析（仿官方 ramdump.cmm L44-60）</em>
+│   ├── output.cmm             <em>AREA 创建/定向 out\runs | 结构化打印</em>
+│   ├── marker.cmm             <em>进度 marker 写入（唯一被"断言"的通道）</em>
+│   └── finish.cmm             <em>AREA.Close + QUIT</em>
+│
+├── platforms/                 <b>新增</b>  <em>一个平台一个目录（对应 Linux 的 arch/）</em>
+│   └── 2210/
+│       ├── platform.json      <em>地址 / 结构体偏移 / 符号名（唯一手写真值的地方）</em>
+│       ├── gen/               <em>由 platform.json 生成：memory.cmm / offsets.cmm（禁手改）</em>
+│       ├── awareness/         <em>rtos.t32 + rtos.men（仿官方 linux.t32，见 §7 步骤⑤）</em>
+│       ├── features/          <em>一个功能一个文件：load.cmm / thread_bt.cmm / heap.cmm …</em>
+│       └── vendor/            <u>客户脚本原件副本（只读，sha256 固化）</u>
+│
+├── features.json              <b>新增</b>  <em>注册表：id / platform / entry / output / requires / interactive / safe</em>
+│
+├── entry/                     <b>新增</b>  <em>四个门卫（薄）</em>
+│   ├── run.cmm                <em>批处理总入口（展开后由 -s 调用）</em>
+│   ├── gui/                   <s>已有</s> <em>客户 GUI 壳 + 生成的 .lnk</em>
+│   └── rcl/                   <s>已有</s> <em>Python 侧连接与断言</em>
+│
+├── cmm/                       <s>已有 21 件</s> <em>过渡期保留：正在被 core/ platforms/ 吸收</em>
+├── cli/                       <s>已有 7 件</s> <em>驱动器（PowerShell / Python）</em>
+├── tests/                     <s>已有 6 件</s>
+│   ├── lint/                  <b>新增</b>  <em>规则检查（目标：tools/t32lint.py）</em>
+│   ├── unit/                  <b>新增</b>  <em>不需要 t32 的纯函数测试（Python 侧）</em>
+│   ├── golden/                <s>已有</s> <em>与 <code>out\runs\</code> 里人工确认过的报告比对（双入口等价判定已在此列）</em>
+│   ├── matrix/                <b>新增</b>  <em>用例矩阵：故障类型 × 内存区域</em>
+│   └── smoke/                 <s>已有</s> <em>*.markers 数据</em>
+│
+├── tools/                     <s>已有 6 件</s> <em>哈希 / 等价 / 快捷方式 / 编码闸门 / 离线堆算 / 生成器</em>
+├── docs/                      <s>已有</s> <em>本文档放 docs/design/</em>
+├── out/                       <s>已有 388 件</s> <em>runs/ + logs/（不入库）</em>
+├── local/                     <s>已有 17 件</s> <em>本机路径 + 展开件（不入库）</em>
+├── attic/                     <s>已有 44 件</s> <em>历史实验与失败配置（留档证据）</em>
+├── ramdump/                   <s>已有 9 件</s> <u>死机现场（只读）</u>
+└── third_party/               <s>已有 214 件</s>
+    ├── vendor/                <u>客户 4 代脚本原件（只读）</u>
+    ├── orig/                  <b>新增</b>  <em>被提升前的 src_2210 只读留档 + sha256</em>
+    └── trace32_rcl/           <s>已有</s> <em>RCL 的 Python 库</em>
+</pre>
+  <div class="cap"><b>三个刻意的设计：</b>① <code>platforms\2210\features\</code> 的文件名 = 功能名 = 报告名（人、脚本、AI 用同一套词）；② <code>gen\</code> 与 <code>vendor\</code> 都<b>禁止手改</b>（前者由生成器管、后者由哈希管）；③ 只读资产全部集中在 <code>third_party\</code> + <code>ramdump\</code>，一眼可判"能不能动"。</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s5"><span class="num">5</span>四个契约</h2>
+
+<p>"契约"= <b>人和机器都遵守、且能被自动检查</b>的约定。四个契约分别管：怎么起、真值在哪、功能长什么样、产出什么。</p>
+
+<h3 id="s5-1">C1 · 配置分层：三份拼一份</h3>
+
+<div class="dgm">
+  <div class="cap"><b>图 5-1</b> · C1 合成规则（一列一份，纵向是"必须有的"，横向是"可换的"）</div>
+  <table class="data">
+  <tr><th style="width:130px">分层</th><th style="width:230px">回答什么问题</th><th style="width:300px">典型内容</th><th>本仓库现状</th></tr>
+  <tr><td><b>base.t32</b></td><td>这台机器上的 TRACE32 在哪、什么后端</td><td><code>SYS=__T32_INSTALL__</code> · <code>PBI=SIM</code> · <code>PRINTER=WINDOWS</code></td><td><code>sim-minimal.t32</code>（384 B）</td></tr>
+  <tr><td><b>modes/*.t32</b></td><td>这次是"无人化"还是"人在看"</td><td><code>SCREEN=OFF</code> · 或 <code>RCL=NETTCP</code> + <code>PORT=20000</code> + <code>PACKLEN=1024</code></td><td><code>sim-batch</code>（498 B）/ <code>sim-rcl-tcp-20000</code>（622 B）/ <code>sim-gui</code>（857 B）</td></tr>
+  <tr><td><b>targets/&lt;chip&gt;.t32</b></td><td>这次调的是哪颗芯片、什么内存布局</td><td><code>SYStem.CPU RV32</code> · 内存别名 · 加载地址引用</td><td><b>缺</b>：目前散落在客户 <code>restore.cmm</code> 里</td></tr>
+  </table>
+  <div class="cap"><b>落盘方式：</b>驱动器把三份按顺序拼成 <code>local\&lt;run&gt;.t32</code> 再交给 <code>-c</code>。<b>合成结果也进 <code>out\runs\&lt;run&gt;\meta.json</code></b>——这样"报告是怎么跑出来的"永远可回溯。</div>
+</div>
+
+<div class="warn">分层以后，<b>铁律 1（配置文件必须用空行分组）依然是硬约束</b>：TRACE32 靠空行分组理解配置，拼接时不加空行会开出"不带 for ARM 的窗口"，然后 <code>-s</code> 脚本<b>从不执行</b>、进程挂到被杀。所以合成器必须在每份之间插空行，并由 lint 检查（见 §6）。</div>
+
+<h3 id="s5-2">C2 · 平台数据化：<code>platform.json</code> → <code>gen\*.cmm</code></h3>
+
+<div class="dgm">
+  <div class="cap"><b>图 5-2</b> · C2 的数据流（人只写左边，右边全部生成）</div>
+  <div class="row mid">
+    <div class="node narrow" style="flex:0 0 250px"><b>人写：platform.json</b>
+      <span class="m">地址 / 结构体偏移 / 符号名 / 别名<br>带注释与单位，可 diff</span></div>
+    <div class="arw">→<small>tools\gen_platform.py</small></div>
+    <div class="node narrow" style="flex:0 0 240px"><b>生成：gen\memory.cmm</b>
+      <span class="m"><code>&amp;IRAM_BASE=0x10200000</code><br><code>&amp;PSRAM_BASE=0x80000000</code> …</span></div>
+    <div class="node narrow" style="flex:0 0 240px"><b>生成：gen\offsets.cmm</b>
+      <span class="m"><code>&amp;OFF_THREAD_STACK=…</code><br>（由 ELF/DWARF 校验，不靠人抄）</span></div>
+    <div class="arw">→</div>
+    <div class="node g narrow" style="flex:0 0 200px"><b>功能脚本：只写名字</b>
+      <span class="m"><code>Data.LOAD.Binary "&amp;RAMDUMP\IRAM.bin" &amp;IRAM_BASE</code></span></div>
+  </div>
+  <div class="cap"><b>校验两遍：</b>① 生成时用 <code>pyelftools</code> 读 <code>cpu-ap.elf</code> 的 DWARF，核对结构体偏移；② 运行时由强自检断言"walk 出的总量必须等于 arena 的 <code>used</code>"（现在这条已经跑通：<b>6028 块 / Σsize 0x17CE08 vs arena used 0x17CEC0，差 184 B</b>）。</div>
+</div>
+
+<div class="grid2">
+  <div class="card"><h5>为什么偏移必须由 ELF 校验，而不是人抄</h5>
+    <div class="q">结构体偏移是"固件一改就失效"的值，而且失效方式通常是<b>读到错的地址而不报错</b>。让工具从 25 MB 的 <code>cpu-ap.elf</code> 里读 DWARF，重新构建后 <code>gen\offsets.cmm</code> 自动更新——<b>这是把"记得改"变成"不可能忘"</b>。</div></div>
+  <div class="card"><h5>为什么禁手改 <code>gen\</code></h5>
+    <div class="q">生成物的头部写一行 <code>; AUTO-GENERATED from platform.json — DO NOT EDIT</code>；lint 检查"若 <code>platform.json</code> 的 sha256 与 <code>gen\</code> 头部记录不一致 ⇒ 报错"。同一条思路已经用在仓库的编码闸门上（清单来自 <code>git ls-files</code>，不硬编码）。</div></div>
+</div>
+
+<h3 id="s5-3">C3 · feature 接口：一个功能 = 一个文件 + 一个头</h3>
+
+<div class="dgm">
+  <div class="cap"><b>图 5-3</b> · C3 的接口头与它在两条通道里的位置</div>
+<pre>; @id:        heap                 <i>; 唯一名字 = 文件名 = 报告名 = 注册表键</i>
+; @platform:  2210
+; @entry:     do heap.cmm &amp;ARENA_SYM &amp;TAG     <i>; 接口（怎么被调用）</i>
+; @output:    chunks.txt                     <i>; 产出（写到哪，叫什么）</i>
+; @requires:  sym:g_osApSystemMem            <i>; 前置条件（缺了要能优雅跳过）</i>
+; @interactive: no                            <i>; ★ GUI 通道能否调用；yes 的功能不进无头链</i>
+; @safe:      yes                             <i>; 有界性：是否有步数预算</i>
+; @since:     2026-10
+PRIVATE &amp;memheap &amp;tag
+ENTRY &amp;memheap &amp;tag
+&lt;功能实现：只写"问什么"，地址来自 gen/，输出走 core/output.cmm&gt;</pre>
+  <div class="cap"><b>注册表 <code>features.json</code> 只是把同样的字段集中一份</b>，让驱动器、GUI 生成器、等价判定、AI 都从同一处读。当前 <code>cmm\functions.json</code> 已经具备 <code>name/kind/button/safe/equiv/gui/vendor/desc/body</code> 八个字段，扩展路径明确。</div>
+</div>
+
+<table class="data">
+<tr><th style="width:34px" class="c">#</th><th style="width:250px">lint 规则</th><th style="width:300px">为什么必须有</th><th>怎么判</th></tr>
+<tr><td class="c">1</td><td>头部字段齐全（<code>@id/@entry/@output/@requires/@interactive</code>）</td><td>没有 <code>@interactive</code> 就不知道这个功能能不能进无头链</td><td>解析前若干行，缺字段即失败</td></tr>
+<tr><td class="c">2</td><td><code>platforms\*\features\*.cmm</code> 里<b>禁止</b> <code>DIALOG.*</code> / <code>STOP</code> / <code>AREA.view</code></td><td>铁律 2：<code>SCREEN=OFF</code> 下 <code>DIALOG.*</code> <b>永久挂死</b>，无超时无报错</td><td>正则命中即失败</td></tr>
+<tr><td class="c">3</td><td>禁止绝对路径（<code>[A-Za-z]:\\</code>）</td><td>公开仓库 + 换机器 ⇒ 机器路径只能进 <code>local\</code></td><td>正则 + 白名单（注释里的示例除外）</td></tr>
+<tr><td class="c">4</td><td>每个 <code>WHILE</code> 必须有步数上限（<code>&amp;budget</code> 或计数器）</td><td>事故 A/B：客户脚本就是<b>没有上限</b>才静默自旋</td><td>统计 <code>WHILE</code> 与其作用域内是否有 budget 变量</td></tr>
+<tr><td class="c">5</td><td>配置文件必须空行分组（含合成后的 <code>local\*.t32</code>）</td><td>铁律 1：违反 ⇒ 脚本从不执行、进程挂死</td><td>检查空行分组与必需键</td></tr>
+</table>
+
+<div class="tip">这五条 lint 规则合起来就是 <b><code>tools\t32lint.py</code> = 我们自己的 <code>checkpatch.pl</code></b>。它们几乎全部是从<b>真实事故</b>里长出来的——这正是"把踩过的坑变成机器可查的规则"的实例。</div>
+
+<h3 id="s5-4">C4 · 输出结构化：一次运行 = 一个自解释目录</h3>
+
+<div class="dgm">
+  <div class="cap"><b>图 5-4</b> · C4 的产物布局与它的消费者</div>
+<pre class="tree">out/runs/2210/2211_ap/2026-10-08T16-33-29/
+├── report.txt          <s>已有</s>  <em>给人看的人类可读报告（TRACE32 AREA 落盘）</em>
+├── report.json         <b>新增</b>  <em>给机器/AI：结构化的段与结论</em>
+├── heap_by_file.txt    <s>已有</s>  <em>离线/在线堆统计的同构输出</em>
+├── run.log             <s>已有</s>  <em>marker 通道（进度与闸门的数据源）</em>
+└── meta.json           <b>新增</b>  <em>这次是怎么跑出来的：可复现凭据</em>
+      ├── t32 版本 / 配置文件 sha256 / 脚本 git sha
+      ├── 现场文件 sha256（对 ramdump/ 的 9 件）
+      ├── 参数（PLATFORM / FEATURE / RAMDUMP_DIR / ELF）
+      └── 时间、耗时、退出码
+</pre>
+  <div class="cap"><b>三个设计要点：</b>① <b>时间戳目录</b>，运行永不覆盖历史（已经这么做了）；② <b><code>report.txt</code> 与 <code>report.json</code> 并存</b>——人读前者，机器比后者，两者由同一段逻辑产出，不允许"报告改了 JSON 没改"；③ <b>黄金基准不存绝对地址</b>：golden 用"符号名 + 行号"或经 ELF 规范化后再 diff，否则换一次构建就全红（这条已经写在现有报告的方案里）。</div>
+</div>
+
+<div class="grid2">
+  <div class="card"><h5><code>report.json</code> 最小骨架</h5>
+    <pre style="margin:6px 0">{
+  "case": "2211_ap",
+  "platform": "2210",
+  "sections": [
+    {"id":"sysinfo","ok":true,"lines":1},
+    {"id":"errinfo","ok":true,"lines":12,
+     "exc":{"core":"AP","mcause":"Store access fault"}},
+    {"id":"heap","ok":true,
+     "chunks":6028,"bytes_total":"0x17CE08",
+     "arena_used":"0x17CEC0","delta":184,
+     "stop":"bounded-budget"}
+  ],
+  "verdict": "PASS"
+}</pre></div>
+  <div class="card"><h5>为什么会自动变成"闸门"</h5>
+    <div class="q">一旦 <code>report.json</code> 存在，<code>tests\run_all.ps1</code> 就能<b>断言</b>它：段齐不齐、关键字段在不在、堆的 <code>delta</code> 是否落在容差内。这正是现有 README §7 里记的缺口 <b>[5] 断言判定</b> 的落地形态——只不过从"解析文本再断言"升级成"读结构化结论再断言"。<br><br>现状里已经有两处等价物：<code>tests\smoke\*.markers</code>（进度断言）与 <code>tools\check_entries_equiv.py</code>（等价断言）。</div></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s6"><span class="num">6</span>门禁七层：怎么保证不退化</h2>
+
+<div class="dgm">
+  <div class="cap"><b>图 6-1</b> · 七层门禁（自下而上：越靠下越快、越不需要环境；越靠上越贵、越接近真实）</div>
+  <div class="layers">
+    <div class="layer l5"><div class="id">7</div><div class="bd"><b>parity</b>：GUI 按钮 ↔ 无头入口的<b>可执行</b>等价断言<span class="m">把注册表里的 <code>gui</code> 字段（如 <code>LM620_Restore.cmm:63-69</code>）变成断言：按钮引用的脚本集合 = 功能声明的脚本集合</span></div><div class="right"><span class="badge no">缺</span> 现在只有人工对照表</div></div>
+    <div class="layer l4"><div class="id">6</div><div class="bd"><b>smoke</b>：一条最短真实链路（STM32F407ZG / RT-Thread 冒烟，两阶段：批处理 + RCL）<span class="m">证明"环境 + 三通道"活着</span></div><div class="right"><span class="badge ok">有</span> <code>cli\run_smoke.ps1</code></div></div>
+    <div class="layer l3"><div class="id">5</div><div class="bd"><b>matrix</b>：故障类型 × 内存区域的用例矩阵<span class="m">空指针 / 除零 / 栈溢出 / <code>RAMDUMP_ASSERT</code> / BusFault × 各内存区域</span></div><div class="right"><span class="badge no">缺</span> 只有 2211 一个 case</div></div>
+    <div class="layer l3"><div class="id">4</div><div class="bd"><b>golden</b>：与黄金基准比对（当前形态：单功能报告 ↔ 全量报告的等价判定 + 覆盖断言）</div><div class="right"><span class="badge half">半有</span> <code>EQUIV-OK</code>；缺 <code>report.json</code> 级基准</div></div>
+    <div class="layer l2"><div class="id">3</div><div class="bd"><b>fixture</b>：现场文件的 SHA256（9 件）——证明"喂进去的东西没变过"</div><div class="right"><span class="badge ok">有</span> <code>tests\verify_ramdump.ps1</code></div></div>
+    <div class="layer l1"><div class="id">2</div><div class="bd"><b>unit</b>：不需要 TRACE32 的纯逻辑测试（Python 侧：解析器、生成器、哈希）</div><div class="right"><span class="badge no">缺</span> 逻辑目前只在真跑里被顺带验证</div></div>
+    <div class="layer l0"><div class="id">1</div><div class="bd"><b>lint</b>：规则检查（编码/BOM/行尾/乱码 ✅ + 五条 C3 规则 ❌）</div><div class="right"><span class="badge half">半有</span> <code>tools\check_cn_encoding.ps1</code>（76 个文件 / 272 237 B 全绿）</div></div>
+  </div>
+  <div class="cap"><b>现状段数 = 6</b>（<code>tests\run_all.ps1</code>：编码 → 现场哈希 → 冒烟 → 2211 全量 → 单功能 → 等价判定）。<b>目标 = 7 层</b>，缺的三项（lint 规则、unit、matrix、parity）都不需要新环境，只差"写下来 + 挂进去"。</div>
+</div>
+
+<div class="grid2">
+  <div class="card"><h5>门禁的两条纪律</h5>
+    <div class="kv">
+      <b>① 数据与代码分开</b>期望值写在 <code>tests\smoke\*.markers</code> / <code>tests\*.sha256</code> 里，不写进脚本逻辑<br>
+      <b>② 自动发现，不硬编码清单</b>清单来自 <code>git ls-files</code>（这就是编码闸门<b>修掉一个真 bug</b> 的方式：旧的检查脚本硬编码了 5 个改名前的配置文件名 ⇒ 全部静默 <code>[SKIP]</code>）
+    </div></div>
+  <div class="card"><h5>为什么回归绝不能依赖 AI</h5>
+    <div class="q">现有报告里已经写死这条：<b>不把"确定性回归"和"AI 判断"揉成一层</b>。门禁必须能用一条命令、在无人参与、无网络、无 AI 的情况下给出 PASS/FAIL。AI 站在下游读差异（L5），而不是站在回归路径里。</div></div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s7"><span class="num">7</span>迁移五步</h2>
+
+<div class="dgm">
+  <div class="cap"><b>图 7-1</b> · 路线图（每步都可独立完成并验收；<b>没有一步需要修改只读资产</b>）</div>
+  <div class="row">
+    <div class="node narrow" style="flex:0 0 175px"><b>① 提升</b><span class="m"><code>cmm\src_2210\</code> → <code>platforms\2210\</code>，原件留档 <code>third_party\orig\</code> + sha256</span></div>
+    <div class="arw">→</div>
+    <div class="node narrow" style="flex:0 0 175px"><b>② 抽 <code>core\</code></b><span class="m">引号/MARKER/AREA/收尾四处重复 → 四件小工具</span></div>
+    <div class="arw">→</div>
+    <div class="node narrow" style="flex:0 0 175px"><b>③ 数据化</b><span class="m"><code>platform.json</code> + 生成器；删手写地址（曾 131 处）</span></div>
+    <div class="arw">→</div>
+    <div class="node narrow" style="flex:0 0 175px"><b>④ 拆 feature</b><span class="m">注册表扩展；GUI 壳变薄</span></div>
+    <div class="arw">→</div>
+    <div class="node g narrow" style="flex:0 0 175px"><b>⑤ 感知层</b><span class="m"><code>awareness\rtos.t32</code>：把"爬链"换成"查询"</span></div>
+  </div>
+  <div class="cap"><b>顺序的理由：</b>①②③ 是"清理与固化"，风险低、立刻可验证；④ 动的是结构，需要 ①②③ 打底；⑤ 是<b>唯一可能失败</b>的一步（官方 67 个 OS 里没有 rtthread），所以放最后，且允许它独立立项。</div>
+</div>
+
+<table class="data">
+<tr><th style="width:36px" class="c">步</th><th style="width:190px">目标</th><th style="width:250px">产物</th><th style="width:250px">验收标准（可执行）</th><th>风险 / 备注</th></tr>
+<tr><td class="c">①</td><td>让"只读参考"与"我们的代码"在盘上分开</td><td><code>platforms\2210\</code>（可写）+ <code>third_party\orig\src_2210\</code>（只读留档）</td><td>留档的 17 件 sha256 与原件逐字节一致；<code>tests\run_all.ps1</code> 六段全绿</td><td>纯搬迁；<b>必须保留 <code>.svn</code> 之外的原始字节</b>（客户脚本是三态编码：ASCII / GBK / UTF-8 混杂，不能按 UTF-8 重写）</td></tr>
+<tr><td class="c">②</td><td>把四处重复（参数解析、marker 写盘、AREA 创建、收尾）收成四件小工具</td><td><code>core\{entry,output,marker,finish}.cmm</code>，每件 &lt; 60 行</td><td>单功能跑出的报告与改造前<b>逐字节相同</b>（或差异可用正则解释）</td><td>抽象的边界：<b>不超两层、不做"框架"</b>；<code>do</code> 不是 include，宏作用域要实测</td></tr>
+<tr><td class="c">③</td><td>人不再手写任何地址/偏移/符号名</td><td><code>platform.json</code> + <code>gen\memory.cmm</code> + <code>gen\offsets.cmm</code> + <code>tools\gen_platform.py</code></td><td>lint 规则 3 通过（零绝对路径）；改一个地址只需改 JSON；<code>gen\</code> 与 JSON 的 sha256 一致</td><td>偏移必须由 ELF/DWARF 校验；<b>类型别名与地址别名要保住</b>（<code>IRAM.bin</code> 有两个别名、<code>PSRAM.bin</code> 有两个）</td></tr>
+<tr><td class="c">④</td><td>功能成为独立单元；GUI 壳变薄</td><td><code>platforms\2210\features\*.cmm</code> + 扩展后的 <code>features.json</code></td><td>13 个登记功能全部可单独跑；等价判定仍 <code>EQUIV-OK</code>；<code>make run FEATURE=&lt;id&gt;</code> 可用</td><td>客户 GUI 壳在 <code>third_party\</code>（只读）⇒ 这一步只能"新增薄壳"，不能"改造它"；<b>GUI 薄壳可行性需实测</b></td></tr>
+<tr><td class="c">⑤</td><td>让调试器认识这个 RTOS，把遍历换成查询</td><td><code>platforms\2210\awareness\rtos.t32</code> + <code>rtos.men</code></td><td>能 <code>TASK.Config</code> 后列出线程并切换；堆统计与现有 6028 块的离线结果对得上</td><td><b>最可能失败的一步</b>：官方无 rtthread 感知可抄；感知依赖真实符号（<code>cpu-ap.elf</code> 有 DWARF）；<code>SYStem.Down</code> 后需重新 <code>TASK.CONFIG</code></td></tr>
+</table>
+
+<div class="dgm">
+  <div class="cap"><b>图 7-2</b> · 每一步对"消费者"的影响（谁因此变好）</div>
+  <table class="data">
+  <tr><th>步</th><th class="c">人（读报告）</th><th class="c">CI（判回归）</th><th class="c">换机器的人</th><th class="c">AI（读差异）</th></tr>
+  <tr><td>① 提升</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td class="c">—</td></tr>
+  <tr><td>② 抽 core</td><td class="c">✅ 报告格式统一</td><td class="c">✅ 更少重复 ⇒ 更少偶发</td><td class="c">—</td><td class="c">✅ 结构可预期</td></tr>
+  <tr><td>③ 数据化</td><td class="c">✅ 地址错误消失</td><td class="c">✅ 可 lint</td><td class="c"><b>✅✅ 只填 JSON</b></td><td class="c">✅ 真值是 JSON</td></tr>
+  <tr><td>④ 拆 feature</td><td class="c">✅ 单功能出报告</td><td class="c">✅ 可挑着跑</td><td class="c">✅</td><td class="c">✅ 可组合用例</td></tr>
+  <tr><td>⑤ 感知层</td><td class="c"><b>✅✅ 语义化结果</b></td><td class="c">✅ 更稳</td><td class="c">✅ 感知文件随平台走</td><td class="c"><b>✅✅ 从字节到语义</b></td></tr>
+  </table>
+</div>
+
+<div class="warn"><b>迁移期间的三条纪律</b><br>
+① <b>只读资产不动</b>：<code>third_party\</code>、<code>cmm\src_2210\</code>（提升前）、<code>ramdump\</code> 一个字节都不改 —— 否则黄金原件与"客户原件"同时失效，等价判定会退化成循环论证。<br>
+② <b>每一步都要能回退</b>：先复制后切换；<code>git status</code> 干净才算一步结束。<br>
+③ <b>等价判定是安全网</b>：任何重构之后，<code>EQUIV-OK</code> 必须仍然是 <code>pass=10 partial=1 fail=0 missing=0</code>（当前实测值）。</div>
+
+<!-- ============================================================ -->
+<h2 id="s8"><span class="num">8</span>前后对照</h2>
+
+<table class="data">
+<tr><th style="width:150px">维度</th><th style="width:330px">现状（实测）</th><th>目标（本设计）</th><th style="width:90px" class="c">差距形态</th></tr>
+<tr><td>入口</td><td>三个 <code>run_*.ps1</code> + 手工展开占位符</td><td>一条 <code>make run PLATFORM=… FEATURE=…</code></td><td class="c">薄封装</td></tr>
+<tr><td>机器路径</td><td>173 处占位符 / 43 文件（其中 87 处是本机路径）</td><td>只留 <code>local\paths.psd1</code> 一份真值</td><td class="c">已有机制<br>需收敛</td></tr>
+<tr><td>地址与偏移</td><td>写死在 <code>third_party\vendor\restore.cmm</code> 与模板里（曾清点 131 处绝对路径）</td><td><code>platform.json</code> → <code>gen\*.cmm</code>，ELF 校验</td><td class="c">新机制</td></tr>
+<tr><td>功能注册</td><td><code>cmm\functions.json</code>（13 功能；单一真源 ✅）</td><td>扩展字段 + <code>@</code> 接口头 + lint 校验</td><td class="c">演进</td></tr>
+<tr><td>输出</td><td><code>report.txt</code> + <code>heap_by_file.txt</code> + <code>run.log</code></td><td>再加 <code>report.json</code> + <code>meta.json</code></td><td class="c">新增两件</td></tr>
+<tr><td>进度信号</td><td><code>*.markers</code> + 文件闸门（✅ 已跑通）</td><td>同左，并成为 C4 的一部分</td><td class="c">保持</td></tr>
+<tr><td>堆分析</td><td>在线有界 walker（1 s 跑完，停在 "free-chunk-size-is-zero"）+ 离线 Python 复算 6028 块 ✅</td><td>感知层查询（步骤⑤）</td><td class="c">质变</td></tr>
+<tr><td>门禁</td><td>6 段（编码/哈希/冒烟/全量/单功能/等价）</td><td>7 层（+lint 规则 / unit / matrix / parity）</td><td class="c">补四项</td></tr>
+<tr><td>只读边界</td><td><code>third_party\</code>(214) / <code>ramdump\</code>(9，含黄金原件)，<code>.gitignore</code> 挡住</td><td>同左 + <code>OWNERS</code> 明确归属 + <code>third_party\orig\</code></td><td class="c">已做</td></tr>
+</table>
+
+<div class="dgm">
+  <div class="cap"><b>图 8-1</b> · 为什么是这些语言（能力边界表，不是风格偏好）</div>
+  <table class="data">
+  <tr><th style="width:130px">语言/格式</th><th style="width:300px">独有能力（别人做不到）</th><th>因此它负责</th></tr>
+  <tr><td>PRACTICE <code>.cmm</code></td><td>唯一能访问调试核：寄存器、内存、符号、<code>Var.Value</code>、<code>TASK.*</code></td><td>L2：所有与目标机有关的动作</td></tr>
+  <tr><td>PowerShell</td><td>唯一能做 OS 级动作：起进程、清残留、超时杀、目录守卫</td><td>L1：驱动器（t32 挂死时只有它能救场）</td></tr>
+  <tr><td>Python</td><td>唯一能免 license、可并发、毫秒级算字节（<code>pyelftools</code> 读 DWARF）</td><td>L4 + 生成器 + 离线分析</td></tr>
+  <tr><td>JSON / <code>.t32</code> / <code>.sha256</code> / <code>.markers</code></td><td>人与机器同时可读、可 diff、可断言</td><td>L3：契约</td></tr>
+  </table>
+  <div class="cap">这张表也是"<b>不要用 Python 重写行内脚本</b>"（做不到：没有调试核）与"<b>不要用 PRACTICE 做文本处理</b>"（做得难受：`STRing.*` 拼串）的原因。</div>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="s9"><span class="num">9</span>术语表（按本文档首次出现的顺序）</h2>
+
+<table class="data">
+<tr><th style="width:200px">术语</th><th>含义与在本仓库的落点</th></tr>
+<tr><td><b>无头 / headless</b></td><td>不开窗口运行 TRACE32：配置里 <code>SCREEN=OFF</code>，靠 <code>-s</code> 脚本与文件契约拿结果。挂死风险：<code>DIALOG.*</code>（铁律 2）</td></tr>
+<tr><td><b>marker</b></td><td>脚本往日志追加的一行进度标记（如 <code>H09HEAP</code>）。<b>独立于报告的进度通道</b>：报告因 16 KB 缓冲可能滞后，marker 不会（事故 C）</td></tr>
+<tr><td><b>AREA（TRACE32 的 print area）</b></td><td>脚本的"打印缓冲区"。<b>只在缓冲满（16 KB）或 <code>AREA.Close</code> 时落盘</b>；<code>AREA.view</code> 在无窗口模式无害</td></tr>
+<tr><td><b>RCL</b></td><td>TRACE32 Remote Control API：外部程序（这里是 Python）经 TCP 连上调试器，用 <code>dbg.cmd()</code> 下发命令、<code>dbg.memory</code> 读内存。本仓库走 <code>RCL=NETTCP</code> + 端口 20000</td></tr>
+<tr><td><b>占位符</b></td><td><code>__XXX__</code> 形式的待替换值。TRACE32 <b>不认识</b>它（PRACTICE 变量前缀是 <code>&amp;</code>），所以带占位符的文件从不交给 t32——驱动器先展开到 <code>local\</code></td></tr>
+<tr><td><b>黄金基准 / golden</b></td><td>客户 GUI 亲手跑出来的 <code>ramdump\2211_deathscene\ap_PrintData.txt</code>（2 834 432 B，SHA256 <code>04C86256…</code>，只读现场的一部分）。用来证明"我们的无头链和人工操作看到的是同一个现场"</td></tr>
+<tr><td><b>等价判定 / parity</b></td><td><code>tools\check_entries_equiv.py</code>：单功能报告与全量报告逐段比较 ⇒ <code>EQUIV-OK</code>（当前 <code>pass=10 partial=1 fail=0 missing=0</code>）</td></tr>
+<tr><td><b>arena / dlmalloc</b></td><td>客户 RTOS 用的内存分配器结构（<code>osDlmalloc_t</code>）。<b>arena 的 <code>used</code> 字段是离线 walk 的对账基准</b>（6028 块 / 差 184 B）</td></tr>
+<tr><td><b>感知层 / awareness</b></td><td>TRACE32 的 OS 感知：<code>TASK.CONFIG &lt;os&gt;.t32</code> 让调试器认识线程、堆、任务，从而把内存变成语义。<b>2210/2211 没有，2100 有</b>（<code>oneos.t32</code>）</td></tr>
+<tr><td><b>可自恢复包</b></td><td>官方 <code>ramdump.cmm</code> 的产物形态：数据 + 自动生成的 <code>restore_&lt;stamp&gt;.cmm</code> + CPU/MMU/感知描述 + 每核寄存器（见 §3.1）</td></tr>
+<tr><td><b>feature</b></td><td>本设计的"功能"单位：一个 <code>.cmm</code> 文件 + 一个 <code>@</code> 接口头 + 注册表一条记录。对应现状的 <code>cmm\functions.json</code> 里的 13 条</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="s10"><span class="num">10</span>附录：官方资产索引（可自行复核）</h2>
+
+<p>根目录：<code>E:\software\InstallerEdition\DevTools\Trace32\demo\arm</code>（下文简写 <code>&lt;demo&gt;</code>）。<b>体积与行数为实测</b>，可用于"我的安装目录里有没有这些"的核对。</p>
+
+<table class="data">
+<tr><th style="width:330px">路径</th><th style="width:110px" class="c">体积 / 行数</th><th>作用与关键行</th></tr>
+<tr><td><code>&lt;demo&gt;\etc\ramdump\ramdump.cmm</code></td><td class="c">33 862 B / 1125</td><td>裸机通用内存现场导出。<b>L44-60 两个入口的骨架</b>；L70 生成 restore 脚本；L189-191 寄存器；L252-263 系统寄存器；L345-384 MMU；<b>L390-398 把 <code>TASK.CONFIG</code> 写进恢复脚本</b>；L329 官方对"不完整"的诚实警告</td></tr>
+<tr><td><code>&lt;demo&gt;\kernel\linux\awareness\ramdump.cmm</code></td><td class="c">41 863 B / 1387</td><td>Linux 专用版（Usage 与骨架同前者逐字相同），<code>TASK.</code> 出现 12 处</td></tr>
+<tr><td><code>&lt;demo&gt;\kernel\linux\awareness\linux.t32</code></td><td class="c">303 728 B</td><td><b>感知描述本体</b>（Linux 的类型/参数定义）——"认识 OS"这件事的真身</td></tr>
+<tr><td><code>&lt;demo&gt;\kernel\linux\awareness\linux.men</code></td><td class="c">44 183 B</td><td>感知菜单；与 <code>.t32</code> 一起用 <code>MENU.ReProgram</code> 挂上</td></tr>
+<tr><td><code>&lt;demo&gt;\kernel\linux\linux-3.x\linux3.t32</code></td><td class="c">303 728 B</td><td>按内核版本分目录的证据（<code>linux-2.x\</code> / <code>linux-3.x\</code> / <code>awareness\</code>）</td></tr>
+<tr><td><code>&lt;demo&gt;\kernel\linux\awareness\{app_debug,mod_debug}.cmm</code></td><td class="c">29 290 / 31 136</td><td>用户态程序 / 内核模块调试（感知之上的聚焦分析脚本）</td></tr>
+<tr><td><code>&lt;demo&gt;\kernel\linux\board\generic-template\linux-attach.cmm</code></td><td class="c">2 450 B</td><td><b>L53-54</b> 感知接入的标准两行；头部用 <code>&lt;tbd&gt;</code> 占位</td></tr>
+<tr><td><code>&lt;demo&gt;\kernel\linux\board\generic-template\linux-boot.cmm</code></td><td class="c">6 031 B</td><td><b>L183-187</b>：<code>SYStem.Down</code> 之后必须重挂感知（原注释 "got disabled by <code>SYStem.Down</code>"）</td></tr>
+<tr><td><code>&lt;demo&gt;\kernel\linux\board\generic-template\detect_translation.cmm</code></td><td class="c">22 526 B</td><td>L321/L324 直接用 <code>PRINTF</code> 输出 <code>TASK.CONFIG</code> / <code>MENU.ReProgram</code> 两行；L296-304 处理 <code>/ACCESS</code> 与版本差异</td></tr>
+<tr><td><code>&lt;demo&gt;\kernel\linux\board\simulator\armv7_sim_linux.cmm</code></td><td class="c">8 198 B</td><td>配套 <code>bin.zip</code> 24 987 831 B ⇒ <b>"脚本 + 完整现场"成对交付</b>的范例；L211-214 挂感知</td></tr>
+<tr><td><code>&lt;demo&gt;\etc\coredump\</code></td><td class="c">208 896 / 25 238 / 10 668</td><td><code>sieve.core</code> + <code>sievecrash.elf</code> + <code>sievecrash.c</code>：core dump 分析的"三件套"，<b>连崩溃源码都给</b></td></tr>
+<tr><td><code>&lt;demo&gt;\kernel\linux\linux.cmm</code></td><td class="c">595 B</td><td>模板入口（指向 <code>board\generic-template</code>）——"模板 + 板级实现"的组织方式</td></tr>
+<tr><td><code>&lt;demo&gt;\kernel\linux\readme.txt</code></td><td class="c">724 B</td><td>"Please use the appropriate awareness files depending on your kernel version"</td></tr>
+</table>
+
+<div class="dgm">
+  <div class="cap"><b>图 10-1</b> · 本机复核命令（PowerShell，可直接粘贴）</div>
+<pre># 0) 先设好安装目录
+$t32 = 'E:\software\InstallerEdition\DevTools\Trace32'
+
+# 1) 官方两件套在不在
+Get-Item "$t32\demo\arm\etc\ramdump\ramdump.cmm",
+         "$t32\demo\arm\kernel\linux\awareness\linux.t32" |
+  Select-Object Length,Name,DirectoryName
+
+# 2) 看官方怎么做到"一个脚本两个入口"（L44-60）
+Get-Content "$t32\demo\arm\etc\ramdump\ramdump.cmm" -Encoding UTF8 |
+  Select-Object -Skip 43 -First 17
+
+# 3) 看感知怎么挂上（L53-54）与怎么被关掉（L183-187）
+Select-String -Path "$t32\demo\arm\kernel\linux\board\generic-template\linux-attach.cmm" `
+              -Pattern 'TASK.CONFIG' -Encoding UTF8
+
+# 4) 官方有没有我们这个 RTOS 的感知？（答案：没有）
+Get-ChildItem "$t32\demo\arm\kernel" -Directory | Select-Object -Expand Name |
+  Where-Object { $_ -match 'rt|thread|zephyr' }</pre>
+  <div class="cap">⚠️ 读入库或官方的 UTF-8 文件时，PowerShell 5.1 默认按 GBK 解码中文会出乱码 ⇒ <b>显式加 <code>-Encoding UTF8</code></b>（本仓库的铁律 7 同源问题：自研 <code>.ps1/.psd1</code> 必须带 BOM）。</div>
+</div>
+
+<hr class="thin">
+<h3>本设计的一页速查</h3>
+<div class="dgm">
+  <div class="row">
+    <div class="node g narrow" style="flex:1 1 240px"><b>要做</b>
+      <span class="m">① 地址进 JSON、生成 <code>gen\</code><br>② 功能一个文件 + 接口头<br>③ 输出加 <code>report.json</code>/<code>meta.json</code><br>④ lint 五条规则<br>⑤ parity 断言补上</span></div>
+    <div class="node r narrow" style="flex:1 1 240px"><b>不要做</b>
+      <span class="m">✗ 改 <code>third_party\</code> / <code>ramdump\</code><br>✗ 在 PRACTICE 上造框架（不超两层）<br>✗ 让回归依赖 AI 或网络<br>✗ 用 <code>DIALOG.*</code> 进无头链<br>✗ 手写地址、手写结构体偏移</span></div>
+    <div class="node a narrow" style="flex:1 1 240px"><b>先做哪件</b>
+      <span class="m">第 ① 步（提升）风险最低；<br>若要一个<b>立刻见效</b>的小件：<b>从现有 9 个 bin 反生成 <code>restore_&lt;stamp&gt;.cmm</code> + <code>meta.json</code></b>，让 2211 现场也变成"可自恢复包"——不碰任何只读资产</span></div>
+  </div>
+</div>
+
+<p class="footnote" style="margin-top:34px">
+文档：<code>docs/design/trace32-architecture-design.html</code> · 自包含单文件（无脚本、无外部资源、可离线打开与打印）· 与本仓库一致采用 Apache-2.0。<br>
+文中所有路径、体积、行号、占位符计数、门禁段数均为在 <code>E:\software\InstallerEdition\DevTools\Trace32_Auto</code> 与
+<code>E:\software\InstallerEdition\DevTools\Trace32</code> 上的实测值；未实测的推断均已标注（如"GUI 薄壳可行性需实测"、"<code>SYS=</code> 可省/可覆盖未测"）。<br>
+配套设计材料见同目录后续文档；本文件的更新应同样走 <code>tools\check_cn_encoding.ps1</code>（第 1 段门禁）与六段回归。
+</p>
+
+</main>
+</div>
+</body>
+</html>

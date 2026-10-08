@@ -86,6 +86,7 @@ Trace32_Auto\
 | `configs\` | 4 个配置：客户 GUI 原件 `sim-gui.t32` + 3 个无人化配置（`sim-minimal` / `sim-batch` / `sim-rcl-tcp-20000`），每个开头都有中文注释头 | 起实例用（`-c`） | ✅ |
 | `attic\logs\` | 原始实测日志（只读证据；第十一轮从 `docs\history\` 移入，让 `docs\` 只留文档） | 复盘 | ✅ |
 | `docs\rcl-api-notes.md` | Python RCL 的可用调用、错误原文、接口速查 | §4.4 的出处（原客户报告第 7 节的非客户部分） | ✅ |
+| `docs\design\trace32-architecture-design.html` | 顶层重组的工程化设计文档（自包含 HTML：11 章 / 26 个图块 / 13 张表，含现状—方案—迁移路线） | §1 结构、§5 契约、§7 迁移的**方案出处**（第十三轮） | ✅ |
 | `attic\configs\` | 18 个对照 / 失败配置（`zz*` `v*` `cfg_*` `config_auto`） | **空行分组定律的证据** | ✅ |
 | `attic\python\` | 早期 RCL 试验脚本 `rcl_test.py` … `rcl_test6.py` | 迭代痕迹 | ✅ |
 | `attic\cmm\` | 13 个早期探针（`s1`–`s5` 符号查询试探、`sym`/`sym2`、`probe1`–`probe4`、`mini`、`gui_test`） | 迭代痕迹 + 铁律 2 的复现件 | ✅ |
@@ -457,6 +458,9 @@ python tools\check_entries_equiv.py                                             
 
 ## 7. 下一步 / 已知缺口
 
+> **方案出处**：本节的缺口、以及把它们补上来的五步迁移，已整理成带图的设计文档
+> [`docs\design\trace32-architecture-design.html`](docs/design/trace32-architecture-design.html)（第十三轮）。
+
 1. **TRACE32 没有 RT-Thread 内核感知。**
    `<T32_INSTALL>\demo\arm\kernel\` 下有 67 个 RTOS 目录（freertos / threadx / ucos / liteos / zephyr …）**没有 rtthread**，
    整个安装目录按文件名搜 `rt[-_]?thread` **零命中**。
@@ -623,6 +627,23 @@ python tools\check_entries_equiv.py                                             
   它比对的是上一轮已清掉的 `local\_head\` 快照，是死代码。`local\` 现在只剩「真源 + 运行时生成件」两类。
 - ④ 首次全量实测：`CN-ENCODING-OK`（当时 75 个入库文件 / 187001 字节，NOT-UTF8=0、BOM 不合规=0、行尾混用=0、
   乱码=0），`tests\run_all.ps1` 六段全绿 `TESTS-OK`。
+- **第十三轮（工程化设计文档）**：用户提问「原始 GUI 脚本能不能现代化重构 / Linux 内核那边怎么做 / 先出一份设计文档」后：
+- ① 实测本机 Lauterbach 官方 demo（`<T32_INSTALL>\demo\arm`）：`etc\ramdump\ramdump.cmm`（33862 B / 1125 行）与
+  `kernel\linux\awareness\ramdump.cmm`（41863 B / 1387 行）证明官方「一个脚本、两个入口」的写法 =
+  `PRIVATE` + `ENTRY %LINE &sArguments` + `GOSUB/RETURNVALUES` + `IF (&bDialog) GOSUB showDialog`（L44-60）。
+  导出产物是**可自恢复包**：自动生成的 `restore_<unixTime>.cmm` + 每核寄存器 + 系统寄存器（分模式）+ MMU 描述 +
+  **把 `TASK.CONFIG` 一起写进恢复脚本**（L390-398）；分析侧靠 `awareness\linux.t32`（303728 B）感知，接入只有两行
+  （`TASK.CONFIG` + `MENU.ReProgram`），且 `SYStem.Down` 之后必须重挂（`linux-boot.cmm` L183-187）。
+  `demo\arm\kernel\` 下 67 个 OS 目录里**没有 rtthread** —— 这是 §7 第 1 条的官方侧佐证。
+- ② 新建 `docs\design\trace32-architecture-design.html`（自包含单文件：无脚本、无外部资源、可离线打开、可打印）：
+  11 章 / 26 个图块 / 13 张表 / 27 张卡片；内容 = 现状五层与三个真实事故 + Linux 七惯用法映射 + 官方两件套 +
+  目标架构（三条公理 / 五层 / 四条通道 / 目标目录树）+ 四个契约（配置分层 / 平台数据化 / feature 接口与五条 lint /
+  输出结构化）+ 门禁七层 + 迁移五步 + 前后对照 + 术语表 + 官方资产索引。**本轮只写文档，不动任何现有文件**。
+- ③ 写文档时修掉一处会误导人的过期表述：`tests\expected\` 已在第十一轮删除，黄金原件就是只读现场里的
+  `ramdump\2211_deathscene\ap_PrintData.txt`（2834432 B，SHA256 `04c86256…b3df`）；内容级断言的基线应取本仓库自产的 `out\runs\` 报告。
+- ④ 门禁复核：`tools\check_cn_encoding.ps1` → `CN-ENCODING-OK`（**76** 个入库文件 / 272237 字节，NOT-UTF8=0、
+  BOM 不合规=0、行尾混用=0、乱码=0）；HTML 结构自检：标签配对错误 0、未闭合标签 0、未转义裸 `&`、裸 `<` 各 0。
+  版式截图用无头 Edge 已生成（沙箱下 Edge 需提权才能启动），但**未由我人工核看**（当前模型无图像输入）⇒ 版式请用户过目。
 
 ---
 
