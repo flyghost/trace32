@@ -1,0 +1,41 @@
+==================== 2211 AP heap, computed offline ====================
+dump dir : __REPO__\ramdump\2211_deathscene
+  ap_dlm.bin       16384 bytes  @ 0x00010000
+  PSRAM.bin      4194304 bytes  @ 0x80000000
+  IRAM.bin        524288 bytes  @ 0x10200000
+
+arena descriptor @ 0x80164CB8 (g_osApSystemMem)
+  num        = 0x00000000 (0)
+  total      = 0x00188640 (1607232)
+  used       = 0x0017CEC0 (1560256)
+  max_used   = 0x0017CFE0 (1560544)
+  user_used  = 0x00134A99 (1264281)
+  used / total     = 97.1 %
+  max_used / total = 97.1 %
+  user_used / total= 78.7 %
+
+bin-array walk (av_ = 0x00010008, top = 0x803FA188)
+  used blocks      = 6028
+  sum(chunk sizes) = 0x0017CE08 (1560072)
+  arena used       = 0x0017CEC0 (1560256)
+  delta            = 184 bytes  (ratio 0.9999)
+  => walk reproduces the arena descriptor
+
+payload owner tags (first word at block+8, size-weighted):
+  timer                    949240 bytes  (60.8 % of used chunks)
+  main                     231400 bytes  (14.8 % of used chunks)
+  sua0                     165720 bytes  (10.6 % of used chunks)
+  ImsMain                  100352 bytes  (6.4 % of used chunks)
+  L2_TASK                   27008 bytes  (1.7 % of used chunks)
+  NAS_TASK                  12560 bytes  (0.8 % of used chunks)
+  RRC_TASK                   4120 bytes  (0.3 % of used chunks)
+  media                       120 bytes  (0.0 % of used chunks)
+  <no tag>                    144 blocks
+
+Note: the customer's per-file table (Mem Leak Info / Memory Summary By File)
+cannot be reproduced from this dump.  Its trace records are either absent or
+mis-laid-out here: no word in any dump file points at the file-name pool entry
+'slog_helper' (0x8003B6C0), and the customer's own golden output leaves the
+'Memory Summary By File' block empty.  What is shown above is the arena
+descriptor plus the exact chunk chain, which is byte-verifiable.
+==================== end ====================

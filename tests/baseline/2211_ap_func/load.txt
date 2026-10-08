@@ -1,0 +1,13 @@
+##################################################################
+#  headless single function: load
+#  GUI twin: LOAD
+#  加载 ramdump 的 bin + elf，然后输出 SYSINFO / ERRINFO；GUI 把两者都放在 dyntext 里，所以它们从不会写进它的文件
+##################################################################
+Restore RISC-V Ramdump Files!!
+@@@[load]
+SYSINFO: "THREAD[NULL]  IRQNEST[0x0]"
+ERRINFO: "AP Assert. File: dlmalloc.c, Line: 1138, PC: 0xC0265232"
+
+##################################################################
+#  END OF FUNCTION load
+##################################################################

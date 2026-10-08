@@ -1,0 +1,351 @@
+##################################################################
+#  2211 AP death scene - headless extraction
+#  run     : __STAMP__
+#  ramdump : __REPO__\ramdump\2211_deathscene
+#  elf     : __REPO__\ramdump\2211_deathscene\cpu-ap.elf
+#  engine  : third_party\vendor\2210_trace32 (customer originals, unmodified)
+##################################################################
+
+@@@[1/9] restore.cmm - load IRAM/PSRAM/ilm/dlm/xip + elf, set exception frame
+Restore RISC-V Ramdump Files!!
+
+@@@[2/9] show_sysinfo.cmm - current thread and IRQ nesting
+SYSINFO: "THREAD[NULL]  IRQNEST[0x0]"
+
+@@@[3/9] errinfo.cmm - assert / RISC-V exception decode
+ERRINFO: "AP Assert. File: dlmalloc.c, Line: 1138, PC: 0xC0265232"
+
+@@@[4/9] show_thread.cmm - thread list
+===================================================================================================
+Name                Pri    State      maxStack     rmanTick   osThread_t    MsgCount    MaxMsgCount
+---------------------------------------------------------------------------------------------------
+                     6     Ready         91%           5      0x803e90f0        0        0
+                     6     Suspend       44%           5      0x803ee368        0        0
+         voice-r     5     Suspend       54%           3      0x803ecea0       N/A       N/A
+                    16     Suspend       36%           1      0x802f8eb0       N/A       N/A
+                     6     Suspend       33%           1      0x802fb1b0       N/A       N/A
+      usb-serial    16     Suspend       26%           5      0x802f2460       N/A       N/A
+ usb-ether(NDIS)    12     Suspend       13%           4      0x802e7dc8       N/A       N/A
+                    10     Suspend       13%           5      0x802bad30       N/A       N/A
+          atcmd1     9     Suspend       16%           5      0x802ba7e0       N/A       N/A
+          atcmd0     9     Suspend       16%           5      0x802b8040       N/A       N/A
+                     9     Suspend       18%           3      0x802b2e58       N/A       N/A
+                    16     Suspend       67%           2      0x802ae2a0       N/A       N/A
+                     9     Suspend       17%           5      0x802ad6b8       N/A       N/A
+                     9     Suspend       23%           5      0x802acb68       N/A       N/A
+           wq_lo    24     Ready         15%           3      0x802a93d0       N/A       N/A
+           wq_hi     5     Suspend        6%           4      0x802a7278       N/A       N/A
+          ims_ss     6     Suspend       12%           5      0x802a4fa8        0        0
+          Ims2Ps     6     Suspend       75%           3      0x802a0a98        0        4
+         ImsMain     6     Suspend       66%           1      0x802a0540        0        2
+            sua0     6     Ready         89%           5      0x8029d4d0        0        0
+           media     6     Suspend       59%           5      0x802981a8        0        0
+                     7     Suspend        3%           5      0x8028ddd8       N/A       N/A
+                    20     Suspend        6%           5      0x80289c50       N/A       N/A
+                     6     Suspend       41%           3      0x80288b88       N/A       N/A
+         L2_TASK     3     Suspend       61%           5      0xc0277ad0        0       24
+        RRC_TASK     4     Suspend       51%           5      0xc0277a38        0        5
+        NAS_TASK     4     Suspend       45%           1      0xc02779a0        0        3
+                    14     Suspend       22%           2      0x80165968       N/A       N/A
+                    20     Suspend       11%           4      0x801658b8       N/A       N/A
+             usb    12     Suspend       15%           5      0x80276340       N/A       N/A
+       workQueue    16     Suspend       29%           2      0x80274af0       N/A       N/A
+            idle    31     Ready         22%           8      0x80164ce8       N/A       N/A
+           timer     0     Suspend       49%           5      0x80164da8       N/A       N/A
+=== osThreadSwapArray Trace Records ===
+=== osThreadSwapArray Trace Records ===
+=== osThreadSwapArray Trace Records ===
+===================================================================================================
+Index   Thread Name     Thread Handle   Timestamp   TimeUsed
+---------------------------------------------------------------------------------------------------
+
+@@@[5/9] backtrace.cmm + frame.cmm - exception trace (exc_trace)
+==================================== BACK TRACE ==========================================
+                 osAssertHandler     ADDR:0x8029bfb8 -> 0x8011c472
+                 osAssertHandler     ADDR:0x8029bfbc -> 0x8011c472
+                        dlMalloc     ADDR:0x8029bfd8 -> 0xc0265232
+                        dlMalloc     ADDR:0x8029c050 -> 0xc0265232
+                   osMallocTrace     ADDR:0x8029c068 -> 0xc026575e
+
+@@@[6/9] show_all_backtrace.cmm - backtrace of every thread
+==========================================================================================
+=>THREAD:                  Struct:0x803e90f0
+==================================== BACK TRACE ==========================================
+                   ACELP_4t64_fx     ADDR:0x803f1d4c -> 0x8012922a
+                   ACELP_4t64_fx     ADDR:0x803f1dd0 -> 0x8012922a
+                           coder     ADDR:0x803f2b44 -> 0x801346ec
+                  AMR_Enc_Encode     ADDR:0x803f4234 -> 0x80134df6
+           voAMRWB_GetOutputData     ADDR:0x803f4634 -> 0x80134eb2
+                     E_IF_encode     ADDR:0x803f4650 -> 0x8013749a
+                ict_amr_enc_proc     ADDR:0x803f46b8 -> 0x80137c78
+            do_check_inuse_chunk     ADDR:0x803f4828 -> 0xc0264cfe
+              osUpNodeAllocTrace     ADDR:0x803f48a0 -> 0x8011d7ba
+                PsNet_UlDataSend     ADDR:0x803f48b0 -> 0xc026b6fa
+                PsNet_UlDataSend     ADDR:0x803f48b8 -> 0xc026b778
+            do_check_inuse_chunk     ADDR:0x803f48e8 -> 0xc0264cfe
+                  osCriticalExit     ADDR:0x803f4914 -> 0x8011c7f6
+                  osKernelUnlock     ADDR:0x803f4934 -> 0x801193dc
+                       PBUF_FREE     ADDR:0x803f4938 -> 0xc0266d42
+                       PBUF_FREE     ADDR:0x803f493c -> 0xc0266ca0
+                       PBUF_FREE     ADDR:0x803f4944 -> 0xc0266cca
+                  osMutexRelease     ADDR:0x803f496c -> 0x8011ad06
+                  osCriticalExit     ADDR:0x803f49e4 -> 0x8011c7f6
+                      PBUF_ALLOC     ADDR:0x803f49f8 -> 0xc0266d7a
+                       PBUF_FREE     ADDR:0x803f4a0c -> 0xc0266ca0
+                       PBUF_FREE     ADDR:0x803f4a14 -> 0xc0266d2e
+                osIpcListSuspend     ADDR:0x803f4bcc -> 0x8011a824
+==========================================================================================
+=>THREAD:                  Struct:0x803ee368
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x803ee264 -> 0x8011a824
+       osSemaphoreAcquireRelaxed     ADDR:0x803ee26c -> 0xc0265d46
+              osSemaphoreAcquire     ADDR:0x803ee29c -> 0xc0265d50
+==========================================================================================
+=>THREAD:         voice-r  Struct:0x803ecea0
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x803ecdcc -> 0x8011a824
+                _osMbRecvRelaxed     ADDR:0x803ecdd4 -> 0xc0266154
+                 osMbRecvRelaxed     ADDR:0x803ece04 -> 0xc02662b4
+                        osMbRecv     ADDR:0x803ece44 -> 0xc02662c0
+                VoiceProc_RxTask     ADDR:0x803ece64 -> 0x80138246
+==========================================================================================
+=>THREAD:                  Struct:0x802f8eb0
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x8031a0d4 -> 0x8011a824
+                _osMbRecvRelaxed     ADDR:0x8031a0dc -> 0xc0266154
+              osiMessageQueueGet     ADDR:0x8031a10c -> 0x80118004
+                   osiTimerStart     ADDR:0x8031a140 -> 0x80117c32
+                   osiTimerStart     ADDR:0x8031a144 -> 0x80117c40
+                    osiEventWait     ADDR:0x8031a154 -> 0x80118552
+==========================================================================================
+=>THREAD:                  Struct:0x802fb1b0
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x802fb06c -> 0x8011a824
+                _osMbRecvRelaxed     ADDR:0x802fb074 -> 0xc0266154
+            do_check_inuse_chunk     ADDR:0x802fb098 -> 0xc0264cfe
+        osMessageQueueGetRelaxed     ADDR:0x802fb0a4 -> 0x8011b33a
+               osMessageQueueGet     ADDR:0x802fb0e4 -> 0x8011b34a
+==========================================================================================
+=>THREAD:      usb-serial  Struct:0x802f2460
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x802f23ec -> 0x8011767c
+             osiSemaphoreAcquire     ADDR:0x802f23f4 -> 0x80118242
+                  _wqThreadEntry     ADDR:0x802f2414 -> 0x80118faa
+==========================================================================================
+=>THREAD: usb-ether(NDIS)  Struct:0x802e7dc8
+==================================== BACK TRACE ==========================================
+                      udcEpQueue     ADDR:0x802e7d40 -> 0x8010632e
+                osIpcListSuspend     ADDR:0x802e7d54 -> 0x8011767c
+             osiSemaphoreAcquire     ADDR:0x802e7d5c -> 0x80118242
+                   _usbeStopWork     ADDR:0x802e7d74 -> 0x8010635c
+                  _wqThreadEntry     ADDR:0x802e7d7c -> 0x80118faa
+                   _usbeStopWork     ADDR:0x802e7d8c -> 0x80106348
+==========================================================================================
+=>THREAD:                  Struct:0x802bad30
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x802bd5f4 -> 0x8011a824
+       osSemaphoreAcquireRelaxed     ADDR:0x802bd5fc -> 0xc0265d46
+              osSemaphoreAcquire     ADDR:0x802bd62c -> 0xc0265d50
+==========================================================================================
+=>THREAD:          atcmd1  Struct:0x802ba7e0
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x802ba70c -> 0x8011a824
+                _osMbRecvRelaxed     ADDR:0x802ba714 -> 0xc0266154
+              osiMessageQueueGet     ADDR:0x802ba744 -> 0x80118004
+                    osiEventWait     ADDR:0x802ba78c -> 0x80118552
+==========================================================================================
+=>THREAD:          atcmd0  Struct:0x802b8040
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x802b7f6c -> 0x8011a824
+                _osMbRecvRelaxed     ADDR:0x802b7f74 -> 0xc0266154
+              osiMessageQueueGet     ADDR:0x802b7fa4 -> 0x80118004
+                    osiEventWait     ADDR:0x802b7fec -> 0x80118552
+==========================================================================================
+=>THREAD:                  Struct:0x802b2e58
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x802b2d74 -> 0x8011a824
+                _osMbRecvRelaxed     ADDR:0x802b2d7c -> 0xc0266154
+              osiMessageQueueGet     ADDR:0x802b2dac -> 0x80118004
+               osiLineCacheFlush     ADDR:0x802b2de0 -> 0x801174ac
+                    osiEventWait     ADDR:0x802b2df4 -> 0x80118552
+==========================================================================================
+=>THREAD:                  Struct:0x802ae2a0
+==================================== BACK TRACE ==========================================
+                            free     ADDR:0x802ae1a4 -> 0x8011a59a
+                osIpcListSuspend     ADDR:0x802ae22c -> 0x8011767c
+             osiSemaphoreAcquire     ADDR:0x802ae234 -> 0x80118242
+                  _wqThreadEntry     ADDR:0x802ae254 -> 0x80118faa
+==========================================================================================
+=>THREAD:                  Struct:0x802ad6b8
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x802ad5c4 -> 0x8011a824
+                _osMbRecvRelaxed     ADDR:0x802ad5cc -> 0xc0266154
+              osiMessageQueueGet     ADDR:0x802ad5fc -> 0x80118004
+                    osiEventWait     ADDR:0x802ad644 -> 0x80118552
+==========================================================================================
+=>THREAD:                  Struct:0x802acb68
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x802aca94 -> 0x8011a824
+                _osMbRecvRelaxed     ADDR:0x802aca9c -> 0xc0266154
+              osiMessageQueueGet     ADDR:0x802acacc -> 0x80118004
+                    osiEventWait     ADDR:0x802acb14 -> 0x80118552
+==========================================================================================
+=>THREAD:           wq_lo  Struct:0x802a93d0
+==================================== BACK TRACE ==========================================
+           osiProfileThreadEnter     ADDR:0x802a92d4 -> 0xc027428e
+                osIpcListSuspend     ADDR:0x802a935c -> 0x8011767c
+             osiSemaphoreAcquire     ADDR:0x802a9364 -> 0x80118242
+                  _wqThreadEntry     ADDR:0x802a9384 -> 0x80118faa
+==========================================================================================
+=>THREAD:           wq_hi  Struct:0x802a7278
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x802a7204 -> 0x8011767c
+             osiSemaphoreAcquire     ADDR:0x802a720c -> 0x80118242
+                  _wqThreadEntry     ADDR:0x802a722c -> 0x80118faa
+==========================================================================================
+=>THREAD:          ims_ss  Struct:0x802a4fa8
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x802a4914 -> 0x8011a824
+                _osMbRecvRelaxed     ADDR:0x802a491c -> 0xc0266154
+                 osMbRecvRelaxed     ADDR:0x802a494c -> 0xc02662b4
+                        osMbRecv     ADDR:0x802a498c -> 0xc02662c0
+==========================================================================================
+=>THREAD:          Ims2Ps  Struct:0x802a0a98
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x802a0914 -> 0x8011a824
+                _osMbRecvRelaxed     ADDR:0x802a091c -> 0xc0266154
+                 osMbRecvRelaxed     ADDR:0x802a094c -> 0xc02662b4
+                        osMbRecv     ADDR:0x802a098c -> 0xc02662c0
+                   osThreadSleep     ADDR:0x802a09d0 -> 0x8011e04c
+==========================================================================================
+=>THREAD:         ImsMain  Struct:0x802a0540
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x802a03ec -> 0x8011a824
+                _osMbRecvRelaxed     ADDR:0x802a03f4 -> 0xc0266154
+                 osMbRecvRelaxed     ADDR:0x802a0424 -> 0xc02662b4
+                        osMbRecv     ADDR:0x802a0464 -> 0xc02662c0
+==========================================================================================
+=>THREAD:            sua0  Struct:0x8029d4d0
+==================================== BACK TRACE ==========================================
+                  osCriticalExit     ADDR:0x8029d024 -> 0x8011c7f6
+                  osCriticalExit     ADDR:0x8029d0a4 -> 0x8011c7f6
+            do_check_inuse_chunk     ADDR:0x8029d0c8 -> 0xc0264cfe
+                       PBUF_FREE     ADDR:0x8029d118 -> 0xc0266d42
+==========================================================================================
+=>THREAD:           media  Struct:0x802981a8
+==================================== BACK TRACE ==========================================
+                   osMallocTrace     ADDR:0x80297e50 -> 0xc026575e
+                  osTimerStartEX     ADDR:0x80297e54 -> 0x8011f1ea
+       osSemaphoreAcquireRelaxed     ADDR:0x80297e6c -> 0xc0265d46
+==========================================================================================
+=>THREAD:                  Struct:0x8028ddd8
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x8028dd64 -> 0x8011767c
+             osiSemaphoreAcquire     ADDR:0x8028dd6c -> 0x80118242
+                  _wqThreadEntry     ADDR:0x8028dd8c -> 0x80118faa
+==========================================================================================
+=>THREAD:                  Struct:0x80289c50
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x80289bbc -> 0x8011a824
+       osSemaphoreAcquireRelaxed     ADDR:0x80289bc4 -> 0xc0265d46
+              osSemaphoreAcquire     ADDR:0x80289bf4 -> 0xc0265d50
+==========================================================================================
+=>THREAD:                  Struct:0x80288b88
+==================================== BACK TRACE ==========================================
+                  osTimerStartEX     ADDR:0x80288a74 -> 0x8011f1ea
+                _osMbRecvRelaxed     ADDR:0x80288a8c -> 0xc0266154
+                 osMbRecvRelaxed     ADDR:0x80288abc -> 0xc02662b4
+==========================================================================================
+=>THREAD:         L2_TASK  Struct:0xc0277ad0
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0xc0275894 -> 0x8011a824
+                _osMbRecvRelaxed     ADDR:0xc027589c -> 0xc0266154
+            do_check_inuse_chunk     ADDR:0xc02758c0 -> 0xc0264cfe
+                 osMbRecvRelaxed     ADDR:0xc02758cc -> 0xc02662b4
+                        osMbRecv     ADDR:0xc027590c -> 0xc02662c0
+==========================================================================================
+=>THREAD:        RRC_TASK  Struct:0xc0277a38
+==================================== BACK TRACE ==========================================
+             do_check_free_chunk     ADDR:0xc02768a0 -> 0xc0264be0
+                osIpcListSuspend     ADDR:0xc02768a4 -> 0x8011a824
+                _osMbRecvRelaxed     ADDR:0xc02768ac -> 0xc0266154
+                 osMbRecvRelaxed     ADDR:0xc02768dc -> 0xc02662b4
+                        osMbRecv     ADDR:0xc027691c -> 0xc02662c0
+==========================================================================================
+=>THREAD:        NAS_TASK  Struct:0xc02779a0
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0xc0277874 -> 0x8011a824
+                _osMbRecvRelaxed     ADDR:0xc027787c -> 0xc0266154
+                 osMbRecvRelaxed     ADDR:0xc02778ac -> 0xc02662b4
+                        osMbRecv     ADDR:0xc02778ec -> 0xc02662c0
+==========================================================================================
+=>THREAD:                  Struct:0x80165968
+==================================== BACK TRACE ==========================================
+                  osTimerStartEX     ADDR:0x80165fec -> 0x8011f1ea
+            osThreadSleepRelaxed     ADDR:0x80166004 -> 0x8011e02e
+==========================================================================================
+=>THREAD:                  Struct:0x801658b8
+==================================== BACK TRACE ==========================================
+                  osTimerStartEX     ADDR:0x80166d9c -> 0x8011f1ea
+            osThreadSleepRelaxed     ADDR:0x80166db4 -> 0x8011e02e
+==========================================================================================
+=>THREAD:             usb  Struct:0x80276340
+==================================== BACK TRACE ==========================================
+                osIpcListSuspend     ADDR:0x802762cc -> 0x8011767c
+             osiSemaphoreAcquire     ADDR:0x802762d4 -> 0x80118242
+                  _wqThreadEntry     ADDR:0x802762f4 -> 0x80118faa
+==========================================================================================
+=>THREAD:       workQueue  Struct:0x80274af0
+==================================== BACK TRACE ==========================================
+           osiProfileThreadEnter     ADDR:0x802749f4 -> 0xc027428e
+                 osThreadSuspend     ADDR:0x80274a84 -> 0x8011e13a
+              _osWorkQueueThread     ADDR:0x80274aa8 -> 0x8011f836
+              _osWorkQueueThread     ADDR:0x80274ab0 -> 0x8011f820
+==========================================================================================
+=>THREAD:            idle  Struct:0x80164ce8
+==================================== BACK TRACE ==========================================
+               osIdleThreadEntry     ADDR:0xc02007ec -> 0x8011a758
+==========================================================================================
+=>THREAD:           timer  Struct:0x80164da8
+==================================== BACK TRACE ==========================================
+                  osTimerStartEX     ADDR:0x80274204 -> 0x8011f1ea
+       osThreadSleepUntilRelaxed     ADDR:0x8027421c -> 0x8011e0d6
+                    osiEventSend     ADDR:0x80274234 -> 0x80117f6a
+              osTimerThreadEntry     ADDR:0x8027425c -> 0x8011ecda
+
+@@@[7/9] show_mailbox.cmm - mailbox state
+=============================================================================================
+Name                   capacity       count          write_index      read_index     osMb_t  
+---------------------------------------------------------------------------------------------
+                           90               0               0               0      0x803ed2d0
+                           90               0               0               0      0x803ed0dc
+          ims_ss           90               0               0               0      0x802a0b94
+          Ims2Ps           90               0              29              29      0x8029e164
+         ImsMain           90               0              40              40      0x8029df04
+            sua0           90               0               0               0      0x80299b68
+           media           90               0               0               0      0x80297104
+         L2_TASK          120               0              33              33      0x8026df34
+        RRC_TASK           90               0               6               6      0x8026df10
+        NAS_TASK           90               0              86              86      0x8026deec
+
+@@@[8/9] show_thread_swap.cmm - thread swap table
+D:0x8015618C
+D:0x8015618C
+D:0x8015618C
+
+@@@[9/9] dlmalloc arena summary - AP system mem (cmm\heap_summary.cmm)
+==================== Heap Arena Summary ====================
+arena symbol: g_osApSystemMem (caller passed &memheap=&memheap)
+HSA2 arena addr=80164CB8
+HSA3 num=00000000
+HSA4 total=00188640
+HSA6 used=0017CEC0
+HSA5 max_used=0017CFE0
+HSA7 user_used=00134A99
+HS97-FIELDS-DONE
+HS98 osMallocTrace=exists (the trace feature is compiled in)
+HS99-NOTE per-block Mem Leak Info not reproducible here; chain is analysed offline by tools\heap_stats_offline.py
+
+##################################################################
+#  END OF HEADLESS ANALYSIS
+##################################################################

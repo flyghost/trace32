@@ -79,10 +79,13 @@ Trace32_Auto\
 | `tools\heap_stats_offline.py` | 纯 Python 读 dump 复算 dlmalloc 链 | 堆统计，自动与 arena 的 `used` 对账 | ✅ |
 | `tools\make_shortcuts.ps1` | 在本机重建 `third_party\launchers\*.lnk` | 快捷方式无法入库 | ✅ |
 | `tools\check_cn_encoding.ps1` | 编码/BOM/行尾/乱码闸门（清单来自 `git ls-files`，没有硬编码） | 中文注释改造的回归守卫，接在 `tests\run_all.ps1` 第 1 段 | ✅ |
-| `tests\run_all.ps1` | **唯一测试入口**：编码闸门 → 夹具哈希 → 冒烟 → 2211 全量 → 单功能 → 等价判定 | 测试集中在这一处（见 §1.2） | ✅ |
+| `tests\run_all.ps1` | **唯一测试入口**：编码闸门 → 现场哈希 → 客户原件哈希 → 冒烟 → 2211 全量 → 单功能 → **对基线** → 等价判定 | 测试集中在这一处（见 §1.2） | ✅ |
 | `tests\verify_ramdump.ps1` | 按 `tests\ramdump.sha256` 逐条校验死机现场 | 证明现场没被改过 | ✅ |
+| `tests\verify_vendor.ps1` `tests\vendor.sha256` | 客户脚本原件 68 件的逐字节校验（清单 + 执行） | 证明客户原件没被改过（改造引擎的前提） | ✅ |
 | `tests\smoke\*.markers` | 三条链各自的期望 marker（5 / 12 / 3 条） | 闸门的数据源：**数据与代码分开** | ✅ |
 | `tests\ramdump.sha256` | 9 个现场文件的 SHA256（`<hash>  <相对路径>`） | 不入库件的完整性凭据 | ✅ |
+| `tests\baseline\` | 改造前的**我方**快照（15 件：全量报告 + 11 个单功能报告 + `run.txt`） | 「改引擎有没有改坏」的基线（设计文档 §11.3 的 oracle B） | ✅ |
+| `tests\compare_baseline.ps1` | 把最新一次运行的报告与 `tests\baseline\` 逐行比（路径/时间戳/耗时先规范化） | 改引擎的**机械验收**：`BASELINE-OK` 才算没改坏 | ✅ |
 | `configs\` | 4 个配置：客户 GUI 原件 `sim-gui.t32` + 3 个无人化配置（`sim-minimal` / `sim-batch` / `sim-rcl-tcp-20000`），每个开头都有中文注释头 | 起实例用（`-c`） | ✅ |
 | `attic\logs\` | 原始实测日志（只读证据；第十一轮从 `docs\history\` 移入，让 `docs\` 只留文档） | 复盘 | ✅ |
 | `docs\rcl-api-notes.md` | Python RCL 的可用调用、错误原文、接口速查 | §4.4 的出处（原客户报告第 7 节的非客户部分） | ✅ |
@@ -106,16 +109,18 @@ Trace32_Auto\
 ```powershell
 cd <repo>
 powershell -ExecutionPolicy Bypass -File tests\run_all.ps1          # 全部
-powershell -ExecutionPolicy Bypass -File tests\run_all.ps1 -SkipT32 # 静态检查（编码 + 现场哈希）
+powershell -ExecutionPolicy Bypass -File tests\run_all.ps1 -SkipT32 # 静态检查（编码 + 现场哈希 + 客户原件哈希）
 ```
 
-`run_all.ps1` 依次用子进程跑 6 段，逐段打印退出码，末尾给 `TESTS-OK` / `TESTS-FAILED`：
-编码/BOM（75 个入库文件）→ 死机现场 SHA256（9/9）→ 冒烟（5 marker）→ 2211 全量（12 marker）→ 单功能 `-Func all`（11 PASS）→ 两入口等价（`EQUIV-OK`）。
+`run_all.ps1` 依次用子进程跑 8 段，逐段打印退出码，末尾给 `TESTS-OK` / `TESTS-FAILED`：
+编码/BOM（95 个入库文件）→ 死机现场 SHA256（9/9）→ 客户原件 SHA256（68/68）→ 冒烟（5 marker）→ 2211 全量（12 marker）→ 单功能 `-Func all`（11 PASS）→ **对基线（15/15 `IDENTICAL`）** → 两入口等价（`EQUIV-OK`）。
 **每个 runner 都有 marker 闸门**：期望的 marker 名单放在 `tests\smoke\*.markers` 里，
 少一条就 `exit 1`（不再只看进程退出码这种假绿）。
 
 > ### ★ 冻结边界
 > `third_party\vendor\`、`ramdump\` 两处是客户资产副本，**只读**：任何脚本、任何实验都不许写入。
+> 这条纪律现在有**机械闸门**：`tests\verify_vendor.ps1`（客户脚本 68 件）与 `tests\verify_ramdump.ps1`（现场 9 件），
+> 挂在 `tests\run_all.ps1` 第 2、3 段 —— 改了任一字节就 `exit 1`。
 > 本项目**不依赖也不链接**外部的客户启动目录（本机另有一份，不在本仓库），只用本目录内的副本。
 > ⚠️ `third_party\launchers\*.lnk` 的 `-c` 参数指向那个外部目录里的 `config_sim.t32`，按上述口径**这三个原始快捷方式不可用**，
 > 只能当「客户原本怎么启动」的参考；它们的内部字符串还带着本机绝对路径与创建者账号名，所以**不入库**——
@@ -558,7 +563,7 @@ python tools\check_entries_equiv.py                                             
   ② 两层拆分落地：`cmm\` = 无 GUI 内核（只被调用），`gui\` 与 `cli\` = **平级**的两个上层入口，
   都往下调 `cmm\`（`gui\config_sim.t32` 来自原 `launchers\`；三个 runner 与两个模板来自原 `harness\`，
   `rcl_smoke.py` 来自原 `python\`）；
-  ③ **契约 4 类 → 2 类**：删掉根 `manifest.json`（其语义并入 `tests\fixtures.sha256`），
+  ③ **契约 4 类 → 2 类**：删掉根 `manifest.json`（其语义并入 `tests\ramdump.sha256`），
   2211 功能注册表只留 `cmm\functions.json`，marker 期望值从代码里搬进 `tests\smoke\*.markers`；
   ④ **补三条门禁**（此前有「假绿」，见下）：marker 断言（冒烟 5 / 全量 13 / 单功能 3）、
   `check_entries_equiv.py` 的覆盖断言（缺功能即 FAIL）、`tests\run_all.ps1` 统一入口；
@@ -662,6 +667,28 @@ python tools\check_entries_equiv.py                                             
 - ④ 门禁复核：`tools\check_cn_encoding.ps1` → `CN-ENCODING-OK`（**76** 个入库文件 / 272237 字节，NOT-UTF8=0、
   BOM 不合规=0、行尾混用=0、乱码=0）；HTML 结构自检：标签配对错误 0、未闭合标签 0、未转义裸 `&`、裸 `<` 各 0。
   版式截图用无头 Edge 已生成（沙箱下 Edge 需提权才能启动），但**未由我人工核看**（当前模型无图像输入）⇒ 版式请用户过目。
+
+- **第十四轮（范围收敛到 2210 / RISC-V，并把「不许改坏」变成闸门）**：用户问「允许重构 `cmm\src_2210\` 里的源码呢？」
+  并收窄范围（「不用考虑 2110 和 3510，只有 2210 有死机现场，同时 2210 是 riscv，不是 arm 的」）后，先出 v3 修订（A 步），再落 S0（B 步）。
+  - ① **A：设计文档 v3 修订**（`docs\design\trace32-architecture-design.html` 981 → 1061 行）：新增 **§11**（范围收敛表 + 三代重复度：
+    2110↔2210 同名 14 / 逐字节相同 11，2210↔3510 同名 13 / 相同 0 / 三代 union 18；三类 oracle；S0–S5 执行顺序；代价与边界）；
+    元数据表加「范围」行（唯一现场 = 2210/2211 **RISC-V RV32**，2110/3510 只留档，`t32marm.exe` + RT-Thread 是**冒烟轨**）；
+    §3 新增图 3-1b（官方 `demo\riscv\kernel\` 10 个 RTOS 感知，`nuttx\nuttx.t32` 仅 92 行）；**§3 末尾那条「没有现成可抄」被实测证伪**，
+    改为「没有 rtthread *感知文件* ≠ 没有可抄的东西」；§6 门禁层 2 补官方 PRACTICE 单元测试框架（`demo\practice\unittest\`）；
+    §7 行④（改「客户原件不动，另写自己拥有的 GUI 薄壳」）、行⑤（10 个 RISC-V 模板）、迁移纪律（三条 → **四条**，新增「动引擎之前先抓 oracle 快照」）；README 同类修正两处。
+  - ② **B：S0 —— 给两条纪律各配一个机械闸门**（不再靠口头承诺）：
+    - 新 `tests\vendor.sha256`（68 件客户 `.cmm` 的 SHA256）+ `tests\verify_vendor.ps1` ⇒ 实测 `vendor: ok=68 bad=0 missing=0` / `VENDOR-OK`；
+    - 新 `tests\baseline\`（**15 件**：全量报告 + 11 个单功能报告 + `run.txt`，取自 `out\runs\2211_ap\20261008-172244` 与 `out\runs\2211_ap_func\20261008-172250`；
+      含本机路径的 5 件已按比较器**同一套映射**换成 `__REPO__` / `__T32_INSTALL__` / `__T32_START_TEMP__` / `__STAMP__`）；
+    - 新 `tests\compare_baseline.ps1`：先把路径、时间戳、每功能耗时规范化，再逐行比 ⇒ `IDENTICAL` / `NORMALIZED`（新增行只能是 `### ` 诊断行）/ `DIFF`；
+      实测 `files=15 volatile_lines_skipped=1 diff=0` / `BASELINE-OK`；
+    - `tests\run_all.ps1` 由 **7 段扩到 8 段**（新增第 3 段客户原件哈希、第 7 段对基线），全量实测 `TESTS-OK`。
+  - ③ **原计划「建 `third_party\orig\2210_trace32\` 只读副本」取消**：`third_party\vendor\2210_trace32\` 本身就是从未被改动的客户原件，
+    再建副本会变成同一批 17 件脚本的第三份拷贝（vendor / `cmm\src_2210` / orig）；改用哈希清单冻结 —— 清单不含受版权保护的脚本正文，**可以入库**，
+    而副本入库反而会把被 `.gitignore` 刻意排除的客户资产重新发布出来。
+  - ④ 门禁复核：`tools\check_cn_encoding.ps1` → `CN-ENCODING-OK`（**95** 个入库文件 / 约 385 KB，NOT-UTF8=0、BOM 不合规=0、行尾混用=0、乱码=0）；`tests\run_all.ps1` 八段全绿 `TESTS-OK`。
+  - ⑤ 本轮踩到三个坑（已写进相关工具注释/说明）：`write`/`edit` 会**去掉 `.ps1` 的 BOM**（改完必须补回）；PowerShell 双引号里 `$f:`
+    是解析错误（要用 `${f}`）；`$arr[1..($arr.Count-1)]` 在 `Count=1` 时抛 `Cannot index into a null array.`（改用 `Select-Object -Skip 1`）。
 
 ---
 

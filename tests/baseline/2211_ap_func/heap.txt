@@ -1,0 +1,22 @@
+##################################################################
+#  headless single function: heap
+#  GUI twin: (no button - replaces MemTrace / MemSummary)
+#  dlmalloc arena 描述符，用在本环境确实能求值的写法读取；块链离线重算
+##################################################################
+Restore RISC-V Ramdump Files!!
+@@@[heap]
+==================== Heap Arena Summary ====================
+arena symbol: g_osApSystemMem (caller passed &memheap=&memheap)
+HSA2 arena addr=80164CB8
+HSA3 num=00000000
+HSA4 total=00188640
+HSA6 used=0017CEC0
+HSA5 max_used=0017CFE0
+HSA7 user_used=00134A99
+HS97-FIELDS-DONE
+HS98 osMallocTrace=exists (the trace feature is compiled in)
+HS99-NOTE per-block Mem Leak Info not reproducible here; chain is analysed offline by tools\heap_stats_offline.py
+
+##################################################################
+#  END OF FUNCTION heap
+##################################################################

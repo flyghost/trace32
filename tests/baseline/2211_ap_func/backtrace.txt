@@ -1,0 +1,17 @@
+##################################################################
+#  headless single function: backtrace
+#  GUI twin: BackTrace
+#  从 exc_trace（异常帧）回溯调用栈，并解码该寄存器帧
+##################################################################
+Restore RISC-V Ramdump Files!!
+@@@[backtrace]
+==================================== BACK TRACE ==========================================
+                 osAssertHandler     ADDR:0x8029bfb8 -> 0x8011c472
+                 osAssertHandler     ADDR:0x8029bfbc -> 0x8011c472
+                        dlMalloc     ADDR:0x8029bfd8 -> 0xc0265232
+                        dlMalloc     ADDR:0x8029c050 -> 0xc0265232
+                   osMallocTrace     ADDR:0x8029c068 -> 0xc026575e
+
+##################################################################
+#  END OF FUNCTION backtrace
+##################################################################

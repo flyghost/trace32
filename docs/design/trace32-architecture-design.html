@@ -178,7 +178,7 @@ hr.thin{border:0; border-top:1px dashed var(--line2); margin:34px 0}
 <tr><td>依据</td><td>本仓库实测 + 本机 Lauterbach 官方 demo（<code>&lt;T32_INSTALL&gt;\demo\arm</code> 与 <code>\demo\riscv</code>）。<b>凡引用的路径、行号、体积均为实测</b></td></tr>
 <tr><td><b>范围</b></td><td><b>唯一现场 = 2210 / 2211（RISC-V RV32）</b>。2110 / 3510 <b>没有死机现场、不在范围内</b>，仅作为 <code>third_party\vendor\</code> 里的参考留档。<code>t32marm.exe</code> + STM32F407ZG + RT-Thread 那条线是<b>冒烟轨</b>（只为验证"环境 + 三通道"活着），<b>与死机现场分析无关</b>，它的 ARM / Thumb-2 议题不属于本项目主线</td></tr>
 <tr><td>状态</td><td>设计文档（方案 <b>v3</b>：2026-10 按"范围收敛到 2210 + 允许重构 <code>src_2210</code>"修订，见 §11）。§1–§10 是方案正文，§11 是修订与取代关系</td></tr>
-<tr><td>不适用</td><td>不评价客户脚本质量；<b>不修改</b>只读资产（<code>third_party\</code>、<code>ramdump\</code>）。<code>cmm\src_2210\</code> 经用户授权<b>可以提升为可写引擎</b>（<code>platforms\2210\</code>），但原件必须在 <code>third_party\orig\</code> 留档并冻结 sha256（§7 步骤①、§11）</td></tr>
+<tr><td>不适用</td><td>不评价客户脚本质量；<b>不修改</b>只读资产（<code>third_party\</code>、<code>ramdump\</code>）。<code>cmm\src_2210\</code> 经用户授权<b>可以提升为可写引擎</b>（<code>platforms\2210\</code>），但客户原件的 sha256 必须冻结在 <code>tests\vendor.sha256</code>（§7 步骤①、§11）</td></tr>
 </table>
 
 <div class="dgm">
@@ -292,8 +292,8 @@ hr.thin{border:0; border-top:1px dashed var(--line2); margin:34px 0}
     <div class="card"><h5>资产（只读，不入库）</h5>
       <div class="kv">
         <b>ramdump\</b>9 件 / 35 646 924 B<br>
-        <b>third_party\</b>214 件 / 2 183 796 B<br>
-        <b>└ vendor\</b>166 件（客户 4 代脚本）<br>
+        <b>third_party\</b>192 件 / 2 026 978 B<br>
+        <b>└ vendor\</b>144 件（其中客户 4 代脚本 <b>68</b> 件，其余是 .svn 内部文件）<br>
         <b>cmm\src_2210\</b>17 件（客户副本）<span style="color:#b45309"> ⚠️ 经用户授权，可提升为可写引擎，见 §11</span>
       </div></div>
     <div class="card"><h5>代码与契约（入库）</h5>
@@ -318,11 +318,11 @@ hr.thin{border:0; border-top:1px dashed var(--line2); margin:34px 0}
 <tr><th style="width:230px">指标</th><th style="width:150px">实测值</th><th>说明与来源</th></tr>
 <tr><td>入库文件</td><td class="c">76</td><td><code>git ls-files</code>；HEAD = <code>6ed145e</code>（第十二轮）之上新增本文档</td></tr>
 <tr><td>占位符</td><td class="c">43 文件 / 173 处</td><td>正则 <code>__[A-Z0-9_]+__</code>。其中<b>真·本机路径</b> 6 种 / 87 处；<b>模板槽位</b> 12 种 / 86 处</td></tr>
-<tr><td>客户脚本占位符</td><td class="c">0</td><td><code>third_party\vendor\</code> 166 件、<code>third_party\launchers\</code> 3 件全零命中 ⇒ 客户资产零改动</td></tr>
+<tr><td>客户脚本占位符</td><td class="c">0</td><td><code>third_party\vendor\</code> 68 件脚本、<code>third_party\launchers\</code> 3 件全零命中 ⇒ 客户资产零改动</td></tr>
 <tr><td>参数化前的手写绝对路径</td><td class="c">131 处</td><td>参数化那一轮清点：<code>cmm\</code> 12 个脚本 + <code>configs\</code> 4 + <code>experiments\</code> 24 + <code>python\</code> 7 + README</td></tr>
 <tr><td>2210 平台的真实机器路径依赖</td><td class="c">2 处</td><td>只做 2211 时，整链 85 处占位符里只有 2 处是机器路径（两个 runner 各 1 处 <code>__T32_INSTALL__</code>）</td></tr>
 <tr><td>已注册的无头功能</td><td class="c">13</td><td><code>cmm\functions.json</code>；对应 GUI 的 11 个按钮；其中 10 个判 <code>PASS</code>、1 个判 <code>partial</code>（<code>thread_bt</code>）</td></tr>
-<tr><td>现有门禁段数</td><td class="c">6</td><td><code>tests\run_all.ps1</code>：编码 → 现场哈希 → 冒烟 → 2211 全量 → 单功能 → 等价判定</td></tr>
+<tr><td>现有门禁段数</td><td class="c">8</td><td><code>tests\run_all.ps1</code>：编码 → 现场哈希 → <b>客户原件哈希</b> → 冒烟 → 2211 全量 → 单功能 → <b>对基线</b> → 等价判定</td></tr>
 <tr><td>黄金基准</td><td class="c">2 834 432 B</td><td><code>ramdump\2211_deathscene\ap_PrintData.txt</code>（SHA256 <code>04C86256…</code>）：客户 GUI 亲手跑出来的，<b>属于只读现场的一部分</b>。第十一轮已删掉从它复制出来的冗余 <code>tests\expected\</code> 副本。它不含 SYSINFO/ERRINFO——那两项在 GUI 的 dyntext 字段里，不落文件</td></tr>
 </table>
 
@@ -697,7 +697,7 @@ ENDDO
 ├── local/                     <s>已有 17 件</s> <em>本机路径 + 展开件（不入库）</em>
 ├── attic/                     <s>已有 44 件</s> <em>历史实验与失败配置（留档证据）</em>
 ├── ramdump/                   <s>已有 9 件</s> <u>死机现场（只读）</u>
-└── third_party/               <s>已有 214 件</s>
+└── third_party/               <s>已有 192 件</s>
     ├── vendor/                <u>客户 4 代脚本原件（只读）</u>
     ├── orig/                  <b>新增</b>  <em>被提升前的 src_2210 只读留档 + sha256</em>
     └── trace32_rcl/           <s>已有</s> <em>RCL 的 Python 库</em>
@@ -827,12 +827,12 @@ ENTRY &amp;memheap &amp;tag
     <div class="layer l5"><div class="id">7</div><div class="bd"><b>parity</b>：GUI 按钮 ↔ 无头入口的<b>可执行</b>等价断言<span class="m">把注册表里的 <code>gui</code> 字段（如 <code>LM620_Restore.cmm:63-69</code>）变成断言：按钮引用的脚本集合 = 功能声明的脚本集合</span></div><div class="right"><span class="badge no">缺</span> 现在只有人工对照表</div></div>
     <div class="layer l4"><div class="id">6</div><div class="bd"><b>smoke</b>：一条最短真实链路（STM32F407ZG / RT-Thread 冒烟，两阶段：批处理 + RCL）<span class="m">证明"环境 + 三通道"活着</span></div><div class="right"><span class="badge ok">有</span> <code>cli\run_smoke.ps1</code></div></div>
     <div class="layer l3"><div class="id">5</div><div class="bd"><b>matrix</b>：故障类型 × 内存区域的用例矩阵<span class="m">空指针 / 除零 / 栈溢出 / <code>RAMDUMP_ASSERT</code> / BusFault × 各内存区域</span></div><div class="right"><span class="badge no">缺</span> 只有 2211 一个 case</div></div>
-    <div class="layer l3"><div class="id">4</div><div class="bd"><b>golden</b>：与黄金基准比对（当前形态：单功能报告 ↔ 全量报告的等价判定 + 覆盖断言）</div><div class="right"><span class="badge half">半有</span> <code>EQUIV-OK</code>；缺 <code>report.json</code> 级基准</div></div>
-    <div class="layer l2"><div class="id">3</div><div class="bd"><b>fixture</b>：现场文件的 SHA256（9 件）——证明"喂进去的东西没变过"</div><div class="right"><span class="badge ok">有</span> <code>tests\verify_ramdump.ps1</code></div></div>
+    <div class="layer l3"><div class="id">4</div><div class="bd"><b>golden</b>：与黄金基准比对（当前形态：单功能报告 ↔ 全量报告的等价判定 + 覆盖断言；<b>第十四轮起</b>另有与 <code>tests\baseline\</code> 冻结快照的逐行比对，由 <code>tests\compare_baseline.ps1</code> 判 <code>BASELINE-OK</code>）</div><div class="right"><span class="badge half">半有</span> <code>EQUIV-OK</code> + <code>BASELINE-OK</code>；缺 <code>report.json</code> 级基准</div></div>
+    <div class="layer l2"><div class="id">3</div><div class="bd"><b>fixture</b>：现场文件的 SHA256（9 件）——证明"喂进去的东西没变过"</div><div class="right"><span class="badge ok">有</span> <code>tests\verify_ramdump.ps1</code>（现场 9 件）+ <code>tests\verify_vendor.ps1</code>（客户原件 68 件）</div></div>
     <div class="layer l1"><div class="id">2</div><div class="bd"><b>unit</b>：不需要 TRACE32 的纯逻辑测试（Python 侧：解析器、生成器、哈希）</div><div class="right"><span class="badge no">缺</span> 逻辑目前只在真跑里被顺带验证。但<b>不是无米之炊</b>：官方自带 PRACTICE 单元测试框架 <code>&lt;T32_INSTALL&gt;\demo\practice\unittest\</code>（<code>lbtest.cmm</code> 43 097 B + <code>test_example_minimal.cmm</code> 1 002 B，断言宏 <code>A_TRUE / A_FALSE / A_NUM_EQ / A_STR_EQ</code>）⇒ <b>PRACTICE 侧本身也能做单元测试</b>，不只 Python 侧</div></div>
     <div class="layer l0"><div class="id">1</div><div class="bd"><b>lint</b>：规则检查（编码/BOM/行尾/乱码 ✅ + 五条 C3 规则 ❌）</div><div class="right"><span class="badge half">半有</span> <code>tools\check_cn_encoding.ps1</code>（76 个文件 / 272 237 B 全绿）</div></div>
   </div>
-  <div class="cap"><b>现状段数 = 6</b>（<code>tests\run_all.ps1</code>：编码 → 现场哈希 → 冒烟 → 2211 全量 → 单功能 → 等价判定）。<b>目标 = 7 层</b>，缺的三项（lint 规则、unit、matrix、parity）都不需要新环境，只差"写下来 + 挂进去"。</div>
+  <div class="cap"><b>现状段数 = 8</b>（<code>tests\run_all.ps1</code>：编码 → 现场哈希 → <b>客户原件哈希</b> → 冒烟 → 2211 全量 → 单功能 → <b>对基线</b> → 等价判定）。<b>目标 = 7 层</b>，缺的四项（lint 规则、unit、matrix、parity）都不需要新环境，只差"写下来 + 挂进去"。</div>
 </div>
 
 <div class="grid2">
@@ -851,7 +851,7 @@ ENTRY &amp;memheap &amp;tag
 <div class="dgm">
   <div class="cap"><b>图 7-1</b> · 路线图（每步都可独立完成并验收；<b>没有一步需要修改只读资产</b>）</div>
   <div class="row">
-    <div class="node narrow" style="flex:0 0 175px"><b>① 提升</b><span class="m"><code>cmm\src_2210\</code> → <code>platforms\2210\</code>，原件留档 <code>third_party\orig\</code> + sha256</span></div>
+    <div class="node narrow" style="flex:0 0 175px"><b>① 提升</b><span class="m"><code>cmm\src_2210\</code> → <code>platforms\2210\</code>，客户原件冻结在 <code>tests\vendor.sha256</code></span></div>
     <div class="arw">→</div>
     <div class="node narrow" style="flex:0 0 175px"><b>② 抽 <code>core\</code></b><span class="m">引号/MARKER/AREA/收尾四处重复 → 四件小工具</span></div>
     <div class="arw">→</div>
@@ -866,7 +866,7 @@ ENTRY &amp;memheap &amp;tag
 
 <table class="data">
 <tr><th style="width:36px" class="c">步</th><th style="width:190px">目标</th><th style="width:250px">产物</th><th style="width:250px">验收标准（可执行）</th><th>风险 / 备注</th></tr>
-<tr><td class="c">①</td><td>让"只读参考"与"我们的代码"在盘上分开</td><td><code>platforms\2210\</code>（可写，源来自 <code>cmm\src_2210\</code>）+ <code>third_party\orig\2210_trace32\</code>（只读留档，17 件）</td><td>留档的 17 件 sha256 与原件逐字节一致；<code>tests\run_all.ps1</code> 六段全绿</td><td>纯搬迁；<b>必须保留原始字节</b>（客户脚本是三态编码：ASCII / GBK / UTF-8 混杂，不能按 UTF-8 重写）；<b>先抓改造前的 oracle 快照</b>（§11 S0），否则"没改坏"无法证明，只能靠记忆</td></tr>
+<tr><td class="c">①</td><td>让"只读参考"与"我们的代码"在盘上分开</td><td><code>platforms\2210\</code>（可写，源来自 <code>cmm\src_2210\</code>）+ <code>tests\vendor.sha256</code>（客户原件 68 件的 sha256，零副本）</td><td>哈希清单 68/68 逐字节一致；<code>tests\run_all.ps1</code> <b>八段</b>全绿</td><td>纯搬迁；<b>必须保留原始字节</b>（客户脚本是三态编码：ASCII / GBK / UTF-8 混杂，不能按 UTF-8 重写）；<b>先抓改造前的 oracle 快照</b>（§11 S0），否则"没改坏"无法证明，只能靠记忆</td></tr>
 <tr><td class="c">②</td><td>把四处重复（参数解析、marker 写盘、AREA 创建、收尾）收成四件小工具</td><td><code>core\{entry,output,marker,finish}.cmm</code>，每件 &lt; 60 行</td><td>单功能跑出的报告与改造前<b>逐字节相同</b>（或差异可用正则解释）</td><td>抽象的边界：<b>不超两层、不做"框架"</b>；<code>do</code> 不是 include，宏作用域要实测</td></tr>
 <tr><td class="c">③</td><td>人不再手写任何地址/偏移/符号名</td><td><code>platform.json</code> + <code>gen\memory.cmm</code> + <code>gen\offsets.cmm</code> + <code>tools\gen_platform.py</code></td><td>lint 规则 3 通过（零绝对路径）；改一个地址只需改 JSON；<code>gen\</code> 与 JSON 的 sha256 一致</td><td>偏移必须由 ELF/DWARF 校验；<b>类型别名与地址别名要保住</b>（<code>IRAM.bin</code> 有两个别名、<code>PSRAM.bin</code> 有两个）</td></tr>
 <tr><td class="c">④</td><td>功能成为独立单元；GUI 壳变薄</td><td><code>platforms\2210\features\*.cmm</code> + 扩展后的 <code>features.json</code></td><td>13 个登记功能全部可单独跑；等价判定仍 <code>EQUIV-OK</code>；<code>make run FEATURE=&lt;id&gt;</code> 可用</td><td>客户 GUI 壳在 <code>third_party\</code>（只读）⇒ 客户原件<b>不被改造</b>；我们<b>另写一个自己拥有的薄壳</b>（<code>platforms\2210\gui\</code>，装 <code>DIALOG.*</code> 与按钮菜单），客户脚本只提供"无 GUI 内核"。用户已授权重构 <code>src_2210</code>（§11），所以这里的"薄壳"是<b>可写的</b>；<code>thread_bt</code> 目前的 <code>partial</code> 有机会变 <code>yes</code></td></tr>
@@ -886,7 +886,7 @@ ENTRY &amp;memheap &amp;tag
 </div>
 
 <div class="warn"><b>迁移期间的四条纪律</b><br>
-① <b>只读资产不动</b>：<code>third_party\vendor\</code>、<code>third_party\orig\</code>、<code>ramdump\</code> 一个字节都不改 —— 否则黄金原件与"客户原件"同时失效，等价判定会退化成循环论证。可写的是我们自己的 <code>platforms\2210\</code>（源从 <code>cmm\src_2210\</code> 提升，用户已授权，见 §11）。<br>
+① <b>只读资产不动</b>：<code>third_party\vendor\</code>、<code>ramdump\</code> 一个字节都不改 —— 由 <code>tests\verify_vendor.ps1</code> 与 <code>tests\verify_ramdump.ps1</code> 断言 —— 否则黄金原件与"客户原件"同时失效，等价判定会退化成循环论证。可写的是我们自己的 <code>platforms\2210\</code>（源从 <code>cmm\src_2210\</code> 提升，用户已授权，见 §11）。<br>
 ② <b>每一步都要能回退</b>：先复制后切换；<code>git status</code> 干净才算一步结束。<br>
 ③ <b>等价判定是安全网</b>：任何重构之后，<code>EQUIV-OK</code> 必须仍然是 <code>pass=10 partial=1 fail=0 missing=0</code>（当前实测值）。<br>
 ④ <b>动引擎之前先抓 oracle 快照</b>：把改造前的全量报告与 11 个单功能报告存成基线（§11 S0）。它是"我没改坏"的唯一可执行证据。</div>
@@ -903,8 +903,8 @@ ENTRY &amp;memheap &amp;tag
 <tr><td>输出</td><td><code>report.txt</code> + <code>heap_by_file.txt</code> + <code>run.log</code></td><td>再加 <code>report.json</code> + <code>meta.json</code></td><td class="c">新增两件</td></tr>
 <tr><td>进度信号</td><td><code>*.markers</code> + 文件闸门（✅ 已跑通）</td><td>同左，并成为 C4 的一部分</td><td class="c">保持</td></tr>
 <tr><td>堆分析</td><td>在线有界 walker（1 s 跑完，停在 "free-chunk-size-is-zero"）+ 离线 Python 复算 6028 块 ✅</td><td>感知层查询（步骤⑤）</td><td class="c">质变</td></tr>
-<tr><td>门禁</td><td>6 段（编码/哈希/冒烟/全量/单功能/等价）</td><td>7 层（+lint 规则 / unit / matrix / parity）</td><td class="c">补四项</td></tr>
-<tr><td>只读边界</td><td><code>third_party\</code>(214) / <code>ramdump\</code>(9，含黄金原件)，<code>.gitignore</code> 挡住</td><td>同左 + <code>OWNERS</code> 明确归属 + <code>third_party\orig\</code></td><td class="c">已做</td></tr>
+<tr><td>门禁</td><td>8 段（编码/哈希/原件哈希/冒烟/全量/单功能/对基线/等价）</td><td>7 层（+lint 规则 / unit / matrix / parity）</td><td class="c">补四项</td></tr>
+<tr><td>只读边界</td><td><code>third_party\</code>(192) / <code>ramdump\</code>(9，含黄金原件)，<code>.gitignore</code> 挡住</td><td>同左 + <code>OWNERS</code> 明确归属 + <code>tests\vendor.sha256</code>（不建副本，用 sha256 冻结）</td><td class="c">已做</td></tr>
 </table>
 
 <div class="dgm">
@@ -1011,7 +1011,7 @@ Get-ChildItem "$t32\demo\riscv\kernel" -Directory | Select-Object -Expand Name
 <tr><td><b>2210 / 2211（RISC-V RV32）</b></td><td class="c">✅ 有</td><td class="c"><b>✅ 唯一主线</b></td><td><code>ramdump\2211_deathscene\</code> 9 件共 38 481 356 B；技术面：<code>SYStem.CPU RV32</code> + <code>Register.Set PRV</code>、CSR <code>mcause/mdcause/mepc/mtval</code>、<code>struct rt_hw_stack_frame</code>（epc/ra/gp/tp/t0-t6/s0_fp/a0-a7/s2-s11）</td></tr>
 <tr><td>2110（RISC-V）</td><td class="c">❌ 无</td><td class="c">❌ 仅留档</td><td>与 2210 同名 14 件里 <b>11 件逐字节相同</b> ⇒ 2210 是它的超集演进，留着只作参考</td></tr>
 <tr><td>3510（RISC-V）</td><td class="c">❌ 无</td><td class="c">❌ 仅留档</td><td>与 2210 同名 13 件里 <b>0 件逐字节相同</b> ⇒ 同接口、实现整个重写。它反过来证明了"接口稳定、实现可换"，是本设计的旁证</td></tr>
-<tr><td>STM32F407ZG + RT-Thread（<code>t32marm.exe</code>）</td><td class="c">❌ 无</td><td class="c">❌ <b>冒烟轨</b></td><td>夹具来自 <code>rt-thread-ros</code> 的 BSP，不是死机现场。它只回答"环境与三条通道还活着吗"（<code>tests\run_all.ps1</code> 第 3 段）；<b>Cortex-M4 / Thumb-2 的移植议题不属于本项目</b></td></tr>
+<tr><td>STM32F407ZG + RT-Thread（<code>t32marm.exe</code>）</td><td class="c">❌ 无</td><td class="c">❌ <b>冒烟轨</b></td><td>夹具来自 <code>rt-thread-ros</code> 的 BSP，不是死机现场。它只回答"环境与三条通道还活着吗"（<code>tests\run_all.ps1</code> 第 4 段）；<b>Cortex-M4 / Thumb-2 的移植议题不属于本项目</b></td></tr>
 </table>
 
 <div class="dgm">
@@ -1037,7 +1037,7 @@ Get-ChildItem "$t32\demo\riscv\kernel" -Directory | Select-Object -Expand Name
 <table class="data">
 <tr><th style="width:150px">代号</th><th style="width:300px">内容</th><th style="width:290px">位置</th><th>作用</th></tr>
 <tr><td><b>A 客户真值</b></td><td>客户 GUI 手工点出来的 <code>ap_PrintData.txt</code>（2 834 432 B / 43 099 行）</td><td><code>ramdump\2211_deathscene\</code>（与 <code>golden\2211_ap_PrintData.txt</code> 同哈希）</td><td>证明"我们的无头链和人工操作看到的是<strong>同一个现场</strong>"</td></tr>
-<tr><td><b>B 我方改造前快照</b></td><td>全量报告 + 11 个单功能报告 + <code>run.txt</code> + marker 日志</td><td><code>out\runs\2211_ap\20261008-172244</code>、<code>out\runs\2211_ap_func\20261008-172250</code></td><td><b>"我没改坏"的唯一可执行证据</b>。⚠️ 必须在动引擎<b>之前</b>抓，并且要从 <code>out\</code>（已被忽略）复制进入库的 <code>tests\baseline\</code></td></tr>
+<tr><td><b>B 我方改造前快照</b></td><td>全量报告 + 11 个单功能报告 + <code>run.txt</code> + marker 日志</td><td><code>out\runs\2211_ap\20261008-172244</code>、<code>out\runs\2211_ap_func\20261008-172250</code></td><td><b>"我没改坏"的唯一可执行证据</b>。⚠️ 必须在动引擎<b>之前</b>抓，并且要从 <code>out\</code>（已被忽略）复制进入库的 <code>tests\baseline\</code>。<b>✅ 已执行</b>：15 件已入库（<code>2211_ap\</code> 3 件 + <code>2211_ap_func\</code> 12 件），指纹见 <code>tests\baseline\README.md</code></td></tr>
 <tr><td><b>C 官方 demo</b></td><td><code>ramdump.cmm</code> 的双入口骨架、<code>TASK.CONFIG</code> 的挂法与关法</td><td><code>&lt;T32_INSTALL&gt;\demo\arm\</code> 与 <code>\demo\riscv\</code></td><td>校准"什么是官方惯例、什么是我们的发明"</td></tr>
 </table>
 <div class="tip"><b>判定只有三级</b>：① <b>字节相同</b>（最强：重构零副作用）② <b>规范化相同</b>（允许新增 <code>###</code> 诊断行，其余逐行相同）③ <b>语义相同</b>（人工确认差异可解释）。
@@ -1046,8 +1046,8 @@ Get-ChildItem "$t32\demo\riscv\kernel" -Directory | Select-Object -Expand Name
 <h3>11.4 修订后的执行顺序</h3>
 <table class="data">
 <tr><th style="width:44px" class="c">步</th><th style="width:250px">动作</th><th style="width:290px">产物</th><th>验收（可执行）</th></tr>
-<tr><td class="c"><b>S0</b></td><td>抓 oracle B + 记录环境指纹</td><td><code>tests\baseline\</code>（报告快照）、t32 版本、<code>cpu-ap.elf</code> 的 sha256</td><td>基线能在事后被 <code>git</code> 检回；指纹记进 <code>tests\fixtures.sha256</code> 的同目录</td></tr>
-<tr><td class="c"><b>S1</b></td><td>提升：<code>cmm\src_2210\</code> → <code>platforms\2210\engine\</code>（<b>零改动副本</b>），原件冻结到 <code>third_party\orig\2210_trace32\</code></td><td>17 件引擎 + 17 件留档（sha256 闸门）</td><td>报告与 S0 <b>字节相同</b>；<code>tests\run_all.ps1</code> 六段全绿</td></tr>
+<tr><td class="c"><b>S0</b></td><td>抓 oracle B + 记录环境指纹</td><td><code>tests\baseline\</code>（报告快照）、t32 版本、<code>cpu-ap.elf</code> 的 sha256</td><td>基线能在事后被 <code>git</code> 检回；指纹与"客户原件未被改"记进 <code>tests\baseline\README.md</code> 与 <code>tests\vendor.sha256</code></td></tr>
+<tr><td class="c"><b>S1</b></td><td>提升：<code>cmm\src_2210\</code> → <code>platforms\2210\engine\</code>（<b>零改动副本</b>），客户原件由 <code>tests\vendor.sha256</code> 冻结（不建副本）</td><td>17 件引擎 + 68 件原件哈希闸门</td><td>报告与 S0 <b>字节相同</b>；<code>tests\run_all.ps1</code> <b>八段</b>全绿</td></tr>
 <tr><td class="c"><b>S2</b></td><td>只改两处堆遍历：外层环守卫 + <code>size==0</code> 守卫 + <code>&amp;budget</code></td><td><code>engine\print_dlmalloc_heap.cmm</code>、<code>engine\print_mem_summary_by_file.cmm</code></td><td>差异只允许出现在 <code>###</code> 诊断行内；客户 GUI 侧 MemTrace / MemSummary 不再卡死</td></tr>
 <tr><td class="c"><b>S3</b></td><td>抽 <code>core\{entry,output,marker,finish}.cmm</code>（每件 &lt; 60 行）并做"一实现两入口"</td><td><code>platforms\2210\core\</code> + <code>gui\</code> 薄壳</td><td><code>EQUIV-OK</code> 仍为 <code>pass=10 partial=1 fail=0 missing=0</code>（<code>partial</code> 若能变 <code>yes</code> 更好）</td></tr>
 <tr><td class="c"><b>S4</b></td><td>数据化：<code>platform.json</code> + 生成器</td><td><code>gen\memory.cmm</code>、<code>gen\offsets.cmm</code>、<code>tools\gen_platform.py</code></td><td>lint 零绝对路径；改一个地址只需改 JSON；CMM 与 Python 读同一份</td></tr>
@@ -1061,15 +1061,15 @@ Get-ChildItem "$t32\demo\riscv\kernel" -Directory | Select-Object -Expand Name
 <tr><td>§7 图 7-1 cap</td><td>"⑤ 是唯一可能失败的一步（官方 67 个 OS 里没有 rtthread）"</td><td>仍是五步里<b>最可能失败</b>的一步，但已不是无米之炊（图 3-1b）</td></tr>
 <tr><td>§7 表行 ④</td><td>"客户 GUI 壳只读 ⇒ 只能新增薄壳，不能改造它；GUI 薄壳可行性需实测"</td><td>客户原件<b>仍不被改</b>；但我们<b>自己拥有</b>一个可写的薄壳（11.2 解锁 ①）</td></tr>
 <tr><td>§7 表行 ⑤</td><td>"官方无 rtthread 感知可抄"</td><td>补"10 个 RISC-V 模板"，并注明 2210 是 RISC-V ⇒ <b>优先读 <code>demo\riscv</code></b>（该树的 <code>ramdump.cmm</code> 是 28 822 B / 969 行）</td></tr>
-<tr><td>§7 迁移纪律</td><td>三条</td><td>四条（新增"动引擎前先抓 oracle 快照"）；"只读资产"由 <code>third_party\</code>+<code>cmm\src_2210\</code> 收窄为 <code>third_party\vendor\</code>+<code>third_party\orig\</code>+<code>ramdump\</code></td></tr>
+<tr><td>§7 迁移纪律</td><td>三条</td><td>四条（新增"动引擎前先抓 oracle 快照"）；"只读资产"由 <code>third_party\</code>+<code>cmm\src_2210\</code> 收窄为 <code>third_party\vendor\</code>+<code>ramdump\</code>（两者都由 <code>tests\*.sha256</code> 断言）</td></tr>
 <tr><td>§6 层 2 <code>unit</code></td><td>"缺：逻辑目前只在真跑里被顺带验证"</td><td>补：官方 <code>demo\practice\unittest\</code> 有现成 PRACTICE 单元测试框架（<code>lbtest.cmm</code> 43 097 B + 断言宏 <code>A_TRUE/A_FALSE/A_NUM_EQ/A_STR_EQ</code>）</td></tr>
 <tr><td>§10 附录</td><td>只有 <code>demo\arm</code> 一个根目录</td><td>两个根：<code>&lt;demo&gt;</code> 与 <code>&lt;demo-riscv&gt;</code>，并说明"现场导出脚本按架构各写一份"是官方惯例</td></tr>
-<tr><td>元数据表</td><td>无「范围」行；<code>cmm\src_2210</code> 列为只读</td><td>新增「范围」行；<code>cmm\src_2210</code> 标注为<b>经授权可提升</b>，原件须留档 <code>third_party\orig\</code></td></tr>
+<tr><td>元数据表</td><td>无「范围」行；<code>cmm\src_2210</code> 列为只读</td><td>新增「范围」行；<code>cmm\src_2210</code> 标注为<b>经授权可提升</b>，原件由 <code>tests\vendor.sha256</code> 冻结</td></tr>
 </table>
 
 <div class="warn"><b>11.6 代价与边界（诚实清单）</b><br>
 ① <b>改完就是"我们的代码"</b>：不能再把问题甩回给客户 —— 换来的是"我们能修"。<br>
-② <b>客户给新版时</b>：先与 <code>third_party\orig\</code> 做 diff，再人工合并；<b>绝不让 orig 被覆盖</b>，它是唯一能回答"客户原来是怎么写的"的地方。<br>
+② <b>客户给新版时</b>：先与 <code>third_party\vendor\</code>（冻结基线，见 <code>tests\vendor.sha256</code>）做 diff，再人工合并；<b>绝不让冻结的原件被就地覆盖</b>，它是唯一能回答"客户原来是怎么写的"的地方。<br>
 ③ <b>CMM 没有编译器、没有静态检查</b>，而且客户脚本普遍以 <code>ON ERROR CONTiune</code> 开头（错会被吞掉）⇒ 唯一的安全网是"冻结 oracle + 逐字节/规范化 diff + marker 闸门"，<b>不是靠读代码</b>。<br>
 ④ <b>仍然不做</b>：不驱动 GUI、不把 TRACE32 放进每个 PR 的必经路径、不把"确定性回归"与"AI 判断"揉成一层。<br>
 ⑤ <b>一个立刻可做、且不依赖上述任何一步的小件</b>：从现场那 9 个 bin 反生成 <code>restore_&lt;stamp&gt;.cmm</code> + <code>meta.json</code>，让 2211 现场也成为官方那种"<b>可自恢复包</b>"（不碰任何只读资产）。</div>
@@ -1091,7 +1091,7 @@ Get-ChildItem "$t32\demo\riscv\kernel" -Directory | Select-Object -Expand Name
 文档：<code>docs/design/trace32-architecture-design.html</code> · 自包含单文件（无脚本、无外部资源、可离线打开与打印）· 与本仓库一致采用 Apache-2.0。<br>
 文中所有路径、体积、行号、占位符计数、门禁段数均为在 <code>E:\software\InstallerEdition\DevTools\Trace32_Auto</code> 与
 <code>E:\software\InstallerEdition\DevTools\Trace32</code> 上的实测值；未实测的推断均已标注（如"GUI 薄壳可行性需实测"、"<code>SYS=</code> 可省/可覆盖未测"）。<br>
-配套设计材料见同目录后续文档；本文件的更新应同样走 <code>tools\check_cn_encoding.ps1</code>（第 1 段门禁）与六段回归。
+配套设计材料见同目录后续文档；本文件的更新应同样走 <code>tools\check_cn_encoding.ps1</code>（第 1 段门禁）与八段回归。
 </p>
 
 </main>

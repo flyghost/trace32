@@ -1,0 +1,12 @@
+##################################################################
+#  headless single function: errinfo
+#  GUI twin: (dyntext field)
+#  故障本身：assert（core/file/line/pc）或异常（mcause/mdcause/mepc/mtval）的解码结果
+##################################################################
+Restore RISC-V Ramdump Files!!
+@@@[errinfo]
+ERRINFO: "AP Assert. File: dlmalloc.c, Line: 1138, PC: 0xC0265232"
+
+##################################################################
+#  END OF FUNCTION errinfo
+##################################################################

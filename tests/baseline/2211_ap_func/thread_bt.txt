@@ -1,0 +1,48 @@
+##################################################################
+#  headless single function: thread_bt
+#  GUI twin: ThreadBT
+#  只回溯一个选定的线程；名字来自 -Thread <name>（默认 idle，即 GUI 自己的默认值）。equiv=partial 是因为有两行是我们自己
+##################################################################
+Restore RISC-V Ramdump Files!!
+@@@[thread_bt]
+THREADPICK: [0x0] 
+THREADPICK: [0x1] 
+THREADPICK: [0x2] voice-r
+THREADPICK: [0x3] 
+THREADPICK: [0x4] 
+THREADPICK: [0x5] usb-serial
+THREADPICK: [0x6] usb-ether(NDIS)
+THREADPICK: [0x7] 
+THREADPICK: [0x8] atcmd1
+THREADPICK: [0x9] atcmd0
+THREADPICK: [0x0A] 
+THREADPICK: [0x0B] 
+THREADPICK: [0x0C] 
+THREADPICK: [0x0D] 
+THREADPICK: [0x0E] wq_lo
+THREADPICK: [0x0F] wq_hi
+THREADPICK: [0x10] ims_ss
+THREADPICK: [0x11] Ims2Ps
+THREADPICK: [0x12] ImsMain
+THREADPICK: [0x13] sua0
+THREADPICK: [0x14] media
+THREADPICK: [0x15] 
+THREADPICK: [0x16] 
+THREADPICK: [0x17] 
+THREADPICK: [0x18] L2_TASK
+THREADPICK: [0x19] RRC_TASK
+THREADPICK: [0x1A] NAS_TASK
+THREADPICK: [0x1B] 
+THREADPICK: [0x1C] 
+THREADPICK: [0x1D] usb
+THREADPICK: [0x1E] workQueue
+THREADPICK: [0x1F] idle
+THREADPICK: [0x20] timer
+THREADPICK: available=voice-r,,,usb-serial,usb-ether(NDIS),,atcmd1,atcmd0,,,,,wq_lo,wq_hi,ims_ss,Ims2Ps,ImsMain,sua0,me
+Thread:            idle  0x80164ce8
+==================================== BACK TRACE ==========================================
+               osIdleThreadEntry     ADDR:0xc02007ec -> 0x8011a758
+
+##################################################################
+#  END OF FUNCTION thread_bt
+##################################################################

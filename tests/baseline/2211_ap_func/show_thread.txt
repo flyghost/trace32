@@ -1,0 +1,53 @@
+##################################################################
+#  headless single function: show_thread
+#  GUI twin: ShowThread
+#  线程表：名字 / 优先级 / 状态 / 栈 / 邮箱计数
+##################################################################
+Restore RISC-V Ramdump Files!!
+@@@[show_thread]
+===================================================================================================
+Name                Pri    State      maxStack     rmanTick   osThread_t    MsgCount    MaxMsgCount
+---------------------------------------------------------------------------------------------------
+                     6     Ready         91%           5      0x803e90f0        0        0
+                     6     Suspend       44%           5      0x803ee368        0        0
+         voice-r     5     Suspend       54%           3      0x803ecea0       N/A       N/A
+                    16     Suspend       36%           1      0x802f8eb0       N/A       N/A
+                     6     Suspend       33%           1      0x802fb1b0       N/A       N/A
+      usb-serial    16     Suspend       26%           5      0x802f2460       N/A       N/A
+ usb-ether(NDIS)    12     Suspend       13%           4      0x802e7dc8       N/A       N/A
+                    10     Suspend       13%           5      0x802bad30       N/A       N/A
+          atcmd1     9     Suspend       16%           5      0x802ba7e0       N/A       N/A
+          atcmd0     9     Suspend       16%           5      0x802b8040       N/A       N/A
+                     9     Suspend       18%           3      0x802b2e58       N/A       N/A
+                    16     Suspend       67%           2      0x802ae2a0       N/A       N/A
+                     9     Suspend       17%           5      0x802ad6b8       N/A       N/A
+                     9     Suspend       23%           5      0x802acb68       N/A       N/A
+           wq_lo    24     Ready         15%           3      0x802a93d0       N/A       N/A
+           wq_hi     5     Suspend        6%           4      0x802a7278       N/A       N/A
+          ims_ss     6     Suspend       12%           5      0x802a4fa8        0        0
+          Ims2Ps     6     Suspend       75%           3      0x802a0a98        0        4
+         ImsMain     6     Suspend       66%           1      0x802a0540        0        2
+            sua0     6     Ready         89%           5      0x8029d4d0        0        0
+           media     6     Suspend       59%           5      0x802981a8        0        0
+                     7     Suspend        3%           5      0x8028ddd8       N/A       N/A
+                    20     Suspend        6%           5      0x80289c50       N/A       N/A
+                     6     Suspend       41%           3      0x80288b88       N/A       N/A
+         L2_TASK     3     Suspend       61%           5      0xc0277ad0        0       24
+        RRC_TASK     4     Suspend       51%           5      0xc0277a38        0        5
+        NAS_TASK     4     Suspend       45%           1      0xc02779a0        0        3
+                    14     Suspend       22%           2      0x80165968       N/A       N/A
+                    20     Suspend       11%           4      0x801658b8       N/A       N/A
+             usb    12     Suspend       15%           5      0x80276340       N/A       N/A
+       workQueue    16     Suspend       29%           2      0x80274af0       N/A       N/A
+            idle    31     Ready         22%           8      0x80164ce8       N/A       N/A
+           timer     0     Suspend       49%           5      0x80164da8       N/A       N/A
+=== osThreadSwapArray Trace Records ===
+=== osThreadSwapArray Trace Records ===
+=== osThreadSwapArray Trace Records ===
+===================================================================================================
+Index   Thread Name     Thread Handle   Timestamp   TimeUsed
+---------------------------------------------------------------------------------------------------
+
+##################################################################
+#  END OF FUNCTION show_thread
+##################################################################

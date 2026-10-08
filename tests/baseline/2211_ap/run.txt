@@ -1,0 +1,17 @@
+case        : 2211 AP death scene (headless)
+stamp       : __STAMP__
+ramdump     : __REPO__\ramdump\2211_deathscene
+elf         : cpu-ap.elf sha256=76970747F8F69C839D5EDB003EDDDF4892386CCF9CCCCC9033B93A29E33662F6
+engine      : third_party\vendor\2210_trace32 (customer originals) + cli\2211_ap_analyze.cmm.tmpl
+bypassed    : LM620_Restore.cmm (GUI wrapper), select_thread.cmm (interactive)
+heap        : cmm\heap_summary.cmm (arena descriptor only; vendor heap walker spins on this arena)
+heap_offline: __REPO__\out\runs\2211_ap\__STAMP__\heap_offline.txt
+config      : configs\sim-batch.t32 (PBI=SIM, SCREEN=OFF)
+t32         : __T32_INSTALL__\bin\windows64\t32mriscv.exe
+t32_cwd     : __REPO__\third_party\vendor\2210_trace32
+markers     : __REPO__\out\logs\2211ap-__STAMP__.log
+gate        : PASS (12/12 markers)
+exit        : 0
+elapsed_sec : 1
+output      : __REPO__\out\runs\2211_ap\__STAMP__\2211_ap_deathscene.txt
+output_line : 351
