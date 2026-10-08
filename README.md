@@ -32,7 +32,7 @@ TRACE32 **可以完全无人化**：
 Trace32_Auto\
 ├─ cmm\          底层：无 GUI 的 PRACTICE 内核，只被调用（内附 src_2210\ 待改造副本） ✅+❌
 ├─ cli\          上层入口：脚本入口（PowerShell + Python）                          ✅
-├─ tools\        独立小工具（算哈希、判等价、重建快捷方式）                          ✅
+├─ tools\        独立小工具（哈希、等价、快捷方式、编码闸门）                       ✅
 ├─ tests\        全部测试只在这一处（唯一入口 tests\run_all.ps1）                   ✅
 ├─ configs\      起实例用的 .t32 配置（含客户 GUI 原件 sim-gui.t32）                ✅
 ├─ docs\         文档（docs\rcl-api-notes.md）                                      ✅
@@ -78,7 +78,8 @@ Trace32_Auto\
 | `tools\check_entries_equiv.py` | 单功能报告 ↔ 全量报告的等价判定（含覆盖断言） | 证明两个入口等价（`EQUIV-OK`） | ✅ |
 | `tools\heap_stats_offline.py` | 纯 Python 读 dump 复算 dlmalloc 链 | 堆统计，自动与 arena 的 `used` 对账 | ✅ |
 | `tools\make_shortcuts.ps1` | 在本机重建 `third_party\launchers\*.lnk` | 快捷方式无法入库 | ✅ |
-| `tests\run_all.ps1` | **唯一测试入口**：夹具哈希 → 冒烟 → 2211 全量 → 单功能 → 等价判定 | 测试集中在这一处（见 §1.2） | ✅ |
+| `tools\check_cn_encoding.ps1` | 编码/BOM/行尾/乱码闸门（清单来自 `git ls-files`，没有硬编码） | 中文注释改造的回归守卫，接在 `tests\run_all.ps1` 第 1 段 | ✅ |
+| `tests\run_all.ps1` | **唯一测试入口**：编码闸门 → 夹具哈希 → 冒烟 → 2211 全量 → 单功能 → 等价判定 | 测试集中在这一处（见 §1.2） | ✅ |
 | `tests\verify_ramdump.ps1` | 按 `tests\ramdump.sha256` 逐条校验死机现场 | 证明现场没被改过 | ✅ |
 | `tests\smoke\*.markers` | 三条链各自的期望 marker（5 / 12 / 3 条） | 闸门的数据源：**数据与代码分开** | ✅ |
 | `tests\ramdump.sha256` | 9 个现场文件的 SHA256（`<hash>  <相对路径>`） | 不入库件的完整性凭据 | ✅ |
@@ -104,11 +105,11 @@ Trace32_Auto\
 ```powershell
 cd <repo>
 powershell -ExecutionPolicy Bypass -File tests\run_all.ps1          # 全部
-powershell -ExecutionPolicy Bypass -File tests\run_all.ps1 -SkipT32 # 只校验现场哈希
+powershell -ExecutionPolicy Bypass -File tests\run_all.ps1 -SkipT32 # 静态检查（编码 + 现场哈希）
 ```
 
-`run_all.ps1` 依次用子进程跑 5 段，逐段打印退出码，末尾给 `TESTS-OK` / `TESTS-FAILED`：
-死机现场 SHA256（9/9）→ 冒烟（5 marker）→ 2211 全量（12 marker）→ 单功能 `-Func all`（11 PASS）→ 两入口等价（`EQUIV-OK`）。
+`run_all.ps1` 依次用子进程跑 6 段，逐段打印退出码，末尾给 `TESTS-OK` / `TESTS-FAILED`：
+编码/BOM（75 个入库文件）→ 死机现场 SHA256（9/9）→ 冒烟（5 marker）→ 2211 全量（12 marker）→ 单功能 `-Func all`（11 PASS）→ 两入口等价（`EQUIV-OK`）。
 **每个 runner 都有 marker 闸门**：期望的 marker 名单放在 `tests\smoke\*.markers` 里，
 少一条就 `exit 1`（不再只看进程退出码这种假绿）。
 
@@ -204,13 +205,15 @@ TRACE32 会停在错误对话框上：**既不生成日志、也不退出**。
 
 | 类型 | 编码 | 原因 |
 |---|---|---|
-| `.ps1` / `.psd1` | **UTF-8 with BOM** | Windows PowerShell 5.1 读**无 BOM**文件时按 ANSI(GBK) 解码：中文注释变乱码**并直接破坏解析**（实测：本仓库 `local\check_cn_comments.ps1` 就是这么挂的，报一堆 `Unexpected token`） |
+| `.ps1` / `.psd1` | **UTF-8 with BOM** | Windows PowerShell 5.1 读**无 BOM**文件时按 ANSI(GBK) 解码：中文注释变乱码**并直接破坏解析**（实测：早期那个不入库的本机校验器就是这么挂的，报一堆 `Unexpected token`） |
 | `.py` / `.cmm` / `.tmpl` / `.t32` / `.json` | **UTF-8 without BOM** | Python 3 默认 UTF-8；TRACE32 已能跑含 UTF-8 中文注释的客户脚本（见 §6）；`ConvertFrom-Json` / `Get-Content -Encoding UTF8` 正常 |
 
 - 客户资产（`third_party\`）**一个字都不改**——它们的编码是三态混杂（§6），一次「另存为」就可能毁掉。
 - 改这些非 ASCII 文件时一律**保字节**（Latin-1 往返）替换，绝不整篇重写。
-- 机械校验：`powershell -ExecutionPolicy Bypass -File local\check_cn_comments.ps1`（该脚本是**本机工具**，不入库；仓库里能复现的是 `tests\run_all.ps1`）
-  （非注释行对照 `HEAD`、BOM/编码报告、GBK 乱码探针，全绿打印 `CN-COMMENTS-OK`）。
+- 机械校验：`powershell -ExecutionPolicy Bypass -File tools\check_cn_encoding.ps1`（入库、可复现），
+  已接进 `tests\run_all.ps1` 第 1 段：查严格 UTF-8、BOM 策略、单文件 CRLF/LF 混用、乱码指纹
+  （U+FFFD 与 `[ÂÃ][U+0080-U+009F]` 这类组合；不查"锟斤拷"三字——那是文档描述这类事故的用词，会假阳性），全绿打印 `CN-ENCODING-OK`。
+  `-NonCommentVsHead` 保留中文注释改造期的迁移闸门（注释行剔除后与 `HEAD` 逐行比对；日常不用，改代码本来就会红）。
 - **`.t32` 的空行一个字都不许动**（见铁律 1）——改注释时尤其容易手滑。
 
 ---
@@ -601,7 +604,7 @@ python tools\check_entries_equiv.py                                             
   但注释全毁，且将来若有中文 `PRINT` 文本会被吃掉。改为 `Write-Utf8`（`UTF8Encoding($false)`，无 BOM）写回，重跑 `-Func all` 复核 `?` 归零。
 - ④ 清掉 `local\` 里 6 类一次性残留：`commit_msg_*.txt` ×4、`migration_snapshot\`、`snap_pre\`/`snap_post\`、
   `g5_screenoff.t32`（改名前）、`gui_probe.t32`/`gui_probe.cmm`/`probe_cn.cmm`（临时探针）。
-  留在 `local\` 的只有：`paths.psd1`(+`.example`)、`check_cn_comments.ps1`、`check_py_ast.py` 与运行时生成的 `smoke.t32`/`run_restore.cmm`/`analyze.t32`/`run_2211_ap.cmm`/`sim-batch.t32`/`func_*.cmm`。
+  留在 `local\` 的只有：`paths.psd1`(+`.example`) 与运行时生成的 `smoke.t32`/`run_restore.cmm`/`analyze.t32`/`run_2211_ap.cmm`/`sim-batch.t32`/`func_*.cmm`（两个本机检查脚本见第十二轮）。
 - ⑤ **顺带查掉等价检查器的一个隐患**：`tools\check_entries_equiv.py` 的归一化只丢 `#` 开头的行，
   而 banner 里那行功能描述是长中文 —— 编码修好后行变长，TRACE32 的打印 AREA 会把它**折行**，
   折出来的续行不以 `#` 开头，于是泄漏进比对，4 个功能被误判 `FAIL`（此前描述退化成 `?`、行短、不折行，
@@ -609,6 +612,17 @@ python tools\check_entries_equiv.py                                             
   防止残缺报告吃掉正文）；另外把 stdout/stderr 放宽成 `errors="replace"`，
   免得报告里出现 GBK 编不出的字节时 `print` 直接抛 `UnicodeEncodeError` 而不是给判定结果。
   修完：`EQUIV-OK`（pass=10 partial=1 fail=0 missing=0），`tests\run_all.ps1` 五段全绿 `TESTS-OK`。
+- **第十二轮（编码闸门入库）**：用户复盘 `local\` 后定下「检查脚本搬到 `tools\`、改成自动发现、挂进门禁」。
+- ① 新建 `tools\check_cn_encoding.ps1`（UTF-8 with BOM，入库）：文件清单来自 `git ls-files`。旧版手写清单在
+  第九轮改名后**静默漏检**了 5 个 `configs\*.t32`，还把已改名的 `verify_fixtures.ps1` 当成 `verify_ramdump.ps1`
+  报了个假 FAIL —— 现在没有清单可以过期。查四件事：严格 UTF-8、BOM 策略（`*.ps1`/`*.psd1`/`*.psd1.example`
+  必须带，其余必须不带）、单文件 CRLF/LF 混用、乱码指纹（U+FFFD 与 `[ÂÃ][U+0080-U+009F]`；
+  这里有个坑：探针不能查"锟斤拷"三字，因为它本身就是文档描述这类事故的用词，会把 README 判红）。
+- ② 接进 `tests\run_all.ps1` 当**第 1 段**（静态、不需要 TRACE32、`-SkipT32` 也跑），其余阶段顺延为 2–6。
+- ③ `local\check_cn_comments.ps1` 移出 `local\`（能力已在 `tools\` 里）；`local\check_py_ast.py` **删除** ——
+  它比对的是上一轮已清掉的 `local\_head\` 快照，是死代码。`local\` 现在只剩「真源 + 运行时生成件」两类。
+- ④ 首次全量实测：`CN-ENCODING-OK`（当时 75 个入库文件 / 187001 字节，NOT-UTF8=0、BOM 不合规=0、行尾混用=0、
+  乱码=0），`tests\run_all.ps1` 六段全绿 `TESTS-OK`。
 
 ---
 
