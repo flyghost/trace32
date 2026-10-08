@@ -1,3 +1,3 @@
 ON ERROR CONTinue
-APPEND logs\restore.log "A1-START" ON ERROR CONTinue SYStem.CPU STM32F407ZG SYStem.Up APPEND logs\restore.log "A2-UP-OK"
-Data.LOAD.Elf __BSP_DIR__\rt-thread.elf /NoCODE APPEND logs\restore.log "A3-ELF-OK" QUIT
+APPEND out\logs\restore.log "A1-START" ON ERROR CONTinue SYStem.CPU STM32F407ZG SYStem.Up APPEND out\logs\restore.log "A2-UP-OK"
+Data.LOAD.Elf __BSP_DIR__\rt-thread.elf /NoCODE APPEND out\logs\restore.log "A3-ELF-OK" QUIT

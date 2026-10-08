@@ -1,11 +1,11 @@
 ON ERROR CONTinue
-APPEND logs\gui.log "G1-START"
+APPEND out\logs\gui.log "G1-START"
 ON ERROR CONTinue
 AREA.Create REPORT
 AREA.view REPORT
-APPEND logs\gui.log "G2-AFTER-AREAVIEW"
+APPEND out\logs\gui.log "G2-AFTER-AREAVIEW"
 DIALOG.OK "headless dialog test"
-APPEND logs\gui.log "G3-AFTER-DIALOGOK"
+APPEND out\logs\gui.log "G3-AFTER-DIALOGOK"
 ON ERROR
-APPEND logs\gui.log "G4-END"
+APPEND out\logs\gui.log "G4-END"
 QUIT

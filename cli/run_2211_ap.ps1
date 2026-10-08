@@ -1,18 +1,26 @@
 # =============================================================================
-#  run_2211_ap.ps1 - headless extraction of the 2211 AP death scene
+#  cli\run_2211_ap.ps1 - headless extraction of the 2211 AP death scene
 #
 #  Drives the customer's original 2210 TRACE32 scripts against the 2211 binary
 #  death scene in fixtures\2211_deathscene, with no GUI and no human clicking.
 #
-#  Output goes to runs\2211_ap\<timestamp>\ (gitignored):
+#  Layout: this file lives in cli\ (one level under the repo root); the repo root is
+#  derived from $PSScriptRoot.
+#
+#  Output goes to out\runs\2211_ap\<timestamp>\ (gitignored):
 #      2211_ap_deathscene.txt   the captured analysis
 #      run.txt                  provenance: what was run, exit code, hashes
-#  Progress markers go to logs\2211ap-<timestamp>.log (gitignored).
+#  Progress markers go to out\logs\2211ap-<timestamp>.log (gitignored).
 #
-#  The fixture directory is only read. vendor\ scripts are never modified.
+#  The fixture directory is only read. third_party\ scripts are never modified.
+#
+#  Exit code: 0 only when the process exited 0, every marker in
+#  tests\smoke\2211_ap.markers was seen, and the report is non-empty. Printing the
+#  markers is not the same as asserting them - earlier revisions exited 0 even when
+#  the chain died halfway.
 #
 #  Usage:
-#      powershell -ExecutionPolicy Bypass -File harness\run_2211_ap.ps1
+#      powershell -ExecutionPolicy Bypass -File cli\run_2211_ap.ps1
 #      ... -TimeoutSec 600
 #      ... -RamdumpDir D:\some\other\dump
 #
@@ -26,10 +34,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-$here      = Split-Path -Parent $PSScriptRoot
+$here      = Split-Path -Parent $PSScriptRoot          # repo root (this file is in cli\)
 $localDir  = Join-Path $here 'local'
-$logsDir   = Join-Path $here 'logs'
-$scriptDir = Join-Path $here 'vendor\2210_trace32'
+$logsDir   = Join-Path $here 'out\logs'
+$scriptDir = Join-Path $here 'third_party\vendor\2210_trace32'
+$cmmDir    = Join-Path $here 'cmm'
 
 # ---------------------------------------------------------------- 1. machine paths
 $pathsFile = Join-Path $localDir 'paths.psd1'
@@ -51,7 +60,7 @@ foreach ($need in 'cpu-ap.elf','IRAM.bin','PSRAM.bin','ap_ilm.bin','ap_dlm.bin')
 
 # ---------------------------------------------------------------- 3. run directory
 $stamp  = Get-Date -Format 'yyyyMMdd-HHmmss'
-$runDir = Join-Path $here "runs\2211_ap\$stamp"
+$runDir = Join-Path $here "out\runs\2211_ap\$stamp"
 New-Item -ItemType Directory -Force -Path $runDir,$localDir,$logsDir | Out-Null
 $outFile   = Join-Path $runDir '2211_ap_deathscene.txt'
 $markerLog = Join-Path $logsDir "2211ap-$stamp.log"
@@ -71,13 +80,13 @@ function Expand-Template {
 $cfg   = Join-Path $localDir 'analyze.t32'
 $entry = Join-Path $localDir 'run_2211_ap.cmm'
 
-Expand-Template (Join-Path $here 'configs\g5_screenoff.t32')         $cfg   @{ '__T32_INSTALL__' = $paths.T32_INSTALL }
-Expand-Template (Join-Path $here 'harness\2211_ap_analyze.cmm.tmpl') $entry @{
+Expand-Template (Join-Path $here 'configs\g5_screenoff.t32')              $cfg   @{ '__T32_INSTALL__' = $paths.T32_INSTALL }
+Expand-Template (Join-Path $here 'cli\2211_ap_analyze.cmm.tmpl')          $entry @{
     '__RAMDUMP_DIR__' = $RamdumpDir
     '__OUT_FILE__'    = $outFile
     '__MARKER_LOG__'  = $markerLog
     '__SCRIPT_DIR__'  = $scriptDir
-    '__HARNESS_DIR__' = (Join-Path $here 'harness')
+    '__CMM_DIR__'     = $cmmDir
     '__RUN_STAMP__'   = $stamp
 }
 
@@ -119,7 +128,7 @@ if (Test-Path $markerLog) { Get-Content $markerLog | ForEach-Object { "  $_" } }
 # NOTE: the per-block heap attribute list (Mem Leak Info / Memory Summary By File)
 # is NOT part of this report. The customer's own golden output has that block empty
 # as well, and the CMM expressions its walker needs (mbinptr/mchunkptr casts,
-# sizeof) do not evaluate in this environment - see harness\heap_summary.cmm.
+# sizeof) do not evaluate in this environment - see cmm\heap_summary.cmm.
 
 # --------------------------------------------- 7b. offline heap statistics (no T32)
 # The chunk chain itself can be reconstructed from the byte-exact dump files and
@@ -142,20 +151,38 @@ if ($pythonExe) {
     Write-Host 'heap   : skipped (python not on PATH)'
 }
 
+# --------------------------------------------- 8. gate: markers + exit + report
+# Everything that decides PASS/FAIL is asserted here, so the exit code cannot say
+# "ok" while the chain stopped early.
+$markerFile = Join-Path $here 'tests\smoke\2211_ap.markers'
+$missing = @()
+$want = @()
+if (Test-Path $markerFile) {
+    $want = @(Get-Content -LiteralPath $markerFile | Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } | ForEach-Object { $_.Trim() })
+    $txt = if (Test-Path $markerLog) { Get-Content -LiteralPath $markerLog -Raw } else { '' }
+    foreach ($m in $want) { if ($txt -notmatch ('(?m)^' + [regex]::Escape($m))) { $missing += $m } }
+} else {
+    $missing = @("markers file not found: $markerFile")
+}
+$gate = if ($missing.Count -eq 0) { "PASS ($($want.Count)/$($want.Count) markers)" } else { "FAIL (missing: $($missing -join ', '))" }
+"gate   : $gate"
+if ($lines -le 0) { $gate = 'FAIL (empty report)'; "gate   : $gate" }
+
 $elfHash  = (Get-FileHash (Join-Path $RamdumpDir 'cpu-ap.elf') -Algorithm SHA256).Hash
 $meta = @(
     "case        : 2211 AP death scene (headless)"
     "stamp       : $stamp"
     "ramdump     : $RamdumpDir"
     "elf         : cpu-ap.elf sha256=$elfHash"
-    "engine      : vendor\2210_trace32 (customer originals) + harness\2211_ap_analyze.cmm.tmpl"
+    "engine      : third_party\vendor\2210_trace32 (customer originals) + cli\2211_ap_analyze.cmm.tmpl"
     "bypassed    : LM620_Restore.cmm (GUI wrapper), select_thread.cmm (interactive)"
-    "heap        : harness\heap_summary.cmm (arena descriptor only; vendor heap walker spins on this arena)"
+    "heap        : cmm\heap_summary.cmm (arena descriptor only; vendor heap walker spins on this arena)"
     "heap_offline: $heapLine"
     "config      : configs\g5_screenoff.t32 (PBI=SIM, SCREEN=OFF)"
     "t32         : $t32exe"
     "t32_cwd     : $scriptDir"
     "markers     : $markerLog"
+    "gate        : $gate"
     "exit        : $code"
     "elapsed_sec : $([int]$sw.Elapsed.TotalSeconds)"
     "output      : $outFile"
@@ -164,4 +191,5 @@ $meta = @(
 [System.IO.File]::WriteAllText((Join-Path $runDir 'run.txt'), $meta, (New-Object System.Text.UTF8Encoding($false)))
 "meta   : {0}" -f (Join-Path $runDir 'run.txt')
 
-if ($code -ne 0) { exit 1 }
+if ($code -ne 0 -or $missing.Count -gt 0 -or $lines -le 0) { "RESULT : FAIL"; exit 1 }
+"RESULT : PASS"

@@ -13,8 +13,10 @@
 *.lnk   binary
 *.pyc   binary
 
-# ── vendor\ 下的客户内容：字节级原样，一律不做任何转换 ───────
-# 含：客户 .cmm（CRLF），以及客户自研 RTOS 的任务配置 .t32
+# ── third_party\ 与 src_2210\ 下的客户内容：字节级原样，不做任何转换 ──
+# 含：客户 .cmm（CRLF/GBK），以及客户自研 RTOS 的任务配置 .t32
 #     （内含编译期二进制数据，被 git 当文本处理会面目全非）。
+# ★ 用 `**/` 前缀（反锚定）：目录改名或下移一层后规则仍然命中。
 # ★ 这条必须放在最后：它要覆盖上面所有更宽泛的规则。
-vendor/** -text -diff -merge
+**/third_party/** -text -diff -merge
+**/src_2210/**     -text -diff -merge

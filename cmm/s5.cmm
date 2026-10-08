@@ -1,7 +1,7 @@
 ON ERROR CONTinue
-APPEND logs\restore.log "A1-START" ON ERROR CONTinue SYStem.CPU STM32F407ZG SYStem.Up APPEND logs\restore.log "A2-UP-OK"
+APPEND out\logs\restore.log "A1-START" ON ERROR CONTinue SYStem.CPU STM32F407ZG SYStem.Up APPEND out\logs\restore.log "A2-UP-OK"
 &a=sYmbol.ADDRESS(Reset_Handler)
 APPEND 
-logs\restore.log
+out\logs\restore.log
  "A3-SYM-OK "+FORMAT.HEX(8.,&a)
 QUIT

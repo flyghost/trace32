@@ -4,10 +4,10 @@ TRACE32 无人化冒烟测试（RCL / TCP 通道）
 =========================================
 前置：先用 configs\\g3_nettcp.t32 启动一个 TRACE32 实例
       （PBI=SIM 仿真后端 + SCREEN=OFF 无窗口 + RCL=NETTCP PORT=20000）。
-      或直接跑 ..\\run_smoke.ps1，它会自动起实例、跑本脚本、收尾。
+      或直接跑同目录的 run_smoke.ps1，它会自动起实例、跑本脚本、收尾。
 
 本脚本验证四件事：
-  1) RCL 免安装可用：从同目录 pylibs\\ 直接 import，不走 pip
+  1) RCL 免安装可用：从 ..\\third_party\\trace32_rcl\\ 直接 import，不走 pip
   2) 能连上 127.0.0.1:20000
   3) Data.LOAD.Binary 把 FLASH 映像铺回 0x08000000 后，
      读回的 20 字节与 rtthread.bin 头 20 字节**逐字节一致**（这是黄金标准）
@@ -22,7 +22,8 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, os.path.join(HERE, "pylibs"))   # 免 pip 的 RCL 1.1.5
+ROOT = os.path.dirname(HERE)                                        # repo root (this file is in cli\)
+sys.path.insert(0, os.path.join(ROOT, "third_party", "trace32_rcl"))  # 免 pip 的 RCL 1.1.5
 
 # 目标固件产物（RT-Thread BSP 根目录）
 # 注意：ELF 叫 rt-thread.elf（带连字符），BIN 叫 rtthread.bin（不带），写错会静默失败

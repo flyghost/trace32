@@ -1,0 +1,16 @@
+# 2211 AP 全量报告（轨 B）必须出现的 marker —— cli\run_2211_ap.ps1 逐个断言，缺一即 FAIL。
+# 前缀不匹配即视为断链：进度通道（APPEND marker）与报告通道（print AREA）是两条独立
+# 证据线，marker 齐全只证明"每段都跑到了"，报告非空由 runner 另行断言。
+H00START
+H01A-g_osAssert-OK
+H01B-MEM
+H01RESTORE
+H02SYSINFO
+H03ERRINFO
+H04THREAD
+H05TRACE
+H06ALLBT
+H07MAILBOX
+H08SWAP
+H09HEAP
+H99END

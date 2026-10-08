@@ -57,11 +57,12 @@
       "button": "ThreadBT",
       "safe": true,
       "equiv": "partial",
+      "allow_prefix": ["THREADPICK:", "Thread:"],
       "gui": "LM620_Restore.cmm:72-83 (calls select_thread.cmm, a dialog)",
       "vendor": ["thread_pick.cmm (ours)", "backtrace.cmm", "frame.cmm"],
-      "desc": "backtrace ONE chosen thread; the name comes from -Thread <name> (default idle, the GUI's own default)",
+      "desc": "backtrace ONE chosen thread; the name comes from -Thread <name> (default idle, the GUI's own default). equiv=partial because two of our own lines are not in the full run: thread_pick.cmm prints one THREADPICK: line per thread while searching, and the picked thread is echoed as Thread: (mirroring LM620_Restore.cmm:79) - both are declared in allow_prefix",
       "body": [
-        "do __HARNESS_DIR__\\thread_pick.cmm &want",
+        "do __CMM_DIR__\\thread_pick.cmm &want",
         "ENTRY &found",
         "IF &found!=0",
         "(",
@@ -146,7 +147,7 @@
       "gui": "n/a",
       "vendor": ["heap_summary.cmm (ours)"],
       "desc": "the dlmalloc arena descriptor, read with the idioms that do evaluate here; the chunk chain is recomputed offline",
-      "body": ["do __HARNESS_DIR__\\heap_summary.cmm &g_osApSystemMem"]
+      "body": ["do __CMM_DIR__\\heap_summary.cmm &g_osApSystemMem"]
     },
     {
       "name": "sysinfo",

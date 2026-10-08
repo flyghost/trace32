@@ -2,7 +2,7 @@
 ; writes evidence to a report file so the result survives an abort
 AREA.Create REPORT
 AREA.CLEAR  REPORT
-AREA.OPEN   REPORT "logs\probe1.txt"
+AREA.OPEN   REPORT "out\logs\probe1.txt"
 PRINT "P1-START"
 ON ERROR CONTinue
 SYStem.CPU STM32F407ZG

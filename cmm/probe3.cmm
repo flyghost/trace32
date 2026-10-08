@@ -1,10 +1,10 @@
 ON ERROR CONTinue
-APPEND logs\probe3.log "P3-START"
+APPEND out\logs\probe3.log "P3-START"
 ON ERROR CONTinue
 SYStem.CPU STM32F407ZG
-APPEND logs\probe3.log "P3-CPU-OK"
+APPEND out\logs\probe3.log "P3-CPU-OK"
 SYStem.Up
-APPEND logs\probe3.log "P3-UP-OK"
+APPEND out\logs\probe3.log "P3-UP-OK"
 ON ERROR
-APPEND logs\probe3.log "P3-END"
+APPEND out\logs\probe3.log "P3-END"
 QUIT

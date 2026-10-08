@@ -2,77 +2,89 @@
 # Trace32_Auto —— .gitignore
 # 原则：1) 本机路径、内网地址、客户身份信息一律不入库
 #       2) 只排除「产物 / 元数据 / 本机垃圾 / 受版权或授权约束的件」
-#       3) cmm\、configs\、experiments\、logs\history\、python\*.py、
-#          tools\、launchers\config_sim.t32 入库
+#       3) 入库：cmm\ cli\ gui\ tools\ tests\（除 tests\expected\）configs\
+#          attic\ docs\ README* LICENSE NOTICE
+# ★ 反锚定约定（2026-10-08 起强制）：本文件里所有"保护性"规则一律写成
+#   `**/<名字>/` 或去斜杠的 `<名字>/`，**不许**写成 `dir/sub/` 这种根锚定形式。
+#   原因：含中间斜杠的模式锚定到本文件所在目录，目录一改名/下移就静默失效，
+#   `git status` 仍然干净，直到有人 `git add -A` 才发现客户资产被暂存。
+#   自检：`git check-ignore -v --no-index -- <任意深度路径>` 必须命中。
 # 排查依据见 private\敏感信息排查与Git纳管.md（私有，不入库）
 # ============================================================
 
 # ── 1. SVN 工作副本元数据（★ 必排除）────────────────────────
-# .svn\wc.db 里存着内网仓库地址与仓库 UUID（具体值见 private\ 排查记录，
-# 本文不写）。.svn\pristine 还是全部客户脚本的第二份完整副本
-# （vendor\ 166 个文件里约一半是它，体积凭空翻倍）。
+# .svn\wc.db 里存着内网仓库地址与仓库 UUID（具体值见 private\ 排查记录）。
+# .svn\pristine 还是全部客户脚本的第二份完整副本。
 .svn/
 **/.svn/
 
 # ── 2. Python 产物（★ 必排除）──────────────────────────────
-# pylibs 下 20 个 .pyc 合计 697 KB，纯产物
-__pycache__/
-*.py[cod]
-.venv/
-venv/
+**/__pycache__/
+**/*.py[cod]
+**/.venv/
+**/venv/
 
 # ── 3. 运行时日志与临时目录 ────────────────────────────────
-# logs\history\ 是留档证据，必须入库，所以只忽略 logs\ 顶层的运行产物
-logs/*.log
-logs/*.txt
-logs/*.out
-Temp/
-Temp_*/
+# 只忽略"产物型"日志；docs\history\ 是留档证据，必须入库。
+**/logs/*.log
+**/logs/*.txt
+**/logs/*.out
+!**/logs/history/
+**/Temp/
+**/Temp_*/
 *.tmp
 *.bak
 *.orig
 *~
 
 # ── 4. 编辑器 / 系统垃圾 ──────────────────────────────────
-.vs/
-.idea/
-.vscode/
+**/.vs/
+**/.idea/
+**/.vscode/
 desktop.ini
 Thumbs.db
-$RECYCLE.BIN/
+**/$RECYCLE.BIN/
 
-# ── 5. 客户脚本副本：不入库（已定）────────────────────────
-# vendor\ 4 个平台 66 个 .cmm，约 60 个带客户方版权头（署名到个人），
-# 且整份是从内网 SVN 工作副本里搬出来的。只留本机作参考/夹具，不出仓库。
-vendor/**
+# ── 5. 第三方 / 客户原件（★ 必排除）────────────────────────
+# third_party\ 装：客户 4 个平台的 TRACE32 脚本族（vendor\，含 .svn）、
+# 3 个原始快捷方式 .lnk、Lauterbach RCL SDK（trace32_rcl\）。
+# 理由：客户版权（署名到个人、来自内网 SVN）、再分发许可。
+**/third_party/
+# 旧目录名继续保留为"资产类"防线：即使在别处被重建，也不许入库。
+# （搬迁期间它们是过渡规则，搬完仍保留——零漏窗，且防止有人手滑重建一份）
+**/vendor/
+**/pylibs/
 
-# ── 6. 夹具与基线：不入库（已定）──────────────────────────
-# 共约 38.5 MB，且固件 ELF 里带内网构建路径与账号痕迹。
-# 完整性清单见根目录 manifest.json（路径/大小/SHA256），离线复现拿它核对。
-fixtures/**
-golden/**
+# ── 6. 改造中的源码副本（★ 暂不入库）────────────────────────
+# src_2210\ = vendor\2210_trace32 的副本，正在被彻底改造。
+# 改造成型、去客户身份之后再解除忽略并入库（见 README）。
+**/src_2210/
 
-# ── 7. 第三方 RCL SDK（Lauterbach，1.23 MB）───────────────
-# 再分发须遵守 Lauterbach 许可，故不入库。
-# 取得方式见 README「4.4 Python RCL」：把 wheel 解包到 python\pylibs\。
-python/pylibs/
+# ── 7. 夹具与期望基线（★ 必排除）──────────────────────────
+# fixtures\（死机现场原始字节，约 34 MB，ELF 里带内网构建路径与账号痕迹）
+# 与 tests\expected\（从夹具里复制的基线输出）都不入库。
+# 完整性清单：tests\fixtures.sha256（哈希 + 相对路径，一行一条）。
+**/fixtures/
+**/tests/expected/
+**/golden/
 
 # ── 8. 本机配置层（★ 必排除）──────────────────────────────
 # 仓库里的脚本只带占位符（__T32_INSTALL__ / __BSP_DIR__ / __TMP_DIR__ /
-# __T32_START_TEMP__）；真实路径由 run_smoke.ps1 在运行时注入 local\ 下的
-# 生成文件。占位符清单见 local\paths.psd1.example。
-local/*
-!local/*.example
+# __T32_START_TEMP__）；真实路径由 runner 运行时注入 local\ 下的生成文件。
+# 占位符清单见 local\paths.psd1.example。
+**/local/*
+!**/local/*.example
 
-# 快捷方式 .lnk 内部硬编码绝对目标路径，还带创建者账号名 -> 无法参数化，
-# 改为在本机用 tools\make_shortcuts.ps1 重新生成。
-launchers/*.lnk
+# 快捷方式 .lnk 内部硬编码绝对目标路径，还带创建者账号名 → 无法参数化，
+# 改为在本机用 tools\make_shortcuts.ps1 重新生成到 third_party\launchers\。
+**/*.lnk
 
 # ── 9. 私有档案（客户报告原件 + 排查记录）──────────────────
 # 含内网地址、仓库 UUID、人员账号等原文，只留本机，必要时放私有仓库。
-private/
+**/private/
 
-# ── 10. 无人化分析的运行产物 ───────────────────────────────
-# harness\run_2211_ap.ps1 每次在 runs\<case>\<时间戳>\ 下写报告与 run.txt。
-# 报告是现场数据（含客户固件符号），不入库；harness\ 下的 .ps1 与 .cmm.tmpl 入库。
-runs/
+# ── 10. 运行产物（★ 必排除）────────────────────────────────
+# out\ = 无人化分析的全部输出：out\runs\<case>\<时间戳>\（报告 + run.txt）
+# 与 out\logs\（进度 marker）。报告是现场数据（含客户固件符号），不入库。
+out/
+**/runs/

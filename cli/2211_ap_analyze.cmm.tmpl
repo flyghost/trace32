@@ -1,17 +1,17 @@
 ; =============================================================================
 ;  2211 AP death scene  -  headless analysis entry (no GUI, no DIALOG.*)
 ;
-;  This file is a TEMPLATE. harness\run_2211_ap.ps1 expands it into
+;  This file is a TEMPLATE. cli\run_2211_ap.ps1 expands it into
 ;  local\run_2211_ap.cmm. Edit the template, never the generated copy.
 ;
-;  It drives the customer's ORIGINAL scripts in vendor\2210_trace32\ unchanged.
+;  It drives the customer's ORIGINAL scripts in third_party\vendor\2210_trace32\ unchanged.
 ;  Bypassed on purpose:
 ;     LM620_Restore.cmm  - GUI wrapper (27x DIALOG.*, STOP); hangs with SCREEN=OFF
 ;     select_thread.cmm  - interactive thread picker (4x DIALOG.*, STOP)
-;  Everything else in vendor\2210_trace32 is DIALOG-free and is called here.
+;  Everything else in third_party\vendor\2210_trace32 is DIALOG-free and is called here.
 ;
 ;  SCRIPT PATHS: every call uses an absolute __SCRIPT_DIR__ path, AND the runner
-;  starts TRACE32 with its working directory set to vendor\2210_trace32. Both are
+;  starts TRACE32 with its working directory set to third_party\vendor\2210_trace32. Both are
 ;  needed: bare `do restore.cmm` resolves against the process CWD, and the
 ;  customer's scripts internally call each other by bare name (e.g. restore.cmm
 ;  does `do frame.cmm`), which only resolves when that CWD is their own folder.
@@ -22,7 +22,7 @@
 ;  section 8 of the first ordering, then section 9, each had to be killed after
 ;  minutes with ZERO further output). Their walk also depends on dlmalloc-internal
 ;  typedefs (mbinptr / mchunkptr) and sizeof(), which do not evaluate here at all.
-;  harness\heap_summary.cmm replaces it with the arena descriptor that IS reliably
+;  cmm\heap_summary.cmm replaces it with the arena descriptor that IS reliably
 ;  readable; the chunk chain is recomputed offline by tools\heap_stats_offline.py.
 ;
 ;  RUN MUST COMPLETE: the print AREA writes its file only when its 16 KB buffer
@@ -57,7 +57,7 @@ PRINT "#  2211 AP death scene - headless extraction"
 PRINT "#  run     : __RUN_STAMP__"
 PRINT "#  ramdump : &ramdump"
 PRINT "#  elf     : &elf"
-PRINT "#  engine  : vendor\2210_trace32 (customer originals, unmodified)"
+PRINT "#  engine  : third_party\vendor\2210_trace32 (customer originals, unmodified)"
 PRINT "##################################################################"
 PRINT ""
 
@@ -132,12 +132,12 @@ PRINT ""
 ; (measured: killed after minutes with zero further output). Their walk also
 ; needs the dlmalloc-internal typedefs (mbinptr / mchunkptr) and sizeof(), and
 ; those expressions do not evaluate in this environment at all (measured: every
-; line using them silently produces nothing). harness\heap_summary.cmm therefore
+; line using them silently produces nothing). cmm\heap_summary.cmm therefore
 ; reports only what is reliably readable, and states that limit in the output.
-PRINT "@@@[9/9] dlmalloc arena summary - AP system mem (harness\heap_summary.cmm)"
+PRINT "@@@[9/9] dlmalloc arena summary - AP system mem (cmm\heap_summary.cmm)"
 IF sYmbol.EXIST(g_osApSystemMem)
 (
-    do __HARNESS_DIR__\heap_summary.cmm &g_osApSystemMem
+    do __CMM_DIR__\heap_summary.cmm &g_osApSystemMem
 )
 ELSE
 (

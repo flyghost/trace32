@@ -1,23 +1,23 @@
 ; =============================================================================
 ;  2211 AP death scene - headless SINGLE-FUNCTION entry  (TEMPLATE)
 ;
-;  Expanded by harness\run_2211_func.ps1 into local\func_<name>.cmm.
-;  Edit this file and harness\functions.json, never the generated copy.
+;  Expanded by cli\run_2211_func.ps1 into local\func_<name>.cmm.
+;  Edit this file and cmm\functions.json, never the generated copy.
 ;
 ;  ONE FUNCTION, TWO ENTRIES:
-;    GUI entry      vendor\2210_trace32\LM620_Restore.cmm  (buttons + DIALOG.* + STOP)
-;    headless entry this script, driven by harness\run_2211_func.ps1
-;  Both call the SAME customer scripts in vendor\2210_trace32, which are never
+;    GUI entry      third_party\vendor\2210_trace32\LM620_Restore.cmm  (buttons + DIALOG.* + STOP)
+;    headless entry this script, driven by cli\run_2211_func.ps1
+;  Both call the SAME customer scripts in third_party\vendor\2210_trace32, which are never
 ;  modified. Only the source of the parameters differs: a dialog box in the GUI,
 ;  the command line here. The GUI wrapper is bypassed because DIALOG.* hangs
 ;  forever under SCREEN=OFF, and so is select_thread.cmm (its list walk is
-;  re-issued by harness\thread_pick.cmm with the thread name from the CLI).
+;  re-issued by cmm\thread_pick.cmm with the thread name from the CLI).
 ;
-;  The body of each function lives in harness\functions.json, so the registry is
+;  The body of each function lives in cmm\functions.json, so the registry is
 ;  the single source of truth: no function is implemented twice.
 ;
 ;  SCRIPT PATHS: vendor calls use absolute __SCRIPT_DIR__ paths AND the runner
-;  starts TRACE32 with its working directory set to vendor\2210_trace32 - both are
+;  starts TRACE32 with its working directory set to third_party\vendor\2210_trace32 - both are
 ;  needed, because the customer scripts call each other by bare name (restore.cmm
 ;  does `do frame.cmm`), which only resolves against that CWD.
 ;

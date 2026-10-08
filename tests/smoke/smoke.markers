@@ -1,0 +1,9 @@
+# 冒烟测试（轨 A 批处理）必须出现的 marker —— cli\run_smoke.ps1 逐个断言，缺一即 FAIL。
+# 数据在 tests\ 下，断言逻辑在 cli\ 下：改期望值只改这里。
+# 完整链路还会打 R1-START / R6-SYMS / R7-STRUCT / R8-MEM，但那几条依赖 ELF 符号，
+# 换 BSP 就可能缺，因此不作为门槛。
+R2-UP-OK
+R3-BIN-LOADED
+R4-VECTORS
+R5-ELF-OK
+R9-END

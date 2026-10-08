@@ -1,0 +1,6 @@
+# 单功能入口每次运行必须出现的 marker —— cli\run_2211_func.ps1 逐个断言，缺一即 FAIL。
+# 只有三条：这一段的目的不是证明报告内容对（那是 check_entries_equiv.py 的活），
+# 而是证明"链路起得来、恢复得了现场、并且跑到了收尾"。
+F00START
+F01RESTORE
+F99END

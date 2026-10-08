@@ -1,24 +1,24 @@
 ON ERROR CONTinue
-APPEND logs\sym2.log "C1-START"
+APPEND out\logs\sym2.log "C1-START"
 ON ERROR CONTinue
 SYStem.CPU STM32F407ZG
 SYStem.Up
 Data.LOAD.Elf __BSP_DIR__\rt-thread.elf /NoCODE
-APPEND logs\sym2.log "C2-ELF-OK"
+APPEND out\logs\sym2.log "C2-ELF-OK"
 Data.Set(D:0x20003AAC,0xDEADBEEF)
-APPEND logs\sym2.log "C3-SET-DONE"
+APPEND out\logs\sym2.log "C3-SET-DONE"
 &m=Var.Value(g_ramdump_exception.magic)
-APPEND logs\sym2.log "C4-MAGIC "+FORMAT.HEX(8.,&m)
+APPEND out\logs\sym2.log "C4-MAGIC "+FORMAT.HEX(8.,&m)
 &f=Var.Value(g_ramdump_exception.fault_type)
-APPEND logs\sym2.log "C5-FAULT "+FORMAT.HEX(8.,&f)
+APPEND out\logs\sym2.log "C5-FAULT "+FORMAT.HEX(8.,&f)
 &r=Var.Value(g_ramdump_exception.fpscr)
-APPEND logs\sym2.log "C6-FPSCR "+FORMAT.HEX(8.,&r)
+APPEND out\logs\sym2.log "C6-FPSCR "+FORMAT.HEX(8.,&r)
 &sz=Var.Value(sizeof(ramdump_exception_t))
-APPEND logs\sym2.log "C7-SIZEOF "+FORMAT.HEX(8.,&sz)
+APPEND out\logs\sym2.log "C7-SIZEOF "+FORMAT.HEX(8.,&sz)
 &fn=sYmbol.FUNCTION(P:0x08003A3D)
-APPEND logs\sym2.log "C8-SYM-FUNC "+&fn
+APPEND out\logs\sym2.log "C8-SYM-FUNC "+&fn
 &fn2=sYmbol.NAME(P:0x08003A3C)
-APPEND logs\sym2.log "C9-SYM-NAME "+&fn2
+APPEND out\logs\sym2.log "C9-SYM-NAME "+&fn2
 ON ERROR
-APPEND logs\sym2.log "C10-END"
+APPEND out\logs\sym2.log "C10-END"
 QUIT

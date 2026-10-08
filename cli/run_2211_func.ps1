@@ -2,18 +2,18 @@
   run_2211_func.ps1 - headless SINGLE-FUNCTION runner for the 2211 AP death scene.
 
   ONE FUNCTION, TWO ENTRIES
-    GUI entry      vendor\2210_trace32\LM620_Restore.cmm   (buttons, DIALOG.*, STOP)
-    headless entry harness\run_2211_func.ps1 + harness\2211_ap_func.cmm.tmpl
-  Both drive the SAME customer scripts in vendor\2210_trace32, which are never
-  modified. Only the source of the parameters differs: a dialog box in the GUI,
-  the command line here. The function registry is harness\functions.json, so the
+    GUI entry      third_party\vendor\2210_trace32\LM620_Restore.cmm  (buttons, DIALOG.*, STOP)
+    headless entry cli\run_2211_func.ps1 + cli\2211_ap_func.cmm.tmpl
+  Both drive the SAME customer scripts in third_party\vendor\2210_trace32, which are
+  never modified. Only the source of the parameters differs: a dialog box in the GUI,
+  the command line here. The function registry is cmm\functions.json, so the
   list of functions exists in exactly one place.
 
   Examples
-    powershell -ExecutionPolicy Bypass -File harness\run_2211_func.ps1 -List
-    powershell -ExecutionPolicy Bypass -File harness\run_2211_func.ps1 -Func show_thread
-    powershell -ExecutionPolicy Bypass -File harness\run_2211_func.ps1 -Func thread_bt -Thread ImsMain
-    powershell -ExecutionPolicy Bypass -File harness\run_2211_func.ps1 -Func all
+    powershell -ExecutionPolicy Bypass -File cli\run_2211_func.ps1 -List
+    powershell -ExecutionPolicy Bypass -File cli\run_2211_func.ps1 -Func show_thread
+    powershell -ExecutionPolicy Bypass -File cli\run_2211_func.ps1 -Func thread_bt -Thread ImsMain
+    powershell -ExecutionPolicy Bypass -File cli\run_2211_func.ps1 -Func all
 
   -Func all runs every function except the ones measured to hang on this arena
   (mem_trace, mem_summary); ask for those by name, or add -IncludeUnsafe.
@@ -29,12 +29,12 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $here       = Split-Path -Parent $PSScriptRoot
-$registry   = Join-Path $PSScriptRoot 'functions.json'
+$registry   = Join-Path $here 'cmm\functions.json'
 $tmpl       = Join-Path $PSScriptRoot '2211_ap_func.cmm.tmpl'
-$vendorDir  = Join-Path $here 'vendor\2210_trace32'
-$harnessDir = Join-Path $here 'harness'
+$vendorDir  = Join-Path $here 'third_party\vendor\2210_trace32'
+$cmmDir     = Join-Path $here 'cmm'
 $localDir   = Join-Path $here 'local'
-$logDir     = Join-Path $here 'logs'
+$logDir     = Join-Path $here 'out\logs'
 $cfgSrc     = Join-Path $here 'configs\g5_screenoff.t32'
 $pathsFile  = Join-Path $localDir 'paths.psd1'
 
@@ -90,7 +90,7 @@ if ($Func -eq 'all') {
 if (@($want).Count -eq 0) { throw ("unknown function '" + $Func + "' - run with -List to see the registry") }
 
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-if ($OutRoot -eq '') { $OutRoot = Join-Path $here 'runs\2211_ap_func' }
+if ($OutRoot -eq '') { $OutRoot = Join-Path $here 'out\runs\2211_ap_func' }
 $runDir = Join-Path $OutRoot $stamp
 New-Item -ItemType Directory -Force -Path $runDir | Out-Null
 New-Item -ItemType Directory -Force -Path $localDir | Out-Null
@@ -131,7 +131,7 @@ foreach ($f in $want) {
             $rc = $LASTEXITCODE
         }
     } else {
-        # The body text itself contains placeholders (__SCRIPT_DIR__, __HARNESS_DIR__),
+        # The body text itself contains placeholders (__SCRIPT_DIR__, __CMM_DIR__),
         # so it must be expanded BEFORE it is inserted into the template. Expanding the
         # whole template once is not enough: hashtable order is not deterministic, and a
         # body substituted early would keep its own __...__ tokens verbatim.
@@ -144,7 +144,7 @@ foreach ($f in $want) {
             '__OUT_FILE__'     = $out
             '__MARKER_LOG__'   = $mark
             '__SCRIPT_DIR__'   = $vendorDir
-            '__HARNESS_DIR__'  = $harnessDir
+            '__CMM_DIR__'      = $cmmDir
             '__PARAM_THREAD__' = $Thread
         }
         $body = Expand ((@($f.body) -join "`r`n")) $map
@@ -176,8 +176,13 @@ foreach ($f in $want) {
     if ($f.kind -eq 'python') {
         $ok = ($rc -eq 0) -and ($lines -gt 0)
     } else {
-        $ok = ($rc -eq 0) -and (-not $timedOut) -and ($lines -gt 0) `
-              -and ($mk -contains 'F00START') -and ($mk -contains 'F01RESTORE') -and ($mk -contains 'F99END')
+        # expected markers live in tests\smoke\func.markers (data in tests\, logic here)
+        $need = @(Get-Content -LiteralPath (Join-Path $here 'tests\smoke\func.markers') |
+                  Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } | ForEach-Object { $_.Trim() })
+        $mkText = if (Test-Path -LiteralPath $mark) { Get-Content -LiteralPath $mark -Raw } else { '' }
+        $missMk = @($need | Where-Object { $mkText -notmatch ('(?m)^' + [regex]::Escape($_)) })
+        $ok = ($rc -eq 0) -and (-not $timedOut) -and ($lines -gt 0) -and ($missMk.Count -eq 0)
+        if (-not $ok -and $missMk.Count -gt 0) { $note = ('markers missing: ' + ($missMk -join ', ')) }
     }
 
     $rows += [pscustomobject]@{ name=$f.name; kind=$f.kind; exit=$rc; sec=$sec; lines=$lines; ok=$ok; note=$note; out=$out }
@@ -190,8 +195,8 @@ $sb = New-Object System.Text.StringBuilder
 [void]$sb.AppendLine('case        : 2211 AP death scene - single-function headless runs')
 [void]$sb.AppendLine('stamp       : ' + $stamp)
 [void]$sb.AppendLine('ramdump     : ' + $RamdumpDir)
-[void]$sb.AppendLine('engine      : vendor\2210_trace32 (customer originals) + harness\2211_ap_func.cmm.tmpl')
-[void]$sb.AppendLine('registry    : harness\functions.json')
+[void]$sb.AppendLine('engine      : third_party\vendor\2210_trace32 (customer originals) + cli\2211_ap_func.cmm.tmpl')
+[void]$sb.AppendLine('registry    : cmm\functions.json')
 [void]$sb.AppendLine('thread_arg  : ' + $Thread)
 [void]$sb.AppendLine('config      : ' + $cfg)
 [void]$sb.AppendLine('t32         : ' + $t32)

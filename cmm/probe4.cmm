@@ -1,10 +1,10 @@
 ON ERROR CONTinue
-APPEND logs\probe4.log "P4-START"
+APPEND out\logs\probe4.log "P4-START"
 ON ERROR CONTinue
 SYStem.CPU STM32F407ZG
-APPEND logs\probe4.log "P4-CPU-OK"
+APPEND out\logs\probe4.log "P4-CPU-OK"
 SYStem.Up
-APPEND logs\probe4.log "P4-UP-OK"
+APPEND out\logs\probe4.log "P4-UP-OK"
 ON ERROR
-APPEND logs\probe4.log "P4-END"
+APPEND out\logs\probe4.log "P4-END"
 QUIT

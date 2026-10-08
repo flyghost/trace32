@@ -1,11 +1,11 @@
 ; probe2.cmm - avoid AREA, write evidence with APPEND (literal path)
-APPEND logs\probe2.log "P1-START"
-APPEND logs\probe2.log "P2-BEFORE-CPU"
+APPEND out\logs\probe2.log "P1-START"
+APPEND out\logs\probe2.log "P2-BEFORE-CPU"
 ON ERROR CONTinue
 SYStem.CPU STM32F407ZG
-APPEND logs\probe2.log "P3-AFTER-CPU"
+APPEND out\logs\probe2.log "P3-AFTER-CPU"
 SYStem.Up
-APPEND logs\probe2.log "P4-AFTER-UP"
+APPEND out\logs\probe2.log "P4-AFTER-UP"
 ON ERROR
-APPEND logs\probe2.log "P5-END"
+APPEND out\logs\probe2.log "P5-END"
 QUIT
