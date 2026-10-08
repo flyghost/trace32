@@ -1,3 +1,9 @@
+; 无人化：模拟器后端 + 无界面 + 开远程控制口（RCL over TCP 20000）。
+; 谁在用：cli\run_smoke.ps1 的冒烟测试（Phase A 用 -s 批处理，Phase B 由 Python RCL 连 20000）。
+; 空行是语法（README 铁律 1）：少一个空行，TRACE32 就会开一个不带 for ARM 的窗口、
+; -s 指定的脚本从不执行、进程一直挂着（对照实验在 attic\configs\）。
+; SYS= 是安装目录的占位符，启动前由 cli\ 展开到 local\ 下的副本。
+
 OS=
 ID=T32
 SYS=__T32_INSTALL__

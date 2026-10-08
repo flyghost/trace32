@@ -82,9 +82,9 @@ Trace32_Auto\
 | `tools\make_shortcuts.ps1` | 在本机重建 `third_party\launchers\*.lnk` | 快捷方式无法入库 | ✅ |
 | `tests\run_all.ps1` | **唯一测试入口**：夹具哈希 → 冒烟 → 2211 全量 → 单功能 → 等价判定 | 测试集中在这一处（见 §1.2） | ✅ |
 | `tests\verify_fixtures.ps1` | 按 `tests\fixtures.sha256` 逐条校验夹具 | 证明夹具没被改过 | ✅ |
-| `tests\smoke\*.markers` | 三条链各自的期望 marker（5 / 13 / 3 条） | 闸门的数据源：**数据与代码分开** | ✅ |
+| `tests\smoke\*.markers` | 三条链各自的期望 marker（5 / 12 / 3 条） | 闸门的数据源：**数据与代码分开** | ✅ |
 | `tests\fixtures.sha256` | 9 个夹具 + 1 个基线的 SHA256（`<hash>  <相对路径>`） | 不入库件的完整性凭据 | ✅ |
-| `configs\` | 5 个已验证配置（`m1_min` / `g1_full` / `g3_nettcp` / `g4_port20001` / `g5_screenoff`） | 起实例用 | ✅ |
+| `configs\` | 3 个无人化启动配置（最小形态 / 纯批处理 / RCL over TCP 20000），每个开头都有中文注释头 | 起实例用（`-c`） | ✅ |
 | `docs\history\` | 原始实测日志（只读证据） | 复盘 | ✅ |
 | `attic\configs\` | 18 个对照 / 失败配置（`zz*` `v*` `cfg_*` `config_auto`） | **空行分组定律的证据** | ✅ |
 | `attic\python\` | 早期 RCL 试验脚本 `rcl_test.py` … `rcl_test6.py` | 迭代痕迹 | ✅ |
@@ -283,7 +283,7 @@ BSP 路径走环境变量 `RAMDUMP_BSP_DIR`（`cli\run_smoke.ps1` 会设置）�
 已知可用/不可用的调用、错误原文，见客户报告第 7 节（原件在 `private\`）；最简可用示例见 `cli\rcl_smoke.py`。
 
 ### 4.5 两个实例并行
-`configs\g4_port20001.t32`（UDP 20001）可与 `g3_nettcp.t32`（TCP 20000）同时跑，互不干扰。
+需要同时跑两个实例时，复制一份 `configs\` 里的配置、把 `PORT=` 改成另一个端口（例如 20001）即可，实测互不干扰。
 
 ---
 
@@ -549,7 +549,7 @@ python tools\check_entries_equiv.py                                             
 - 遗留的可选清理项（**未删**，它们是分析证据）：`attic\` 下 18 个对照/失败配置与 6 个早期 RCL 试验脚本。
 - 外部的 TRACE32 安装目录与客户启动目录**全程未被修改**。
 - **注释中文化（第八轮）**：把 35 个纯 ASCII 的自研文件（`cli\` 3 个 runner + 2 个模板、`cmm\` 16 个脚本
-  + 注册表、`configs\` 5 个 + `gui\config_sim.t32`、`tests\` 2 个、`tools\` 3 个、`local\paths.psd1.example`）
+  + 注册表、`configs\` 5 个（其中 2 个早期样本后来删掉了，见第九轮）+ `gui\config_sim.t32`、`tests\` 2 个、`tools\` 3 个、`local\paths.psd1.example`）
   的英文注释全改成中文，**代码与输出文本一个字节没动**——`.ps1`/`.psd1` 存成 UTF-8 with BOM，
   `.py`/`.cmm`/`.t32`/`.tmpl`/`.json` 保持 UTF-8 无 BOM（理由见铁律 7）。
   验收不是靠眼睛看，而是三条机械闸门：
@@ -558,6 +558,14 @@ python tools\check_entries_equiv.py                                             
   等于同时守住铁律 1 的空行分组）；③ `cmm\functions.json` 用 `json.load` 比结构（只允许 `desc`/`note`/`unsafe_reason`
   这类人读文本变，键名、`cmd`/`body`/`safe`/`allow_prefix` 必须逐字相同）。
   三条全绿 + `tests\run_all.ps1` 全量回归通过才算完。
+- **`configs\` 整理（第九轮）**：给留下的 3 个启动配置各加了一段中文注释头（`;` 注释行 + 一个空行，
+  再接原来那几组 `KEY=VALUE`，**原有字节一个没动**）；删掉两个只被文档引用的早期样本
+  `g1_full.t32`（`RCL=NETASSIST` 20000）与 `g4_port20001.t32`（`NETASSIST` 20001）——同类形态在
+  `attic\configs\` 的对照配置与 git 历史里仍可查，并行实例的做法改写成"复制一份、改 `PORT=`"。
+  顺带实测确认：**TRACE32 的 `.t32` 配置能吃 UTF-8 中文注释**。加注释头后 `tests\run_all.ps1` 全绿
+  （冒烟走 `g3_nettcp`、2211 走 `g5_screenoff`）；另外用 `gui\config_sim.t32`（注释夹在各组之内）单独起了
+  一次带界面的实例，`-s` 脚本正常执行、进程自己退出 0（探针日志 `CN-T32-CONFIG-OK`）⇒ 上一轮把该文件
+  的注释翻成中文没有破坏客户那条 GUI 启动路径。
 
 ---
 
