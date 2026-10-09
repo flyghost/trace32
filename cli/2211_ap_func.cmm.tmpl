@@ -11,8 +11,9 @@
 ;  本入口走我们的工作副本 cmm\src_2210（S1 提升 + S2 有界化）；客户原件由
 ;  tests\vendor.sha256 冻结、从不修改。区别只在参数从哪来：GUI 里来自对话框，这里来自命令行。
 ;  GUI 外壳被绕开，是因为 DIALOG.* 在 SCREEN=OFF 下会永久卡死；
-;  select_thread.cmm 同样被绕开（它的链表遍历改由 cmm\thread_pick.cmm 带着
-;  命令行传入的线程名重做）。
+;  select_thread.cmm 则不再需要孪生副本 —— S3 把它改成了官方的双入口
+;  （PRIVATE &sArguments + ENTRY %LINE &sArguments：不带参数 = 原来的对话框，
+;  带一个线程名 = 无界面选择），同一份链遍历代码只写一遍。
 ;
 ;  每个函数的主体放在 cmm\functions.json 里，所以注册表是唯一的真相来源：
 ;  没有任何函数被实现两遍。
@@ -49,8 +50,8 @@ PRINT "##################################################################"
 ; ---- 前置步骤：GUI 的 LOAD 按钮所建立的状态 --------------------------------
 ;  ⚠️ 必须**不带引号**传参，与客户 GUI 外壳 LM620_Restore.cmm:229 逐字一致
 ;  （`do restore.cmm &ramdump_path &elf_file`）。本 PRACTICE 版本里
-;  `do script.cmm "&x"` 会把引号字符一起塞进被调脚本的宏值（同 cmm\thread_pick.cmm:19
-;  那条实测怪癖）：于是被调脚本 STRing.SPLIT 切出的名字带尾引号、
+;  `do script.cmm "&x"` 会把引号字符一起塞进被调脚本的宏值（同 cmm\src_2210\select_thread.cmm
+;  S3 参数入口注释里那条实测怪癖）：于是被调脚本 STRing.SPLIT 切出的名字带尾引号、
 ;  `"&cpu_name"=="cpu-ap.elf"` 判等失败、拼出的 &ilm/&dlm 变成
 ;  `"...dir"\cpu-ap.elf"_dlm.bin` 这种含引号的垃圾，Data.LOAD.Binary 在
 ;  ON ERROR CONTinue 下静默失败 —— 0x00008000/0x00010000 两个 bin 根本没载入，

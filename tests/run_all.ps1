@@ -8,16 +8,17 @@
     1 encoding: tools\check_cn_encoding.ps1        - 编码/BOM/行尾/乱码（纯文件检查）
     2 ramdump : tests\verify_ramdump.ps1           - 对死机现场每个只读 fixture 校验 SHA256
     3 vendor  : tests\verify_vendor.ps1            - 对客户脚本原件（third_party\vendor\）校验 SHA256
-    4 smoke   : cli\run_smoke.ps1                  - 批处理标记 + RCL 逐字节校验
-    5 full    : cli\run_2211_ap.ps1                - 2211 死机现场的全部 9 个阶段
-    6 one-by-one: cli\run_2211_func.ps1 -Func all  - 每个安全的 GUI 功能，无头运行
-    7 baseline: tests\compare_baseline.ps1         - 上面两次运行的报告 vs tests\baseline\ 快照
-    8 equiv    : tools\check_entries_equiv.py      - 两条入口的结果一致吗？
+    4 dual    : tools\check_dual_entry.ps1         - 双入口纪律：对话框代码只在对话框分支里（纯文件检查）
+    5 smoke   : cli\run_smoke.ps1                  - 批处理标记 + RCL 逐字节校验
+    6 full    : cli\run_2211_ap.ps1                - 2211 死机现场的全部 9 个阶段
+    7 one-by-one: cli\run_2211_func.ps1 -Func all  - 每个安全的 GUI 功能，无头运行
+    8 baseline: tests\compare_baseline.ps1         - 上面两次运行的报告 vs tests\baseline\ 快照
+    9 equiv    : tools\check_entries_equiv.py      - 两条入口的结果一致吗？
 
   用法
     powershell -ExecutionPolicy Bypass -File tests\run_all.ps1
-    ... -SkipSmoke        （阶段 1,2,3,5,6,7,8：不需要 RT-Thread BSP）
-    ... -SkipT32          （只跑阶段 1,2,3：不启动任何东西，纯文件检查）
+    ... -SkipSmoke        （阶段 1,2,3,4,6,7,8,9：不需要 RT-Thread BSP）
+    ... -SkipT32          （只跑阶段 1,2,3,4：不启动任何东西，纯文件检查）
 
   只有当跑过的每个阶段都通过时，退出码才是 0。
 
@@ -49,36 +50,37 @@ function Invoke-Stage([string] $name, [string] $file, [string[]] $extra) {
 }
 
 $results = @()
-# 阶段 1-3 是静态检查，不需要 TRACE32，也不需要测试用的 BSP —— 所以放在任何开关之外。
-$results += Invoke-Stage '1/8 encoding (tools\check_cn_encoding.ps1)' 'tools\check_cn_encoding.ps1' @()
-$results += Invoke-Stage '2/8 ramdump (tests\verify_ramdump.ps1)' 'tests\verify_ramdump.ps1' @()
-$results += Invoke-Stage '3/8 vendor (tests\verify_vendor.ps1)' 'tests\verify_vendor.ps1' @()
+# 阶段 1-4 是静态检查，不需要 TRACE32，也不需要测试用的 BSP —— 所以放在任何开关之外。
+$results += Invoke-Stage '1/9 encoding (tools\check_cn_encoding.ps1)' 'tools\check_cn_encoding.ps1' @()
+$results += Invoke-Stage '2/9 ramdump (tests\verify_ramdump.ps1)' 'tests\verify_ramdump.ps1' @()
+$results += Invoke-Stage '3/9 vendor (tests\verify_vendor.ps1)' 'tests\verify_vendor.ps1' @()
+$results += Invoke-Stage '4/9 dual-entry (tools\check_dual_entry.ps1)' 'tools\check_dual_entry.ps1' @()
 
 if (-not $SkipT32) {
     if (-not $SkipSmoke) {
-        $results += Invoke-Stage '4/8 smoke (cli\run_smoke.ps1)' 'cli\run_smoke.ps1' @()
+        $results += Invoke-Stage '5/9 smoke (cli\run_smoke.ps1)' 'cli\run_smoke.ps1' @()
     } else {
         Write-Host ''
-        Write-Host '===== 4/8 smoke ===== skipped (-SkipSmoke)' -ForegroundColor Yellow
+        Write-Host '===== 5/9 smoke ===== skipped (-SkipSmoke)' -ForegroundColor Yellow
     }
-    $results += Invoke-Stage '5/8 full 2211 run (cli\run_2211_ap.ps1)' 'cli\run_2211_ap.ps1' @()
-    $results += Invoke-Stage '6/8 one function at a time (cli\run_2211_func.ps1 -Func all)' 'cli\run_2211_func.ps1' @('-Func', 'all')
-    # 7/8：把刚跑出来的报告与 tests\baseline\ 的冻结快照比 —— 这就是"引擎改造前后必须逐字节一致"的机械闸门。
-    $results += Invoke-Stage '7/8 baseline (tests\compare_baseline.ps1)' 'tests\compare_baseline.ps1' @()
+    $results += Invoke-Stage '6/9 full 2211 run (cli\run_2211_ap.ps1)' 'cli\run_2211_ap.ps1' @()
+    $results += Invoke-Stage '7/9 one function at a time (cli\run_2211_func.ps1 -Func all)' 'cli\run_2211_func.ps1' @('-Func', 'all')
+    # 8/9：把刚跑出来的报告与 tests\baseline\ 的冻结快照比 —— 这就是"引擎改造前后必须逐字节一致"的机械闸门。
+    $results += Invoke-Stage '8/9 baseline (tests\compare_baseline.ps1)' 'tests\compare_baseline.ps1' @()
 
     Write-Host ''
-    Write-Host '===== 8/8 equivalence (tools\check_entries_equiv.py) =====' -ForegroundColor Cyan
+    Write-Host '===== 9/9 equivalence (tools\check_entries_equiv.py) =====' -ForegroundColor Cyan
     $py = (Get-Command python -ErrorAction SilentlyContinue).Source
     if (-not $py) {
         Write-Host '  [SKIP] python not on PATH' -ForegroundColor Yellow
-        $results += @{ name = '8/8 equivalence'; rc = 99; skipped = $true }
+        $results += @{ name = '9/9 equivalence'; rc = 99; skipped = $true }
     } else {
         & $py (Join-Path $here 'tools\check_entries_equiv.py')
-        $results += @{ name = '8/8 equivalence'; rc = $LASTEXITCODE; skipped = $false }
+        $results += @{ name = '9/9 equivalence'; rc = $LASTEXITCODE; skipped = $false }
     }
 } else {
     Write-Host ''
-    Write-Host '===== stages 4-7 ===== skipped (-SkipT32: nothing is launched)' -ForegroundColor Yellow
+    Write-Host '===== stages 5-8 ===== skipped (-SkipT32: nothing is launched)' -ForegroundColor Yellow
 }
 
 Write-Host ''

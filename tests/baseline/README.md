@@ -9,14 +9,14 @@
 | --- | --- | --- |
 | `tests\ramdump.sha256` | 客户给的死机现场 9 件（只读输入） | 输入有没有被改坏？ |
 | `tests\vendor.sha256` | 客户脚本原件 68 件（只读参考） | 客户原件有没有被改坏？ |
-| `tests\baseline\`（本目录） | **我们自己**的输出 17 个条目（S2 之后重建） | 我们的输出有没有变？ |
+| `tests\baseline\`（本目录） | **我们自己**的输出 17 个条目（S3 之后重建） | 我们的输出有没有变？ |
 
-## 快照内容（2026-10 第十四轮 S2 之后重建，14 个全文 + 3 个 sha256 摘要）
+## 快照内容（2026-10 第十五轮 S3 之后重建，14 个全文 + 3 个 sha256 摘要）
 
 | 目录 | 内容 | 来源运行 |
 | --- | --- | --- |
-| `2211_ap\` | `2211_ap_deathscene.txt.sha256`（2121 行，摘要）、`heap_offline.txt`、`run.txt` | `out\runs\2211_ap\20261009-193919` |
-| `2211_ap_func\` | 12 个单功能报告 + `heap_offline.txt` + `run.txt`；其中 `all_thread_bt.txt.sha256`（530 行）与 `mem_trace.txt.sha256`（1313 行）是摘要 | `out\runs\2211_ap_func\20261009-193926` |
+| `2211_ap\` | `2211_ap_deathscene.txt.sha256`（2121 行，摘要）、`heap_offline.txt`、`run.txt` | `out\runs\2211_ap\20261009-200816` |
+| `2211_ap_func\` | 12 个单功能报告 + `heap_offline.txt` + `run.txt`；其中 `all_thread_bt.txt.sha256`（530 行）与 `mem_trace.txt.sha256`（1313 行）是摘要 | `out\runs\2211_ap_func\20261009-200823` |
 
 **这次为什么重建**（"预期差异"必须写明理由，否则基线会慢慢失去意义）：
 ① S2 给三处堆遍历加了边界 ⇒ 报告里多出/少掉 `### ...` 诊断行，且 `mem_trace`、`mem_summary` 从
@@ -26,6 +26,11 @@
 ⑤ **报告头部会把注册表 `cmm\functions.json` 的 `desc` 原样打出来** —— 所以改 `desc` / `note` 的文案
 也会让 `mem_trace` / `mem_summary` 的基线失效（2026-10-09 实测：差异只落在报告第 4 行）。这类
 "文案进了产物"的差异同样是**预期差异**，处理方式一样：`-Update` 重建 + 把理由写在这里。
+⑥ **S3：`select_thread.cmm` 改成官方双入口** —— `thread_bt` 不再用我们自己的 `cmm\thread_pick.cmm`
+（已删除），而是调引擎文件本身的命令行入口；于是 `thread_bt.txt` 从 49 行（含 38 行 `THREADPICK:`
+线程清单）变成 15 行，`equiv` 由 `partial` 转 `yes`；
+⑦ `run.txt` 的 `engine` / `bypassed` 两行换了措辞（写明 `src_2210` 现含 S3 双入口、
+`select_thread.cmm` 由 `thread_bt` 使用而本链不调用它）⇒ 全量与单功能两次运行的 `run.txt` 都会变。
 
 **`-Update` 写出的是规范化之后的正文**（LF、仓库路径→`__REPO__`、时间戳→`__STAMP__`、`sec=`→`__SEC__ `）。
 所以重建后，原先"手工净化过、但没有规范化"的快照会显示为 Modified —— 那是**规范化**，不是内容变化。
@@ -56,8 +61,8 @@
 
 ## 怎么用（改造之后）
 
-1. 跑一次全量与 `-Func all`（`tests\run_all.ps1` 的第 5、6 段）。
-2. 跑 `tests\compare_baseline.ps1`（第 7 段）与基线逐文件比：**字节相同**最好；
+1. 跑一次全量与 `-Func all`（`tests\run_all.ps1` 的第 6、7 段）。
+2. 跑 `tests\compare_baseline.ps1`（第 8 段）与基线逐文件比：**字节相同**最好；
    只多出 `### ...` 诊断行算"规范化相同"（要记下来）；其余差异必须能解释 —— 解释不了的就算改坏。
 3. 若确认差异是**预期的改进**（例如堆遍历的 stop 原因变了），**先 `-Update` 重建并在上面写明理由**再继续重构；
    否则基线会慢慢失去意义。

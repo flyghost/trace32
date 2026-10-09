@@ -177,7 +177,7 @@ $meta = @(
     "elf         : cpu-ap.elf sha256=$elfHash"
     "engine      : cmm\src_2210 (our working copy, S2-bounded walkers) + cli\2211_ap_analyze.cmm.tmpl"
     "frozen      : third_party\vendor\2210_trace32 (customer originals, never modified; tests\verify_vendor.ps1)"
-    "bypassed    : LM620_Restore.cmm (GUI wrapper), select_thread.cmm (interactive)"
+    "bypassed    : LM620_Restore.cmm (GUI wrapper); select_thread.cmm is not used by this chain (S3 dual entry, used by thread_bt)"
     "heap        : cmm\heap_summary.cmm (arena descriptor only) - engine walkers also usable since S2"
     "heap_offline: $heapLine"
     "config      : configs\sim-batch.t32 (PBI=SIM, SCREEN=OFF)"

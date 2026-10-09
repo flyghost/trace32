@@ -1,7 +1,7 @@
 case        : 2211 AP death scene - single-function headless runs
 stamp       : __STAMP__
 ramdump     : __REPO__\ramdump\2211_deathscene
-engine      : cmm\src_2210 (our working copy, S2-bounded walkers) + cli\2211_ap_func.cmm.tmpl
+engine      : cmm\src_2210 (our working copy, S2-bounded walkers + S3 dual-entry select_thread.cmm) + cli\2211_ap_func.cmm.tmpl
 frozen      : third_party\vendor\2210_trace32 (customer originals, never modified; tests\verify_vendor.ps1)
 registry    : cmm\functions.json
 thread_arg  : idle
@@ -13,7 +13,7 @@ timeout_sec : 300
 func load           kind=t32     exit=0     sec=__SEC__ lines=13     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\load.txt
 func show_thread    kind=t32     exit=0     sec=__SEC__ lines=153    ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\show_thread.txt
 func backtrace      kind=t32     exit=0     sec=__SEC__ lines=77     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\backtrace.txt
-func thread_bt      kind=t32     exit=0     sec=__SEC__ lines=49     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\thread_bt.txt
+func thread_bt      kind=t32     exit=0     sec=__SEC__ lines=15     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\thread_bt.txt
 func all_thread_bt  kind=t32     exit=0     sec=__SEC__ lines=530    ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\all_thread_bt.txt
 func mailbox        kind=t32     exit=0     sec=__SEC__ lines=24     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\mailbox.txt
 func mem_trace      kind=t32     exit=0     sec=__SEC__ lines=1313   ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\mem_trace.txt

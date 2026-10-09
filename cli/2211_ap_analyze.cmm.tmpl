@@ -10,8 +10,10 @@
 ;  用 68 个哈希冻结。
 ;  有意绕开的部分：
 ;     LM620_Restore.cmm  - GUI 外壳（27 处 DIALOG.* + STOP）；在 SCREEN=OFF 下会卡死
-;     select_thread.cmm  - 交互式线程选择器（4 处 DIALOG.* + STOP）
-;  cmm\src_2210 下其余脚本都不含 DIALOG，均在此被调用。
+;     select_thread.cmm  - 本链不调用它；S3 已把它改成双入口（不带参数 = 原来的对话框，
+;                          4 处 DIALOG.* + STOP），命令行入口由 thread_bt 用
+;  cmm\src_2210 下其余脚本都不含 DIALOG，均在此被调用（select_thread.cmm 的对话框代码
+;  只在自己的对话框分支里，由 tools\check_dual_entry.ps1 机械核对）。
 ;
 ;  脚本路径：每次调用都用绝对的 __SCRIPT_DIR__ 路径，同时运行器把 TRACE32 的
 ;  工作目录设为 cmm\src_2210（引擎目录，见 run.txt 的 t32_cwd 行）。两者缺一不可：

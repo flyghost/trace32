@@ -1,0 +1,16 @@
+# 双入口脚本清单（读它的闸门：tools\check_dual_entry.ps1，挂在 tests\run_all.ps1 第 4 段）
+#
+# 列（制表符分隔，行内以 '#' 开头的行是注释）：
+#   工作副本 <TAB> 冻结原件 <TAB> 对话区起始行 <TAB> 双入口声明正则
+#
+# 背景：客户 GUI 的 ThreadBT 按钮调用 select_thread.cmm 时会弹一个"选线程"对话框，
+# 而对话框在 SCREEN=OFF 的无界面会话里一旦弹出就永久挂死（README 铁律 2），
+# 所以无界面链路必须走同一个文件的另一条入口（带参数）。于是在"允许改 src_2210"之后，
+# 我们把 select_thread.cmm 改成官方 demo 的双入口写法，并加这条**静态**闸门来补上
+# 测不到的那一半：对话框那段代码逐字保留客户原件（逐行比对），且参数入口在它之前、
+# 绝不含 DIALOG/STOP。
+#
+# 注意：这条闸门验的是**本机**的 cmm\src_2210\ 工作副本（因版权不入库）与
+# third_party\vendor\（同样不入库）里的客户原件，所以在没有这两份素材的机器上会报 missing
+# —— 和 ramdump.sha256 / vendor.sha256 两段一样，完整回归只在有素材的机器上有意义。
+cmm\src_2210\select_thread.cmm	third_party\vendor\2210_trace32\select_thread.cmm	LOCAL &select_thread_struct	ENTRY %LINE &sArguments

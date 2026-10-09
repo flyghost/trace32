@@ -200,7 +200,7 @@ $sb = New-Object System.Text.StringBuilder
 [void]$sb.AppendLine('case        : 2211 AP death scene - single-function headless runs')
 [void]$sb.AppendLine('stamp       : ' + $stamp)
 [void]$sb.AppendLine('ramdump     : ' + $RamdumpDir)
-[void]$sb.AppendLine('engine      : cmm\src_2210 (our working copy, S2-bounded walkers) + cli\2211_ap_func.cmm.tmpl')
+[void]$sb.AppendLine('engine      : cmm\src_2210 (our working copy, S2-bounded walkers + S3 dual-entry select_thread.cmm) + cli\2211_ap_func.cmm.tmpl')
 [void]$sb.AppendLine('frozen      : third_party\vendor\2210_trace32 (customer originals, never modified; tests\verify_vendor.ps1)')
 [void]$sb.AppendLine('registry    : cmm\functions.json')
 [void]$sb.AppendLine('thread_arg  : ' + $Thread)

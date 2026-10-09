@@ -67,24 +67,25 @@ Trace32_Auto\
 
 | 路径 | 内容 | 用途 | 入库 |
 |---|---|---|---|
-| `cmm\` | 4 个成品：`restore.cmm`（冒烟链）、`heap_summary.cmm`（2211 堆遍历）、`thread_pick.cmm`（选线程）、`functions.json`（注册表）；另有 `cmm\src_2210\`（引擎工作副本：客户 2210 原件 + S2 边界） | 底层内核；**不含任何 GUI 语句**，可被 GUI 与脚本同时调用 | ✅（`src_2210\` ❌） |
+| `cmm\` | 3 个成品：`restore.cmm`（冒烟链）、`heap_summary.cmm`（2211 堆遍历）、`functions.json`（注册表）；另有 `cmm\src_2210\`（引擎工作副本：客户 2210 原件 + S2 边界 + S3 双入口） | 底层内核；**入口层不含任何 GUI 语句**（对话框代码只在自己的对话框分支里） | ✅（`src_2210\` ❌） |
 | `cli\run_smoke.ps1` | 一键冒烟（批处理 + RCL 两阶段，带 marker 闸门） | 环境自检，**先跑这个** | ✅ |
 | `cli\run_2211_ap.ps1` | 2211 现场全量分析（9 段 → 报告 + 离线堆统计） | 一键出报告（见 §5.1） | ✅ |
 | `cli\2211_ap_analyze.cmm.tmpl` | 上面那条链的 CMM 模板（`__CMM_DIR__` 等占位符展开） | 全量入口的骨架 | ✅ |
 | `cli\run_2211_func.ps1` | 单功能无 GUI 驱动器（`-List` / `-Func <名>` / `-Func all`） | 逐个功能单独跑、单独留档 | ✅ |
-| `cli\2211_ap_func.cmm.tmpl` `cmm\thread_pick.cmm` | 单功能入口骨架 + `select_thread.cmm` 的无 GUI 孪生 | 单功能入口的零件 | ✅ |
+| `cli\2211_ap_func.cmm.tmpl` | 单功能入口骨架（每个函数的主体来自注册表，入口只认占位符） | 单功能入口的零件 | ✅ |
 | `cli\rcl_smoke.py` | RCL 冒烟测试（带断言，退出码 0/1） | 验证 Python 通道 | ✅ |
 | `cmm\functions.json` | 2211 每个 GUI 功能的注册表（**功能的实现只写在这一处**） | 「一个功能，两个入口」的单一真源（见 §5.2） | ✅ |
 | `tools\check_entries_equiv.py` | 单功能报告 ↔ 全量报告的等价判定（含覆盖断言） | 证明两个入口等价（`EQUIV-OK`） | ✅ |
 | `tools\heap_stats_offline.py` | 纯 Python 读 dump 复算 dlmalloc 链 | 堆统计，自动与 arena 的 `used` 对账 | ✅ |
 | `tools\make_shortcuts.ps1` | 在本机重建 `third_party\launchers\*.lnk` | 快捷方式无法入库 | ✅ |
 | `tools\check_cn_encoding.ps1` | 编码/BOM/行尾/乱码闸门（清单来自 `git ls-files`，没有硬编码） | 中文注释改造的回归守卫，接在 `tests\run_all.ps1` 第 1 段 | ✅ |
-| `tests\run_all.ps1` | **唯一测试入口**：编码闸门 → 现场哈希 → 客户原件哈希 → 冒烟 → 2211 全量 → 单功能 → **对基线** → 等价判定 | 测试集中在这一处（见 §1.2） | ✅ |
+| `tests\run_all.ps1` | **唯一测试入口**：编码闸门 → 现场哈希 → 客户原件哈希 → **双入口纪律** → 冒烟 → 2211 全量 → 单功能 → **对基线** → 等价判定 | 测试集中在这一处（见 §1.2） | ✅ |
 | `tests\verify_ramdump.ps1` | 按 `tests\ramdump.sha256` 逐条校验死机现场 | 证明现场没被改过 | ✅ |
 | `tests\verify_vendor.ps1` `tests\vendor.sha256` | 客户脚本原件 68 件的逐字节校验（清单 + 执行） | 证明客户原件没被改过（改造引擎的前提） | ✅ |
+| `tests\dual_entry.tsv` `tools\check_dual_entry.ps1` | 双入口清单 + 机械核对：冻结原件的对话框区必须**逐字在**，且**只在**对话框分支里 | 「一个文件两个入口」的纪律凭据（对话路径在 `SCREEN=OFF` 下测不了，只能这样证），`tests\run_all.ps1` 第 4 段 | ✅ |
 | `tests\smoke\*.markers` | 三条链各自的期望 marker（5 / 15 / 3 条） | 闸门的数据源：**数据与代码分开** | ✅ |
 | `tests\ramdump.sha256` | 9 个现场文件的 SHA256（`<hash>  <相对路径>`） | 不入库件的完整性凭据 | ✅ |
-| `tests\baseline\` | 改造前的**我方**快照（17 个条目：全量报告 + 12 个单功能报告 + 2 个 `heap_offline.txt` + `run.txt`；其中 3 个超过 20000 字符的只入库一行 sha256） | 「改引擎有没有改坏」的基线（设计文档 §11.3 的 oracle B） | ✅ |
+| `tests\baseline\` | 改造前的**我方**快照（S3 之后重建；17 个条目：全量报告 + 12 个单功能报告 + 2 个 `heap_offline.txt` + `run.txt`；其中 3 个超过 20000 字符的只入库一行 sha256） | 「改引擎有没有改坏」的基线（设计文档 §11.3 的 oracle B） | ✅ |
 | `tests\compare_baseline.ps1` | 把最新一次运行的报告与 `tests\baseline\` 逐行比（路径/时间戳/耗时先规范化）；`-Update` 用最新运行镜像重建基线 | 改引擎的**机械验收**：`BASELINE-OK` 才算没改坏 | ✅ |
 | `configs\` | 4 个配置：客户 GUI 原件 `sim-gui.t32` + 3 个无人化配置（`sim-minimal` / `sim-batch` / `sim-rcl-tcp-20000`），每个开头都有中文注释头 | 起实例用（`-c`） | ✅ |
 | `attic\logs\` | 原始实测日志（只读证据；第十一轮从 `docs\history\` 移入，让 `docs\` 只留文档） | 复盘 | ✅ |
@@ -100,7 +101,7 @@ Trace32_Auto\
 | `third_party\trace32_rcl\` | 解包好的 RCL 1.1.5（`lauterbach_trace32_rcl-1.1.5`） | 免 pip，`sys.path.insert` 即可 import | ❌ 第三方许可 |
 | `third_party\launchers\*.lnk` | 客户 GUI 快捷方式**原件** | 内部硬编码绝对路径 + 创建者账号名 | ❌ 用 `tools\` 重建 |
 | `third_party\vendor\{2100,2110,2210,3510}_trace32\` | 客户现成的 TRACE32 **GUI** 脚本族（含 `.svn`） | 移植抄写的主要参考，**冻结只读** | ❌ 客户版权 |
-| `cmm\src_2210\` | `third_party\vendor\2210_trace32` 的副本（17 件，去 `.svn`） | **我们的引擎工作副本**：S1 把它提升为工程内引擎，S2 给三处堆遍历加了边界；两个入口现在都跑它（`run.txt` 的 `engine : cmm\src_2210`），客户原件仍由 `tests\verify_vendor.ps1` 冻结 | ❌ 不入库（客户版权，`**/src_2210/`） |
+| `cmm\src_2210\` | `third_party\vendor\2210_trace32` 的副本（17 件，去 `.svn`） | **我们的引擎工作副本**：S1 把它提升为工程内引擎，S2 给三处堆遍历加了边界，S3 把 `select_thread.cmm` 改成官方双入口（对话框 / 命令行同一份代码）；两个入口都跑它（`run.txt` 的 `engine : cmm\src_2210`），客户原件仍由 `tests\verify_vendor.ps1` 冻结 | ❌ 不入库（客户版权，`**/src_2210/`；**新克隆要按 §4.0b 重建**，否则第 4/6/7 段缺件） |
 | `ramdump\2211_deathscene\` | 死机现场数据（`cpu-ap.elf` 25 MB、`IRAM.bin`、`PSRAM.bin`、`ap_ilm/dlm.bin`、`0xC8031000.xip`） | 无人化跑的**只读输入**，冻结 | ❌ 35 MB + 内网痕迹 |
 | `LICENSE` `NOTICE` | Apache-2.0 全文 + 版权与归属声明 | 许可（见 §9） | ✅ |
 
@@ -109,11 +110,11 @@ Trace32_Auto\
 ```powershell
 cd <repo>
 powershell -ExecutionPolicy Bypass -File tests\run_all.ps1          # 全部
-powershell -ExecutionPolicy Bypass -File tests\run_all.ps1 -SkipT32 # 静态检查（编码 + 现场哈希 + 客户原件哈希）
+powershell -ExecutionPolicy Bypass -File tests\run_all.ps1 -SkipT32 # 静态检查（编码 + 现场哈希 + 客户原件哈希 + 双入口纪律）
 ```
 
-`run_all.ps1` 依次用子进程跑 8 段，逐段打印退出码，末尾给 `TESTS-OK` / `TESTS-FAILED`：
-编码/BOM（97 个入库文件）→ 死机现场 SHA256（9/9）→ 客户原件 SHA256（68/68）→ 冒烟（5 marker）→ 2211 全量（15 marker）→ 单功能 `-Func all`（13/13 PASS）→ **对基线（17/17 `IDENTICAL`）** → 两入口等价（`EQUIV-OK`）。
+`run_all.ps1` 依次用子进程跑 9 段，逐段打印退出码，末尾给 `TESTS-OK` / `TESTS-FAILED`：
+编码/BOM（98 个入库文件）→ 死机现场 SHA256（9/9）→ 客户原件 SHA256（68/68）→ **双入口纪律（1/1 `DUAL-ENTRY-OK`）** → 冒烟（5 marker）→ 2211 全量（15 marker）→ 单功能 `-Func all`（13/13 PASS）→ **对基线（17/17 `IDENTICAL`）** → 两入口等价（`EQUIV-OK`）。
 **每个 runner 都有 marker 闸门**：期望的 marker 名单放在 `tests\smoke\*.markers` 里，
 少一条就 `exit 1`（不再只看进程退出码这种假绿）。
 
@@ -244,6 +245,24 @@ Copy-Item local\paths.psd1.example local\paths.psd1    # 然后按本机情况�
 `cli\run_smoke.ps1` 在运行时把占位符替换成本机值，生成 `local\smoke.t32` 与 `local\run_restore.cmm`
 （都在 `local\` 下）。替换是**保字节**做的（Latin-1 往返），因为这些模板是**编码三态**的（见 §6）。
 
+### 4.0b 引擎工作副本 `cmm\src_2210\`（不入库，按需重建）
+
+2211 两条链的 `__SCRIPT_DIR__` 指的是 **`cmm\src_2210\`** —— 我们自己的引擎工作副本
+（客户 2210 原件 + S2 边界 + S3 双入口，`run.txt` 的 `engine :` 行会写明）。它**不入库**
+（`.gitignore` 的 `**/src_2210/`：它是客户脚本的副本，版权在客户）。
+
+⇒ **新克隆上第 4 / 6 / 7 段会因缺件而失败，这是预期的，不代表回归变红**。
+本机重建（两处改动合计不到 10 行，细节见 §8 第十五轮）：
+
+```powershell
+# 1) 从冻结原件复制 17 件（排除 .svn）
+robocopy third_party\vendor\2210_trace32 cmm\src_2210 /E /XD .svn
+# 2) 重打 S2 边界（三个堆遍历的守卫与预算）与 S3 双入口（select_thread.cmm）；
+#    补丁脚本与数据文件含客户脚本文本，同样不入库（本机在 out\ 下，out\ 已 ignore）
+```
+
+`tests\run_all.ps1 -SkipT32` 只跑静态门禁（1–4 段），可在没有引擎、没有 TRACE32 的机器上验证其余部分。
+
 ### 4.1 一键冒烟（推荐先跑这个）
 ```powershell
 powershell -ExecutionPolicy Bypass -File <repo>\cli\run_smoke.ps1
@@ -321,10 +340,10 @@ BSP 路径走环境变量 `RAMDUMP_BSP_DIR`（`cli\run_smoke.ps1` 会设置）�
 
 | 环节 | 做法 |
 |---|---|
-| 绕开 GUI | 17 个脚本里只有 `LM620_Restore.cmm`（27 处 `DIALOG` + `STOP`）和 `select_thread.cmm`（4 处 `DIALOG` + `STOP`）含交互，其余 15 个可直接串起来调用 |
-| 入口 | `cli\2211_ap_analyze.cmm.tmpl` → 展开成 `local\run_2211_ap.cmm`，9 段：restore / sysinfo / errinfo / thread / backtrace+frame / 全线程回溯 / mailbox / thread-swap / heap |
-| 进度 | 13 个 marker 写进 `out\logs\2211ap-<时间戳>.log`（独立通道：报告被 t32 独占时也能看进度） |
-| 产物 | `out\runs\2211_ap\<时间戳>\` 下的 `2211_ap_deathscene.txt`（355 行）、`run.txt`（provenance + ELF SHA256）、`heap_offline.txt` |
+| 绕开 GUI | 17 个脚本里只有 `LM620_Restore.cmm`（27 处 `DIALOG` + `STOP`，纯外壳）和 `select_thread.cmm`（4 处 `DIALOG` + `STOP`，选线程）含交互；后者 S3 已改成**双入口**（不带参数才是对话框），前者是唯一只能走 GUI 的文件。全量链用到其余 15 个 |
+| 入口 | `cli\2211_ap_analyze.cmm.tmpl` → 展开成 `local\run_2211_ap.cmm`，11 段：restore / sysinfo / errinfo / thread / backtrace+frame / 全线程回溯 / mailbox / thread-swap / heap / mem_trace / mem_summary |
+| 进度 | 15 个 marker 写进 `out\logs\2211ap-<时间戳>.log`（独立通道：报告被 t32 独占时也能看进度） |
+| 产物 | `out\runs\2211_ap\<时间戳>\` 下的 `2211_ap_deathscene.txt`（2121 行）、`run.txt`（provenance + ELF SHA256）、`heap_offline.txt` |
 
 现场读数（`out\runs\2211_ap\20261007-171208\`）：
 
@@ -340,30 +359,38 @@ BSP 路径走环境变量 `RAMDUMP_BSP_DIR`（`cli\run_smoke.ps1` 会设置）�
   只差 **184 B（比值 0.9999）**；另外 TRACE32 `Data.SAVE.Binary` 读回的 DLM/ILM/PSRAM
   与夹具文件**逐字节一致（0 mismatch）** ⇒ 装载与遍历都可信。
 
-**做不到的部分（如实记）**：客户的 `print_dlmalloc_heap.cmm` / `print_mem_summary_by_file.cmm`
-在这个 arena 上会**静默自旋**（自由链无环守卫、内层无 `size==0` 守卫），而它们依赖的
-dlmalloc 内部 typedef（`mbinptr`/`mchunkptr`）与 `sizeof(...)` 在本环境**不求值**
-（实测：用到它们的整行都不输出）⇒ 逐块 `Mem Leak Info` 表**无法从 CMM 复现**。
-旁证：客户自己的 golden 里 `Memory Summary By File` 段**一行数据都没有**（段头之后直接接下一段），
-且该固件把这个「来源」字段记成**任务名**（`timer`/`main`/…）而不是客户脚本在比较的 `.c` 文件名。
-⇒ 堆这条线走「arena 描述符（CMM 读）+ chunk 链（Python 离线复算）」两条腿，都能对账。
+**S2 之前做不到、现在做到的部分**：客户的 `print_dlmalloc_heap.cmm` / `print_mem_summary_by_file.cmm`
+曾在这个 arena 上**静默自旋**（自由链无环守卫、内层无 `size==0` 守卫；最坏一次写出 2.58 GB
+报告后被外部杀掉）。S2 在 `cmm\src_2210\` 里给三个遍历补了步数预算 + 两道守卫（客户原件一个字没改），
+现在 MemTrace 5 s 出 **1313 行**（`Mem Leak Info` 表 400+ 行/堆）、MemSummary 5 s 出 40 行
+（`Total: 70308 bytes allocated`），两入口的等价判定也从 `no` 变 PASS。
+**★ 这时两条腿互相印证**：CMM 遍历报的 `total: 1607232, max Used : 1560544, used: 1560256,
+user used: 1264281`（`out\runs\2211_ap_func\20261009-200823\mem_trace.txt` 第 425 行）与上面 Python
+离线复算的四个数字**完全一致** —— 两套独立实现给出同一答案，这才是"数据可信"的凭据。
+**如实的局限**：`Memory Summary By File` 表里的文件名偶尔是乱码（客户脚本用**字符长度**而不是
+token 数去扫 `&file_list`；S2 只解决了自旋，没有重写它的字符串聚合），而客户自己的 golden 里
+该段**一行数据都没有**。所以逐文件的堆归属以 `tools\heap_stats_offline.py` 为准。
+⇒ 堆这条线走「arena 描述符（CMM 读）+ chunk 链（Python 离线复算）+ 有界遍历（CMM，S2）」三条腿，都能对账。
 
 ### 5.2 ★ 一个功能，两个入口（GUI 按钮 ↔ 无 GUI 入口）
 
 结论：**客户脚本一行都不用改，就能让每个按钮都多一个无 GUI 入口**。GUI 的 11 个按钮背后是
 15 个纯脚本，其中只有两个文件含交互（`LM620_Restore.cmm` 的对话框、`select_thread.cmm` 的选线程
-下拉框）；把对话框换成命令行参数，每个按钮就变成一个独立入口，两个入口调用的是**同一批客户脚本**。
+下拉框）。`LM620_Restore.cmm` 只做外壳，它的对话框在 `SCREEN=OFF` 下必挂，所以由 `cli\` 的入口替代；
+`select_thread.cmm` 是**真引擎**，S3 按官方写法（`PRIVATE &sArguments` + `ENTRY %LINE &sArguments`）
+把它改成双入口：不带参数走原对话框、带一个线程名走命令行 —— **同一份链表遍历只写一遍**，
+两个入口调的就是同一个文件。纪律由 `tools\check_dual_entry.ps1` 机械核对（见 §1.2 第 4 段）。
 
 | 功能 | GUI 按钮（`third_party\vendor\2210_trace32\LM620_Restore.cmm`） | 无 GUI 入口 | 调用的客户脚本 | 等价 |
 |---|---|---|---|---|
 | load | LOAD（L47-48 → `load_ramdump` L209-251） | `-Func load` | `restore.cmm` + `show_sysinfo.cmm` + `errinfo.cmm` | PASS，且**比按钮更全**：GUI 的 SYSINFO/ERRINFO 只进 `dyntext` 字段，永不落文件 |
 | show_thread | ShowThread（L56-60） | `-Func show_thread` | `show_thread.cmm` | PASS |
 | backtrace | BackTrace（L62-69） | `-Func backtrace` | `backtrace.cmm` + `frame.cmm` | PASS |
-| thread_bt | ThreadBT（L71-83，先弹选线程框） | `-Func thread_bt -Thread <名>` | `thread_pick.cmm`（我们的）+ `backtrace.cmm` + `frame.cmm` | PARTIAL（多出 `THREADPICK:` / `Thread:` 两行头，正是客户选择器的等价物） |
+| thread_bt | ThreadBT（L71-83，先弹选线程框） | `-Func thread_bt -Thread <名>` | `select_thread.cmm`（S3 双入口：GUI 不带参数 = 对话框，这里带名字 = 命令行）+ `backtrace.cmm` + `frame.cmm` | PASS（`equiv=yes`；GUI 那行 `Thread:` 是外壳 L79 自己打的，不在引擎里） |
 | all_thread_bt | AllThreadBT（L85-89） | `-Func all_thread_bt` | `show_all_backtrace.cmm` | PASS |
 | mailbox | MSG Box（L91-95，按钮名与脚本名不一致） | `-Func mailbox` | `show_mailbox.cmm` | PASS |
-| mem_trace | MemTrace（L97-108） | `-Func mem_trace` | `show_ap_meminfo.cmm` | **不安全**：自由链无环守卫，实测自旋 |
-| mem_summary | MemSummary（L110-121） | `-Func mem_summary` | `show_ap_meminfo_sum.cmm` | **不安全**：内层无 `size==0` 守卫 |
+| mem_trace | MemTrace（L97-108） | `-Func mem_trace` | `show_ap_meminfo.cmm` | PASS（S2 加边界后：曾静默自旋，现 5 s 出 1313 行、四个总量与离线复算逐字相同） |
+| mem_summary | MemSummary（L110-121） | `-Func mem_summary` | `show_ap_meminfo_sum.cmm` | PASS（S2 加边界后：40 行、`Total: 70308 bytes allocated`） |
 | thread_swap | ThreadSwap（L123-127） | `-Func thread_swap` | `show_thread_swap.cmm` | PASS |
 | heap | （**没有这个按钮**） | `-Func heap` | `heap_summary.cmm`（我们的） | 替代上面两个不安全按钮 |
 | sysinfo / errinfo | （`dyntext` 字段，L51/L54，不落文件） | `-Func sysinfo` / `-Func errinfo` | `show_sysinfo.cmm` / `errinfo.cmm` | PASS |
@@ -376,10 +403,10 @@ powershell -ExecutionPolicy Bypass -File cli\run_2211_func.ps1 -Func all -Timeou
 python tools\check_entries_equiv.py                                                   # 证明两个入口等价
 ```
 
-实测（`out\runs\2211_ap_func\20261007-213816`，11 个安全功能，总耗时约 50 s）：全部 `[PASS]`；
-`python tools\check_entries_equiv.py` 对全量 run `out\runs\2211_ap\20261007-213553` 判定 **`EQUIV-OK`**
-（10 个 PASS + `thread_bt` 按预期 PARTIAL）。`-Func all` **主动跳过** `mem_trace` / `mem_summary` 这两个
-实测会自旋的功能（要单独跑就 `-Func <名>`，或 `-IncludeUnsafe` 全跑）。
+实测（`out\runs\2211_ap_func\20261009-200823`，13 个功能，总耗时约 58 s）：全部 `[PASS]`；
+`python tools\check_entries_equiv.py` 判定 **`EQUIV-OK`**（`pass=13 partial=0 fail=0 missing=0`）。
+`-Func all` 早期会**主动跳过** `mem_trace` / `mem_summary`（实测自旋），S2 给它们加上边界后
+已收进默认清单；现在没有任何功能需要跳过。
 
 **模块化的关键不是多写脚本，而是「功能的实现只写一遍」**：每个功能的 PRACTICE 语句体只存在于
 `cmm\functions.json`，入口模板只认占位符 ⇒ 加/改一个功能 = 改一行 JSON，不动模板、不动 runner、
@@ -389,7 +416,7 @@ python tools\check_entries_equiv.py                                             
 > `do script.cmm "&want"` 传进去的是**带引号**的 `"idle"`，等值判断永远不成立；`do script.cmm &want`
 > 才是 `idle`。文件路径用带引号的形式之所以没出事，是因为 TRACE32 打开文件时会剥掉引号——
 > **字符串比较不会**。所以传宏给 `do` 时**不要加引号**（线程名带空格的名字这条路走不通，已记在
-> `cmm\thread_pick.cmm` 的注释里）。
+> `cmm\src_2210\select_thread.cmm` S3 参数入口那段的注释里）。
 > 另一条：打印 AREA 的宽度会**截断**长行（全量用 `120.`，实测 119 列封顶），两个入口的 AREA 宽度
 > 必须一致，否则同一句话在两边长度不同——第一条 `EQUIV-FAILED` 就是这么抓出来的。
 
@@ -485,12 +512,13 @@ python tools\check_entries_equiv.py                                             
 2. **五段管线的状态**：[1] 构建/烧录/触发 = 已有；[2] `tests\ramdump.sha256` = **已有**（第七轮补上，记录
    `ramdump\` 各文件的路径与 SHA256——因为死机现场本身不入库，靠它离线核对）；
    [3] 传输自检 = **缺**（`cli\rcl_smoke.py` 的 FLASH 逐字节断言是最小可用版本，可扩成全片自检）；
-   [4] 分析 = **已有**（2211 AP 现场已跑通，见 §5.1，并已拆成 11 个单功能入口、双入口等价已判定，见 §5.2；
+   [4] 分析 = **已有**（2211 AP 现场已跑通，见 §5.1，并已拆成 13 个单功能入口、双入口等价已判定（`pass=13 partial=0`），见 §5.2；
    只有「逐块内存来源表」复现不了，原因见 §5.1）；
-   [5] 断言判定 = **半有**（第七轮补上「marker 闸门」：三条链各自的期望 marker 存 `tests\smoke\*.markers`，
-   少一条即 `exit 1`，见 §1.2；`tools\check_entries_equiv.py` 也加了覆盖断言，缺一个功能就是 `FAIL`。
-   **仍缺**内容级断言——把报告与基线做归一化 diff；基线应当是**本仓库自己产出并经人工确认的报告**（`out\runs\`），
-   第十一轮已删掉从 `ramdump\` 复制出来的那份冗余 `tests\expected\` 副本）。
+   [5] 断言判定 = **已有**（三层：① marker 闸门——三条链各自的期望 marker 存 `tests\smoke\*.markers`，
+   少一条即 `exit 1`（第 5–7 段），见 §1.2；② 覆盖断言——`tools\check_entries_equiv.py` 缺一个功能就是 `FAIL`；
+   ③ **内容级断言**——对基线做归一化 diff（第 8 段 `tests\compare_baseline.ps1`，17 个条目；
+   `### ` 诊断行、时间戳、`sec=` 等易变行按规则归一）。基线是**本仓库自己产出并经人工确认的报告**，
+   第十一轮已删掉从 `ramdump\` 复制出来的那份冗余 `tests\expected\` 副本。
 3. **官方 `ramdump.cmm` 已精读**（arm 版 33862 B / 1125 行；RISC-V 版 28822 B / 969 行），结论写进了设计文档 §3.1
    （`L44-60` 的"一个脚本两个入口"骨架 + `TASK.CONFIG` 的挂法与关法）。**仍待做的是照它生成"可自恢复包"**：
    从现场那 9 个 bin 反生成 `restore_<stamp>.cmm` + `meta.json`（不碰任何只读资产）。
@@ -502,6 +530,11 @@ python tools\check_entries_equiv.py                                             
    **Cortex-M4 / Thumb-2 的移植议题不属于本项目**。同时 `cmm\src_2210\` 已获授权**重构**，方案上限因此从
    "套壳"变成"一个引擎 + 三份数据"。执行顺序见设计文档 §11：**S0 = 动引擎之前先抓 oracle 快照**
    （改造前的报告基线），否则"我没改坏"无法证明。
+7. **`cmm\src_2210\`（引擎工作副本）不入库**（它是客户脚本的副本，版权在客户）。
+   后果：**新克隆上 `tests\run_all.ps1` 的第 4 / 6 / 7 段会缺件失败**（预期，不是回归变红），重建见 §4.0b。
+   要真正解除这个限制只有两条路：① 把 S2/S3 的改动表达成只引用锚点的补丁脚本（仍会碰到少量客户代码行）；
+   ② 由客户授权把引擎纳入本仓库。当前选择：**保持与客户原件的 1:1 镜像、不第三方化**
+   ——这样"我们改了什么"永远可以逐文件 diff 出来。
 
 ---
 
@@ -719,6 +752,35 @@ python tools\check_entries_equiv.py                                             
       ② 基线 v1 对不上不是引擎坏了，而是**报告头部会把注册表 `desc` 原样打出来**，我改文案就动了产物第 4 行 ——
       这类"文案进了产物"的差异按基线纪律处理：`-Update` 重建 + 在 `tests\baseline\README.md` 写明理由（已写）。
       重建后 `tests\baseline\` 由 15 件变成 **17 个条目**（14 全文 + 3 摘要），八段回归全绿。
+- **第十五轮（S3 单实现两入口：一个文件里既有人机对话框，也有命令行入口）**：用户「继续下一步」后，
+  按官方写法（`PRIVATE &sArguments` + `ENTRY %LINE &sArguments` + `GOSUB` / `RETURNVALUES`，见
+  `<T32_INSTALL>\demo\riscv\kernel\nuttx\ramdump.cmm:45-58`）改造引擎里最后一个交互文件。
+  - ① **`cmm\src_2210\select_thread.cmm` 由 1852 B 变 4634 B**：文件头插入参数判定
+    （`&bDialog=("&sArguments"=="")`；`IF !(&bDialog)` → `GOSUB pickThread "&sArguments"` → `RETURNVALUES &picked` →
+    `ENDDO &picked`），文件尾追加 `pickThread:` 子程序（`PARAMETERS &sWant` + 与对话框同源的 `g_osThreadList` 遍历 +
+    名字等值匹配）。**客户那段对话框代码（从 `LOCAL &select_thread_struct` 到文件尾 `cancel:`，55 个非空行）逐字保留、位置不变** ——
+    GUI 调用它时不带参数 ⇒ `&bDialog` 为真 ⇒ 走对话框，所以客户点 ThreadBT 的行为与改造前一模一样。
+  - ② **代价说清楚（三条实测规律）**：`PRIVATE` 宏在 `GOSUB` 子程序里**不可见**（打印出来是字面量 `&sWant`），
+    必须用官方的 `GOSUB ... "&sArguments"` + `PARAMETERS &sWant` 传参；`RETURNVALUES` 要取回的宏必须在**调用方先声明**
+    （漏声明时它静默无效、`&picked` 保持字面量，调用方拿到的垃圾宏会把 `<invalid addr>` 打进报告）；
+    传参里的 `do script.cmm "&x"` 会带引号（第六轮的老坑，两条注释互相交叉引用）。
+  - ③ **新的第 4 道门禁**：`tests\dual_entry.tsv`（清单）+ `tools\check_dual_entry.ps1`（机械核对）—— 冻结原件的对话框区
+    必须**逐行原样且恰好出现一次**，且它在工作副本里的**前面和后面**都不许出现 `DIALOG`/`STOP`（对话路径在 `SCREEN=OFF`
+    下测不了，这是铁律 2 逼出来的替代证据）；反向测试两条都验过（起始行写错、往参数入口塞 `STOP`，都判红）。
+    `tests\run_all.ps1` 随之由 **8 段扩到 9 段**（新第 4 段属静态检查区，`-SkipT32` 也跑）。
+  - ④ **删掉孪生副本**：`cmm\thread_pick.cmm`（我们自己的无界面版，64 行）**删除**，`thread_bt` 改为调
+    `select_thread.cmm &want`；`thread_bt.txt` 由 49 行（含 38 行 `THREADPICK:` 线程清单）变 15 行，
+    `equiv` 由 `partial` 转 **`yes`** ⇒ 等价判定首次做到 `pass=13 partial=0 fail=0 missing=0`。
+    第十轮列出的「`cmm\` 4 个成品」现在只剩 3 个（`restore.cmm` / `heap_summary.cmm` / `functions.json`）。
+  - ⑤ 文案同步（`run.txt` 的 `engine` / `bypassed` 两行、两个模板的注释头、§1 导航表、§5.1/§5.2）⇒ 基线按纪律
+    `-Update` 重建（理由写进 `tests\baseline\README.md`）。实测：对话框区 55 行一致、`dual-entry: files=1 ok=1 bad=0`、
+    单功能 13/13 PASS（约 58 s）、`files=17 volatile_lines_skipped=0 diff=0`、**九段全绿 `TESTS-OK`**。
+  - ⑥ 关于原计划里的「抽 `core\`」：**不做**。`cmm\src_2210\` 与 `third_party\vendor\` 保持 1:1 镜像（17 件里只有 3 件有最小补丁），
+    「我们改了什么」才有逐文件 diff 的凭据；搬进 `core\` 会破坏这一点。双入口直接写在引擎文件里（官方就是这么做的），
+    `cli\` / `configs\` 只做薄入口。
+  - ⑦ 顺手补一处**可复现性缺口**（S1 起就存在）：引擎工作副本 `cmm\src_2210\` 不入库 ⇒ 新克隆上第 4/6/7 段会缺件。
+    新增 **§4.0b**（`robocopy` 重建法 + 说明补丁脚本同样含客户文本、也不入库）与 **§7 第 7 条**（写清这个缺口的两条解除路径，
+    并声明当前选择是保持 1:1 镜像）；同时把 §7 第 2 条里已完成的「[5] 断言判定」由"半有"改为**已有**（三层断言）。
 
 ---
 
