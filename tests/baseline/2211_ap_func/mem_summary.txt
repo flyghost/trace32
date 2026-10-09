@@ -1,0 +1,40 @@
+##################################################################
+#  headless single function: mem_summary
+#  GUI twin: MemSummary
+#  按文件汇总的堆信息。S2 已有界化（工作副本 cmm\src_2210；客户原件 third_party\vendor\2210_trace32 依旧无界）。实测本现
+##################################################################
+Restore RISC-V Ramdump Files!!
+@@@[mem_summary]
+=========================================== AP System Sum Mem =========================================
+Memory trace enabled, analyzing...
+==================== Memory Summary By File ====================
+File (.c)          Total Size (bytes)
+--------------------------------------
+slog_helper              124 bytes
+*???0?36???Ѐ3	?瀀?#?$er I?????????u`???G?          50 bytes
+osi_rt_thread           4096 bytes
+pool_caching            1536 bytes
+pdcp_tx                   44 bytes
+amr                      640 bytes
+`??F???27          41 bytes
+ps_com                   156 bytes
+ethernetif               268 bytes
+ipc                       24 bytes
+??	?0?3&???Ѐ3	???`?#??          38 bytes
+uicc_main_ctrl            24 bytes
+usim_ctrl                 60 bytes
+thread                  2048 bytes
+timer                   2048 bytes
+Է?A???'?h??"?b?         120 bytes
+??#??AE??ma???D`?????'`"??Fz          15 bytes
+rrc_func                 356 bytes
+`???F???17         864 bytes
+--------------------------------------
+Total: 70308 bytes allocated
+======================================
+
+
+
+##################################################################
+#  END OF FUNCTION mem_summary
+##################################################################

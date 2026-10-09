@@ -7,8 +7,9 @@
 ;  一个函数，两个入口：
 ;    GUI 入口       third_party\vendor\2210_trace32\LM620_Restore.cmm  (按钮 + DIALOG.* + STOP)
 ;    无界面入口     本脚本，由 cli\run_2211_func.ps1 驱动
-;  两者调用的是 third_party\vendor\2210_trace32 下同一批客户脚本，这些脚本从不
-;  被修改。区别只在参数从哪来：GUI 里来自对话框，这里来自命令行。
+;  两者跑的是同一批脚本：GUI 外壳走冻结的客户原件 third_party\vendor\2210_trace32，
+;  本入口走我们的工作副本 cmm\src_2210（S1 提升 + S2 有界化）；客户原件由
+;  tests\vendor.sha256 冻结、从不修改。区别只在参数从哪来：GUI 里来自对话框，这里来自命令行。
 ;  GUI 外壳被绕开，是因为 DIALOG.* 在 SCREEN=OFF 下会永久卡死；
 ;  select_thread.cmm 同样被绕开（它的链表遍历改由 cmm\thread_pick.cmm 带着
 ;  命令行传入的线程名重做）。
@@ -17,7 +18,7 @@
 ;  没有任何函数被实现两遍。
 ;
 ;  脚本路径：对厂商脚本的调用用绝对的 __SCRIPT_DIR__ 路径，同时运行器把 TRACE32
-;  的工作目录设为 third_party\vendor\2210_trace32 - 两者缺一不可，因为客户的
+;  的工作目录设为 cmm\src_2210 - 两者缺一不可，因为客户的
 ;  脚本之间用裸名字互相调用（restore.cmm 里写 `do frame.cmm`），只有当前目录是
 ;  该目录时才能解析到。
 ;
@@ -46,7 +47,15 @@ PRINT "#  __FUNC_DESC__"
 PRINT "##################################################################"
 
 ; ---- 前置步骤：GUI 的 LOAD 按钮所建立的状态 --------------------------------
-do __SCRIPT_DIR__\restore.cmm "&ramdump" "&elf"
+;  ⚠️ 必须**不带引号**传参，与客户 GUI 外壳 LM620_Restore.cmm:229 逐字一致
+;  （`do restore.cmm &ramdump_path &elf_file`）。本 PRACTICE 版本里
+;  `do script.cmm "&x"` 会把引号字符一起塞进被调脚本的宏值（同 cmm\thread_pick.cmm:19
+;  那条实测怪癖）：于是被调脚本 STRing.SPLIT 切出的名字带尾引号、
+;  `"&cpu_name"=="cpu-ap.elf"` 判等失败、拼出的 &ilm/&dlm 变成
+;  `"...dir"\cpu-ap.elf"_dlm.bin` 这种含引号的垃圾，Data.LOAD.Binary 在
+;  ON ERROR CONTinue 下静默失败 —— 0x00008000/0x00010000 两个 bin 根本没载入，
+;  堆遍历一上来就读到全 0。代价：ramdump 目录路径里不能有空格（运行器已断言）。
+do __SCRIPT_DIR__\restore.cmm &ramdump &elf
 APPEND __MARKER_LOG__ "F01RESTORE"
 
 PRINT "@@@[__FUNC_NAME__]"

@@ -35,7 +35,12 @@ $ErrorActionPreference = 'Stop'
 $here      = Split-Path -Parent $PSScriptRoot          # 仓库根（本文件位于 cli\）
 $localDir  = Join-Path $here 'local'
 $logsDir   = Join-Path $here 'out\logs'
-$scriptDir = Join-Path $here 'third_party\vendor\2210_trace32'
+# 引擎（S1 提升）：跑的是我们自己的工作副本 cmm\src_2210，不再是 third_party\vendor\
+# 里的客户原件。third_party\vendor\2210_trace32 退为「冻结参考」，由 tests\verify_vendor.ps1
+# 守哈希。为什么必须是这个目录：客户脚本之间用裸名字互相调用（如 show_ap_meminfo.cmm 里
+# 的 `do print_dlmalloc_heap.cmm`），裸名按 t32 进程的 CWD 解析，所以只有把 CWD 指到
+# cmm\src_2210，S2 修好的那份 walker 才会被用上。
+$scriptDir = Join-Path $here 'cmm\src_2210'
 $cmmDir    = Join-Path $here 'cmm'
 
 # ---------------------------------------------------------------- 1. 机器路径
@@ -47,7 +52,7 @@ $paths = Import-PowerShellDataFile $pathsFile
 
 $t32exe = Join-Path $paths.T32_INSTALL 'bin\windows64\t32mriscv.exe'
 if (-not (Test-Path $t32exe))  { throw "t32mriscv.exe not found: $t32exe" }
-if (-not (Test-Path $scriptDir)) { throw "customer script dir not found: $scriptDir" }
+if (-not (Test-Path $scriptDir)) { throw "engine dir not found: $scriptDir - bootstrap it by copying third_party\vendor\2210_trace32 into cmm\src_2210 (see README §7.4)" }
 
 # ---------------------------------------------------------------- 2. ramdump 输入
 if (-not $RamdumpDir) { $RamdumpDir = Join-Path $here 'ramdump\2211_deathscene' }
@@ -112,7 +117,7 @@ Get-Process -Name 't32*' -ErrorAction SilentlyContinue | Stop-Process -Force
 
 if (Test-Path $outFile) {
     $fi = Get-Item $outFile
-    $lines = @(Get-Content -Path $outFile -Encoding Default).Count
+    $lines = @(Get-Content -Path $outFile -Encoding UTF8).Count
     "output : {0}" -f $outFile
     "size   : {0} bytes, {1} lines" -f $fi.Length, $lines
 } else {
@@ -154,7 +159,7 @@ $markerFile = Join-Path $here 'tests\smoke\2211_ap.markers'
 $missing = @()
 $want = @()
 if (Test-Path $markerFile) {
-    $want = @(Get-Content -LiteralPath $markerFile | Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } | ForEach-Object { $_.Trim() })
+    $want = @(Get-Content -Encoding UTF8 -LiteralPath $markerFile | Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } | ForEach-Object { $_.Trim() })
     $txt = if (Test-Path $markerLog) { Get-Content -LiteralPath $markerLog -Raw } else { '' }
     foreach ($m in $want) { if ($txt -notmatch ('(?m)^' + [regex]::Escape($m))) { $missing += $m } }
 } else {
@@ -170,9 +175,10 @@ $meta = @(
     "stamp       : $stamp"
     "ramdump     : $RamdumpDir"
     "elf         : cpu-ap.elf sha256=$elfHash"
-    "engine      : third_party\vendor\2210_trace32 (customer originals) + cli\2211_ap_analyze.cmm.tmpl"
+    "engine      : cmm\src_2210 (our working copy, S2-bounded walkers) + cli\2211_ap_analyze.cmm.tmpl"
+    "frozen      : third_party\vendor\2210_trace32 (customer originals, never modified; tests\verify_vendor.ps1)"
     "bypassed    : LM620_Restore.cmm (GUI wrapper), select_thread.cmm (interactive)"
-    "heap        : cmm\heap_summary.cmm (arena descriptor only; vendor heap walker spins on this arena)"
+    "heap        : cmm\heap_summary.cmm (arena descriptor only) - engine walkers also usable since S2"
     "heap_offline: $heapLine"
     "config      : configs\sim-batch.t32 (PBI=SIM, SCREEN=OFF)"
     "t32         : $t32exe"

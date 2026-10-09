@@ -30,7 +30,7 @@ TRACE32 **可以完全无人化**：
 
 ```
 Trace32_Auto\
-├─ cmm\          底层：无 GUI 的 PRACTICE 内核，只被调用（内附 src_2210\ 待改造副本） ✅+❌
+├─ cmm\          底层：无 GUI 的 PRACTICE 内核，只被调用（内附 src_2210\ = 引擎工作副本） ✅+❌
 ├─ cli\          上层入口：脚本入口（PowerShell + Python）                          ✅
 ├─ tools\        独立小工具（哈希、等价、快捷方式、编码闸门）                       ✅
 ├─ tests\        全部测试只在这一处（唯一入口 tests\run_all.ps1）                   ✅
@@ -67,7 +67,7 @@ Trace32_Auto\
 
 | 路径 | 内容 | 用途 | 入库 |
 |---|---|---|---|
-| `cmm\` | 4 个成品：`restore.cmm`（冒烟链）、`heap_summary.cmm`（2211 堆遍历）、`thread_pick.cmm`（选线程）、`functions.json`（注册表）；另有 `cmm\src_2210\`（待改造的客户副本） | 底层内核；**不含任何 GUI 语句**，可被 GUI 与脚本同时调用 | ✅（`src_2210\` ❌） |
+| `cmm\` | 4 个成品：`restore.cmm`（冒烟链）、`heap_summary.cmm`（2211 堆遍历）、`thread_pick.cmm`（选线程）、`functions.json`（注册表）；另有 `cmm\src_2210\`（引擎工作副本：客户 2210 原件 + S2 边界） | 底层内核；**不含任何 GUI 语句**，可被 GUI 与脚本同时调用 | ✅（`src_2210\` ❌） |
 | `cli\run_smoke.ps1` | 一键冒烟（批处理 + RCL 两阶段，带 marker 闸门） | 环境自检，**先跑这个** | ✅ |
 | `cli\run_2211_ap.ps1` | 2211 现场全量分析（9 段 → 报告 + 离线堆统计） | 一键出报告（见 §5.1） | ✅ |
 | `cli\2211_ap_analyze.cmm.tmpl` | 上面那条链的 CMM 模板（`__CMM_DIR__` 等占位符展开） | 全量入口的骨架 | ✅ |
@@ -82,10 +82,10 @@ Trace32_Auto\
 | `tests\run_all.ps1` | **唯一测试入口**：编码闸门 → 现场哈希 → 客户原件哈希 → 冒烟 → 2211 全量 → 单功能 → **对基线** → 等价判定 | 测试集中在这一处（见 §1.2） | ✅ |
 | `tests\verify_ramdump.ps1` | 按 `tests\ramdump.sha256` 逐条校验死机现场 | 证明现场没被改过 | ✅ |
 | `tests\verify_vendor.ps1` `tests\vendor.sha256` | 客户脚本原件 68 件的逐字节校验（清单 + 执行） | 证明客户原件没被改过（改造引擎的前提） | ✅ |
-| `tests\smoke\*.markers` | 三条链各自的期望 marker（5 / 12 / 3 条） | 闸门的数据源：**数据与代码分开** | ✅ |
+| `tests\smoke\*.markers` | 三条链各自的期望 marker（5 / 15 / 3 条） | 闸门的数据源：**数据与代码分开** | ✅ |
 | `tests\ramdump.sha256` | 9 个现场文件的 SHA256（`<hash>  <相对路径>`） | 不入库件的完整性凭据 | ✅ |
-| `tests\baseline\` | 改造前的**我方**快照（15 件：全量报告 + 11 个单功能报告 + `run.txt`） | 「改引擎有没有改坏」的基线（设计文档 §11.3 的 oracle B） | ✅ |
-| `tests\compare_baseline.ps1` | 把最新一次运行的报告与 `tests\baseline\` 逐行比（路径/时间戳/耗时先规范化） | 改引擎的**机械验收**：`BASELINE-OK` 才算没改坏 | ✅ |
+| `tests\baseline\` | 改造前的**我方**快照（17 个条目：全量报告 + 12 个单功能报告 + 2 个 `heap_offline.txt` + `run.txt`；其中 3 个超过 20000 字符的只入库一行 sha256） | 「改引擎有没有改坏」的基线（设计文档 §11.3 的 oracle B） | ✅ |
+| `tests\compare_baseline.ps1` | 把最新一次运行的报告与 `tests\baseline\` 逐行比（路径/时间戳/耗时先规范化）；`-Update` 用最新运行镜像重建基线 | 改引擎的**机械验收**：`BASELINE-OK` 才算没改坏 | ✅ |
 | `configs\` | 4 个配置：客户 GUI 原件 `sim-gui.t32` + 3 个无人化配置（`sim-minimal` / `sim-batch` / `sim-rcl-tcp-20000`），每个开头都有中文注释头 | 起实例用（`-c`） | ✅ |
 | `attic\logs\` | 原始实测日志（只读证据；第十一轮从 `docs\history\` 移入，让 `docs\` 只留文档） | 复盘 | ✅ |
 | `docs\rcl-api-notes.md` | Python RCL 的可用调用、错误原文、接口速查 | §4.4 的出处（原客户报告第 7 节的非客户部分） | ✅ |
@@ -100,7 +100,7 @@ Trace32_Auto\
 | `third_party\trace32_rcl\` | 解包好的 RCL 1.1.5（`lauterbach_trace32_rcl-1.1.5`） | 免 pip，`sys.path.insert` 即可 import | ❌ 第三方许可 |
 | `third_party\launchers\*.lnk` | 客户 GUI 快捷方式**原件** | 内部硬编码绝对路径 + 创建者账号名 | ❌ 用 `tools\` 重建 |
 | `third_party\vendor\{2100,2110,2210,3510}_trace32\` | 客户现成的 TRACE32 **GUI** 脚本族（含 `.svn`） | 移植抄写的主要参考，**冻结只读** | ❌ 客户版权 |
-| `cmm\src_2210\` | `third_party\vendor\2210_trace32` 的副本（17 件，去掉了 `.svn`） | **留给后期彻底改造**；目前与原件逐字节相同 | ❌ 暂不纳管 |
+| `cmm\src_2210\` | `third_party\vendor\2210_trace32` 的副本（17 件，去 `.svn`） | **我们的引擎工作副本**：S1 把它提升为工程内引擎，S2 给三处堆遍历加了边界；两个入口现在都跑它（`run.txt` 的 `engine : cmm\src_2210`），客户原件仍由 `tests\verify_vendor.ps1` 冻结 | ❌ 不入库（客户版权，`**/src_2210/`） |
 | `ramdump\2211_deathscene\` | 死机现场数据（`cpu-ap.elf` 25 MB、`IRAM.bin`、`PSRAM.bin`、`ap_ilm/dlm.bin`、`0xC8031000.xip`） | 无人化跑的**只读输入**，冻结 | ❌ 35 MB + 内网痕迹 |
 | `LICENSE` `NOTICE` | Apache-2.0 全文 + 版权与归属声明 | 许可（见 §9） | ✅ |
 
@@ -113,7 +113,7 @@ powershell -ExecutionPolicy Bypass -File tests\run_all.ps1 -SkipT32 # 静态检�
 ```
 
 `run_all.ps1` 依次用子进程跑 8 段，逐段打印退出码，末尾给 `TESTS-OK` / `TESTS-FAILED`：
-编码/BOM（95 个入库文件）→ 死机现场 SHA256（9/9）→ 客户原件 SHA256（68/68）→ 冒烟（5 marker）→ 2211 全量（12 marker）→ 单功能 `-Func all`（11 PASS）→ **对基线（15/15 `IDENTICAL`）** → 两入口等价（`EQUIV-OK`）。
+编码/BOM（97 个入库文件）→ 死机现场 SHA256（9/9）→ 客户原件 SHA256（68/68）→ 冒烟（5 marker）→ 2211 全量（15 marker）→ 单功能 `-Func all`（13/13 PASS）→ **对基线（17/17 `IDENTICAL`）** → 两入口等价（`EQUIV-OK`）。
 **每个 runner 都有 marker 闸门**：期望的 marker 名单放在 `tests\smoke\*.markers` 里，
 少一条就 `exit 1`（不再只看进程退出码这种假绿）。
 
@@ -689,6 +689,36 @@ python tools\check_entries_equiv.py                                             
   - ④ 门禁复核：`tools\check_cn_encoding.ps1` → `CN-ENCODING-OK`（**95** 个入库文件 / 约 385 KB，NOT-UTF8=0、BOM 不合规=0、行尾混用=0、乱码=0）；`tests\run_all.ps1` 八段全绿 `TESTS-OK`。
   - ⑤ 本轮踩到三个坑（已写进相关工具注释/说明）：`write`/`edit` 会**去掉 `.ps1` 的 BOM**（改完必须补回）；PowerShell 双引号里 `$f:`
     是解析错误（要用 `${f}`）；`$arr[1..($arr.Count-1)]` 在 `Count=1` 时抛 `Cannot index into a null array.`（改用 `Select-Object -Skip 1`）。
+  - ⑥ **C：S1 + S2 —— 把引擎提升进工程，并让三处堆遍历不再自旋**（用户授权「按你的建议开始执行」之后）：
+    - **S1（提升引擎）**：两个入口的 `__SCRIPT_DIR__` 从 `third_party\vendor\2210_trace32\` 换成 **`cmm\src_2210\`**，
+      TRACE32 的工作目录也跟着换（`run.txt` 新增两行：`engine : cmm\src_2210 (our working copy, S2-bounded walkers)` 与
+      `frozen : third_party\vendor\2210_trace32 (customer originals, never modified; tests\verify_vendor.ps1)`）。
+      S1 的验收是「输出与 S0 快照逐字节相同」—— 实测确实如此（基线 17 个条目全 `IDENTICAL`）。
+    - **S2（给三处堆遍历加边界）**：`print_dlmalloc_heap.cmm`（外层空闲链自环守卫 + 每 bin 与全局步数预算 + 提前退出标签）、
+      `print_smallheap.cmm`（步长为 0 或预算用尽即退出）、`print_mem_summary_by_file.cmm`（同样的自环守卫与预算，
+      并把「按字符长度循环」的聚合换成有界的 token 查找）。改动**只落在 `cmm\src_2210\`**，客户原件一字未动。
+    - **效果**：`mem_trace` / `mem_summary` 这两个原本"跑几分钟后只能杀掉、零输出"的功能，现在 **5 s 内跑完并产出真实表格**
+      （`mem_trace` 1313 行；`mem_summary` 40 行、`Total: 70308 bytes`），报告里没有任何 `### ` 截断诊断；
+      修好之前最坏的一次写出了 **2.58 GB** 报告 —— 这就是"无界遍历器 + 16 KB 落盘缓冲"叠出来的后果。
+    - **闸门跟着扩**：`cli\2211_ap_analyze.cmm.tmpl` 由 9 段扩到 **11 段**（新增第 10 段 `show_ap_meminfo.cmm`、第 11 段 `show_ap_meminfo_sum.cmm`），
+      `tests\smoke\2211_ap.markers` 增到 **15 条**；全量链实测 `gate : PASS (15/15 markers)`、报告 143809 B / 2121 行；
+      `-Func all` 由 11 PASS 变成 **13/13 PASS（57.8 s）**；两入口等价 `EQUIV-COUNT pass=12 partial=1 fail=0 missing=0`（只剩 `thread_bt` 是设计内的 partial）。
+    - **★ 顺带修掉一个静默漏断言**：三个 runner 原先用默认（ANSI）编码读 marker 文件，含中文注释的 UTF-8 文件被 GBK 解码时会把注释行末的换行吞掉，
+      于是**每个 marker 文件的第一条 marker 被并进注释行、被 `#` 开头的过滤掉**（`2211_ap.markers` 15→14，丢的正是 `H00START`）——
+      打印出来是 `PASS (14/14)` 而不是失败，也就是"闸门自己少了三个断言却报绿"。三处 `Get-Content` 加 `-Encoding UTF8` 后才是 `15/15`。
+    - **基线重建（含摘要策略）**：`tests\compare_baseline.ps1` 新增 `-Update`（镜像重建基线；规范化只有这一处实现，别处不要手写替换表）；
+      并把规范化后超过 20000 字符的快照改成**只入库一行 sha256**（`tests\baseline\*\*.txt.sha256`）——
+      理由是仓库公开，而报告含客户内部符号名 / 源文件名 / 堆内容。重建后基线共 **17 个条目**（其中 3 个是 sha256 摘要：
+      全量报告 2121 行、`all_thread_bt` 530 行、`mem_trace` 1313 行），实测 `files=17 volatile_lines_skipped=0 diff=0` → `BASELINE-OK`；
+      要强制存全文（本地做深度 diff）加 `-KeepText`。
+    - 注册表 `cmm\functions.json` 随之上调：13 个功能**全部** `safe: true`（不再有 `unsafe_reason` 字段），
+      两个堆功能的 `equiv` 由 `no` 改为 `yes`，三条过期的中文说明改写为指向 `cmm\src_2210\` 的实际状态。
+    - **两条闸门自己的毛病也一起修了**：
+      ① `tools\check_cn_encoding.ps1` 的文件清单来自 `git ls-files`（索引），文件被删但还没 `git add` 时它会
+      **抛 `Could not find file` 把整个闸门炸掉**；现在改成打印 `[FAIL] ... MISSING - tracked in the git index, absent in the worktree (run: git add -A)` 并计入失败（缺文件本身就是要报的事）。
+      ② 基线 v1 对不上不是引擎坏了，而是**报告头部会把注册表 `desc` 原样打出来**，我改文案就动了产物第 4 行 ——
+      这类"文案进了产物"的差异按基线纪律处理：`-Update` 重建 + 在 `tests\baseline\README.md` 写明理由（已写）。
+      重建后 `tests\baseline\` 由 15 件变成 **17 个条目**（14 全文 + 3 摘要），八段回归全绿。
 
 ---
 

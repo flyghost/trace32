@@ -2,7 +2,7 @@
   "case": "2211_ap",
   "elf": "cpu-ap.elf",
   "gui_entry": "vendor\\2210_trace32\\LM620_Restore.cmm",
-  "note": "客户 GUI 每个按钮一条记录。GUI 入口与无界面入口调用的是 vendor\\2210_trace32 下同一批客户脚本（从不修改）；区别只在参数从哪来（对话框 vs 命令行）。有意绕开：GUI 外壳本身（27 处 DIALOG.* + STOP）和 select_thread.cmm（交互式选择器）。Safe=false 的含义是：实测在本 arena 上会死循环，所以 'all' 会跳过它，除非你按名字显式指定。",
+  "note": "客户 GUI 每个按钮一条记录。两个入口调的是同一批脚本：third_party\\vendor\\2210_trace32 是客户原件（从不修改，由 tests\\verify_vendor.ps1 用哈希冻结），cmm\\src_2210 是我们的工作副本（S2 已给三处堆遍历加步数预算与自环守卫）。区别只在参数从哪来（对话框 vs 命令行）。有意绕开：GUI 外壳本身（27 处 DIALOG.* + STOP）与 select_thread.cmm（交互式选择器）。",
   "functions": [
     {
       "name": "load",
@@ -107,24 +107,24 @@
       "name": "mem_trace",
       "kind": "t32",
       "button": "MemTrace",
-      "safe": false,
-      "equiv": "no",
+      "safe": true,
+      "equiv": "yes",
       "gui": "LM620_Restore.cmm:98-108 (branches on cpu_name==ap)",
       "vendor": ["show_ap_meminfo.cmm"],
-      "unsafe_reason": "show_ap_meminfo.cmm 会调用 print_dlmalloc_heap.cmm，后者的空闲链表遍历没有环检测；实测在本 arena 上会零输出死循环。请改用 'heap' 功能。",
-      "desc": "AP 各堆的明细（system mem / share buf / up node / modem share buf）。无界遍历器 —— 见 unsafe_reason。",
+      "note": "S2 fix: cmm\\src_2210 is a bounded rewrite of this walker (per-bin, per-chunk and global step budgets, free-list self-loop guard, size==0 guard). Measured 2026-10-09: 5 s on the 2211 fixtures, where the customer original never returned.",
+      "desc": "AP 各堆的明细（system mem / share buf / up node / modem share buf）。S2 已有界化（工作副本 cmm\\src_2210；客户原件 third_party\\vendor\\2210_trace32 依旧无界）。实测本现场 5 s、不再死循环，报告与 tests\\baseline\\ 逐字节一致。",
       "body": ["do __SCRIPT_DIR__\\show_ap_meminfo.cmm"]
     },
     {
       "name": "mem_summary",
       "kind": "t32",
       "button": "MemSummary",
-      "safe": false,
-      "equiv": "no",
+      "safe": true,
+      "equiv": "yes",
       "gui": "LM620_Restore.cmm:111-121 (branches on cpu_name==ap)",
       "vendor": ["show_ap_meminfo_sum.cmm"],
-      "unsafe_reason": "show_ap_meminfo_sum.cmm 会调用 print_mem_summary_by_file.cmm，后者的块循环没有 size==0 保护；实测在本 arena 上会零输出死循环。请改用 'heap' 功能。",
-      "desc": "按文件汇总的堆信息。无界遍历器 —— 见 unsafe_reason。",
+      "note": "S2 fix: cmm\\src_2210 is a bounded rewrite of this walker (per-bin, per-chunk and global step budgets, free-list self-loop guard, size==0 guard). Measured 2026-10-09: 5 s on the 2211 fixtures, where the customer original never returned.",
+      "desc": "按文件汇总的堆信息。S2 已有界化（工作副本 cmm\\src_2210；客户原件 third_party\\vendor\\2210_trace32 依旧无界）。实测本现场 5 s、不再死循环，报告与 tests\\baseline\\ 逐字节一致。",
       "body": ["do __SCRIPT_DIR__\\show_ap_meminfo_sum.cmm"]
     },
     {

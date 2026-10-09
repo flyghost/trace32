@@ -5,20 +5,20 @@
 ##################################################################
 Restore RISC-V Ramdump Files!!
 @@@[thread_bt]
-THREADPICK: [0x0] 
-THREADPICK: [0x1] 
+THREADPICK: [0x0] ict_record
+THREADPICK: [0x1] ict_playback
 THREADPICK: [0x2] voice-r
-THREADPICK: [0x3] 
-THREADPICK: [0x4] 
+THREADPICK: [0x3] dxself_register
+THREADPICK: [0x4] NetFastnatDl
 THREADPICK: [0x5] usb-serial
 THREADPICK: [0x6] usb-ether(NDIS)
-THREADPICK: [0x7] 
+THREADPICK: [0x7] uicc_plug
 THREADPICK: [0x8] atcmd1
 THREADPICK: [0x9] atcmd0
-THREADPICK: [0x0A] 
-THREADPICK: [0x0B] 
-THREADPICK: [0x0C] 
-THREADPICK: [0x0D] 
+THREADPICK: [0x0A] atr
+THREADPICK: [0x0B] rtc
+THREADPICK: [0x0C] mal
+THREADPICK: [0x0D] cfw_task
 THREADPICK: [0x0E] wq_lo
 THREADPICK: [0x0F] wq_hi
 THREADPICK: [0x10] ims_ss
@@ -26,21 +26,22 @@ THREADPICK: [0x11] Ims2Ps
 THREADPICK: [0x12] ImsMain
 THREADPICK: [0x13] sua0
 THREADPICK: [0x14] media
-THREADPICK: [0x15] 
-THREADPICK: [0x16] 
-THREADPICK: [0x17] 
+THREADPICK: [0x15] audio
+THREADPICK: [0x16] MQTTTask
+THREADPICK: [0x17] tcpip
 THREADPICK: [0x18] L2_TASK
 THREADPICK: [0x19] RRC_TASK
 THREADPICK: [0x1A] NAS_TASK
-THREADPICK: [0x1B] 
-THREADPICK: [0x1C] 
+THREADPICK: [0x1B] SlogW
+THREADPICK: [0x1C] SlogR
 THREADPICK: [0x1D] usb
 THREADPICK: [0x1E] workQueue
 THREADPICK: [0x1F] idle
 THREADPICK: [0x20] timer
-THREADPICK: available=voice-r,,,usb-serial,usb-ether(NDIS),,atcmd1,atcmd0,,,,,wq_lo,wq_hi,ims_ss,Ims2Ps,ImsMain,sua0,me
+THREADPICK: available=ict_record,ict_playback,voice-r,dxself_register,NetFastnatDl,usb-serial,usb-ether(NDIS),uicc_plug
 Thread:            idle  0x80164ce8
 ==================================== BACK TRACE ==========================================
+            osSystemPowerManager     ADDR:0xc0200754 -> 0xc8049d3c
                osIdleThreadEntry     ADDR:0xc02007ec -> 0x8011a758
 
 ##################################################################

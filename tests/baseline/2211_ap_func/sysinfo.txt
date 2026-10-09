@@ -5,7 +5,7 @@
 ##################################################################
 Restore RISC-V Ramdump Files!!
 @@@[sysinfo]
-SYSINFO: "THREAD[NULL]  IRQNEST[0x0]"
+SYSINFO: "THREAD[sua0]  IRQNEST[0x0]"
 
 ##################################################################
 #  END OF FUNCTION sysinfo

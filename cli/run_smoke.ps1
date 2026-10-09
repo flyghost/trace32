@@ -113,7 +113,7 @@ if (Test-Path $log) {
     $txt = (Get-Content -LiteralPath $log -Raw)
     $markerFile = Join-Path $here 'tests\smoke\smoke.markers'   # 期望的 marker 存放在 tests\
     if (-not (Test-Path $markerFile)) { throw ("missing markers file: " + $markerFile) }
-    $wanted = @(Get-Content -LiteralPath $markerFile | Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } | ForEach-Object { $_.Trim() })
+    $wanted = @(Get-Content -Encoding UTF8 -LiteralPath $markerFile | Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } | ForEach-Object { $_.Trim() })
     foreach ($must in $wanted) {
         if ($txt -notmatch [regex]::Escape($must)) { $aFail++; Write-Host ("  [FAIL] missing marker " + $must) -ForegroundColor Red }
         else { Write-Host ("  [PASS] " + $must) -ForegroundColor Green }

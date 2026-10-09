@@ -1,22 +1,25 @@
 case        : 2211 AP death scene - single-function headless runs
 stamp       : __STAMP__
 ramdump     : __REPO__\ramdump\2211_deathscene
-engine      : third_party\vendor\2210_trace32 (customer originals) + cli\2211_ap_func.cmm.tmpl
+engine      : cmm\src_2210 (our working copy, S2-bounded walkers) + cli\2211_ap_func.cmm.tmpl
+frozen      : third_party\vendor\2210_trace32 (customer originals, never modified; tests\verify_vendor.ps1)
 registry    : cmm\functions.json
 thread_arg  : idle
 config      : __REPO__\local\sim-batch.t32
 t32         : __T32_INSTALL__\bin\windows64\t32mriscv.exe
-t32_cwd     : __REPO__\third_party\vendor\2210_trace32
+t32_cwd     : __REPO__\cmm\src_2210
 timeout_sec : 300
 
-func load           kind=t32     exit=0     sec=4.8    lines=13     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\load.txt
-func show_thread    kind=t32     exit=0     sec=4.9    lines=53     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\show_thread.txt
-func backtrace      kind=t32     exit=0     sec=4.6    lines=17     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\backtrace.txt
-func thread_bt      kind=t32     exit=0     sec=4.6    lines=48     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\thread_bt.txt
-func all_thread_bt  kind=t32     exit=0     sec=4.6    lines=255    ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\all_thread_bt.txt
-func mailbox        kind=t32     exit=0     sec=4.6    lines=24     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\mailbox.txt
-func thread_swap    kind=t32     exit=0     sec=4.6    lines=14     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\thread_swap.txt
-func heap           kind=t32     exit=0     sec=4.5    lines=22     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\heap.txt
-func sysinfo        kind=t32     exit=0     sec=4.6    lines=12     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\sysinfo.txt
-func errinfo        kind=t32     exit=0     sec=4.6    lines=12     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\errinfo.txt
-func heap_offline   kind=python  exit=0     sec=0.1    lines=41     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\heap_offline.txt
+func load           kind=t32     exit=0     sec=__SEC__ lines=13     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\load.txt
+func show_thread    kind=t32     exit=0     sec=__SEC__ lines=153    ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\show_thread.txt
+func backtrace      kind=t32     exit=0     sec=__SEC__ lines=77     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\backtrace.txt
+func thread_bt      kind=t32     exit=0     sec=__SEC__ lines=49     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\thread_bt.txt
+func all_thread_bt  kind=t32     exit=0     sec=__SEC__ lines=530    ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\all_thread_bt.txt
+func mailbox        kind=t32     exit=0     sec=__SEC__ lines=24     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\mailbox.txt
+func mem_trace      kind=t32     exit=0     sec=__SEC__ lines=1313   ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\mem_trace.txt
+func mem_summary    kind=t32     exit=0     sec=__SEC__ lines=40     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\mem_summary.txt
+func thread_swap    kind=t32     exit=0     sec=__SEC__ lines=14     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\thread_swap.txt
+func heap           kind=t32     exit=0     sec=__SEC__ lines=22     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\heap.txt
+func sysinfo        kind=t32     exit=0     sec=__SEC__ lines=12     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\sysinfo.txt
+func errinfo        kind=t32     exit=0     sec=__SEC__ lines=12     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\errinfo.txt
+func heap_offline   kind=python  exit=0     sec=__SEC__ lines=41     ok=True   __REPO__\out\runs\2211_ap_func\__STAMP__\heap_offline.txt

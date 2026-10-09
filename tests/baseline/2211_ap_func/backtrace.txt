@@ -9,8 +9,68 @@ Restore RISC-V Ramdump Files!!
                  osAssertHandler     ADDR:0x8029bfb8 -> 0x8011c472
                  osAssertHandler     ADDR:0x8029bfbc -> 0x8011c472
                         dlMalloc     ADDR:0x8029bfd8 -> 0xc0265232
+            qksip_tx_data_encode     ADDR:0x8029c00c -> 0xc81aca80
+            qksip_tx_data_encode     ADDR:0x8029c03c -> 0xc81aca80
                         dlMalloc     ADDR:0x8029c050 -> 0xc0265232
+                    get_msg_info     ADDR:0x8029c064 -> 0xc81ac88a
                    osMallocTrace     ADDR:0x8029c068 -> 0xc026575e
+            qksip_tx_data_encode     ADDR:0x8029c094 -> 0xc81aca80
+                 qk_mutex_unlock     ADDR:0x8029c0b8 -> 0xc81c963e
+                   mod_on_tx_msg     ADDR:0x8029c0c0 -> 0xc81acbb8
+                 endpt_on_tx_msg     ADDR:0x8029c0dc -> 0xc819b482
+                 endpt_on_tx_msg     ADDR:0x8029c0e4 -> 0xc819b4b0
+          qksip_tx_data_get_info     ADDR:0x8029c0e8 -> 0xc81acbfe
+            qksip_transport_send     ADDR:0x8029c0f0 -> 0xc81ad28e
+              qk_pool_calloc_imp     ADDR:0x8029c108 -> 0xc81ca128
+           qk_list_insert_before     ADDR:0x8029c10c -> 0xc81c8496
+_qksip_stateless_send_transport_cb     ADDR:0x8029c118 -> 0xc81b4116
+            _qksip_is_normal_msg     ADDR:0x8029c138 -> 0xc81b3d8c
+            _qksip_is_normal_msg     ADDR:0x8029c144 -> 0xc81b3d98
+_qksip_stateless_send_resolver_callback     ADDR:0x8029c158 -> 0xc81b4320
+                   qksip_resolve     ADDR:0x8029c194 -> 0xc81a896a
+                   qksip_resolve     ADDR:0x8029c1a0 -> 0xc81a8932
+                   qksip_resolve     ADDR:0x8029c1a4 -> 0xc81a8986
+            _qksip_get_dest_info     ADDR:0x8029c214 -> 0xc81b3aae
+              qk_pool_calloc_imp     ADDR:0x8029c268 -> 0xc81ca128
+             qksip_endpt_resolve     ADDR:0x8029c27c -> 0xc819be98
+qksip_endpt_send_request_stateless     ADDR:0x8029c298 -> 0xc81b5218
+qksip_endpt_send_request_stateless     ADDR:0x8029c2a4 -> 0xc81b5228
+           qk_atomic_inc_and_get     ADDR:0x8029c2ac -> 0xc81c96f6
+                    tsx_send_msg     ADDR:0x8029c2cc -> 0xc81aaaea
+         qksip_transport_add_ref     ADDR:0x8029c324 -> 0xc81acd2a
+                   qk_atomic_get     ADDR:0x8029c32c -> 0xc81c96be
+        qksip_tpselector_add_ref     ADDR:0x8029c34c -> 0xc81acd5c
+               tsx_on_state_null     ADDR:0x8029c354 -> 0xc81ab120
+             qk_grp_lock_acquire     ADDR:0x8029c368 -> 0xc81c8d98
+              qksip_tsx_send_msg     ADDR:0x8029c37c -> 0xc81ac328
+            qksip_tsx_create_uac     ADDR:0x8029c388 -> 0xc81abe84
+         qksip_tsx_set_transport     ADDR:0x8029c390 -> 0xc81ac0de
+          qksip_dlg_send_request     ADDR:0x8029c3a8 -> 0xc81b2996
+                 qk_mutex_unlock     ADDR:0x8029c3b8 -> 0xc81c963e
+              qksip_inv_send_msg     ADDR:0x8029c3d0 -> 0xc81a019e
+              qksua_call_update2     ADDR:0x8029c3fc -> 0xc81b98bc
+               qksua_call_update     ADDR:0x8029c420 -> 0xc81b9900
+ImsCc_update_add_hdrs_with_no_req     ADDR:0x8029c448 -> 0xc8178b5a
+             qksua_msg_data_init     ADDR:0x8029c458 -> 0xc81ba7b4
+      Ims_cc_eps_bearer_complete     ADDR:0x8029c464 -> 0xc8173bba
+               on_call_tsx_state     ADDR:0x8029c8fc -> 0xc81770ba
+ qksua_call_on_tsx_state_changed     ADDR:0x8029cd80 -> 0xc81b76ea
+                    SLOG_Kprintf     ADDR:0x8029cda8 -> 0xc8044622
+                     SLOG_Printf     ADDR:0x8029cdc8 -> 0xc80440dc
+                    SLOG_Kprintf     ADDR:0x8029cde8 -> 0xc8044622
+                qksip_method_cmp     ADDR:0x8029ce7c -> 0xc81a2b66
+       _qksip_inv_on_state_early     ADDR:0x8029ce88 -> 0xc81a1932
+     _qksip_mod_inv_on_tsx_state     ADDR:0x8029ce90 -> 0xc819dfd0
+          qksip_dlg_on_tsx_state     ADDR:0x8029cec4 -> 0xc81b3062
+      _qk_ua_mod_ua_on_tsx_state     ADDR:0x8029cee0 -> 0xc81afd82
+                   tsx_set_state     ADDR:0x8029cf04 -> 0xc81aa4c0
+  qk_timer_heap_cancel_if_active     ADDR:0x8029cf0c -> 0xc81cbbbe
+     tsx_on_state_proceeding_uac     ADDR:0x8029cf3c -> 0xc81ab648
+                    unlock_timer     ADDR:0x8029cf5c -> 0xc81aa184
+            tsx_on_state_calling     ADDR:0x8029cf68 -> 0xc81ab8ce
+             qk_grp_lock_acquire     ADDR:0x8029cf78 -> 0xc81c8d98
+              qksip_tsx_recv_msg     ADDR:0x8029cf8c -> 0xc81ac3ac
+                   qk_atomic_inc     ADDR:0x8029cf9c -> 0xc81c96fe
 
 ##################################################################
 #  END OF FUNCTION backtrace

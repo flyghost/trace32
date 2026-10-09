@@ -4,26 +4,31 @@
 ;  本文件是模板。cli\run_2211_ap.ps1 会把它展开成 local\run_2211_ap.cmm。
 ;  要改就改模板，绝不要改生成出来的副本。
 ;
-;  它原样驱动 third_party\vendor\2210_trace32\ 下客户的原版脚本。
+;  它驱动 cmm\src_2210\ 下的引擎脚本，也就是客户 2210 脚本的工作副本：
+;  路径参数化的改动（0 处逻辑改动）在外层，S2 的边界只落在三处堆遍历上。
+;  客户原件 third_party\vendor\2210_trace32\ 一个字都没改，由 tests\verify_vendor.ps1
+;  用 68 个哈希冻结。
 ;  有意绕开的部分：
 ;     LM620_Restore.cmm  - GUI 外壳（27 处 DIALOG.* + STOP）；在 SCREEN=OFF 下会卡死
 ;     select_thread.cmm  - 交互式线程选择器（4 处 DIALOG.* + STOP）
-;  third_party\vendor\2210_trace32 下其余脚本都不含 DIALOG，均在此被调用。
+;  cmm\src_2210 下其余脚本都不含 DIALOG，均在此被调用。
 ;
 ;  脚本路径：每次调用都用绝对的 __SCRIPT_DIR__ 路径，同时运行器把 TRACE32 的
-;  工作目录设为 third_party\vendor\2210_trace32。两者缺一不可：裸写的
-;  `do restore.cmm` 是按进程当前目录解析的，而客户的脚本之间又用裸名字互相调用
+;  工作目录设为 cmm\src_2210（引擎目录，见 run.txt 的 t32_cwd 行）。两者缺一不可：
+;  裸写的 `do restore.cmm` 是按进程当前目录解析的，而引擎脚本之间又用裸名字互相调用
 ;  （例如 restore.cmm 里写 `do frame.cmm`），只有当前目录就是它们自己所在目录时
 ;  才能解析到。
 ;
-;  ARENA 那一节是我们写的，不是客户的：show_ap_meminfo.cmm 和
-;  show_ap_meminfo_sum.cmm 都会调用一个既没有环检测、也没有 size==0 保护的
-;  dlmalloc 遍历器，两者在本 arena 上都会死循环
-;  （实测：先跑的顺序里是第 8 节，后来是第 9 节，都只能跑几分钟后杀掉，
-;  且零输出）。它们的遍历还依赖 dlmalloc 内部 typedef（mbinptr / mchunkptr）
-;  和 sizeof()，而这些在本环境里根本无法求值。
-;  改由 cmm\heap_summary.cmm 使用真正可靠可读的 arena 描述符；
-;  块链由 tools\heap_stats_offline.py 离线重算。
+;  ARENA 一节（末两段）调用引擎里的两个客户遍历器：show_ap_meminfo.cmm 与
+;  show_ap_meminfo_sum.cmm 会分别进入 print_dlmalloc_heap.cmm 与
+;  print_mem_summary_by_file.cmm。客户原件里这两个遍历器既没有环检测、也没有
+;  size==0 保护，在 2211 这个 arena 上会原地自旋（实测：只能跑几分钟后杀掉，零输出；
+;  最坏的一次写出 2.58 GB 报告）。S2 给它们加了步数预算 + 自环守卫 + 提前退出标签，
+;  现在末两段各约 5 s 跑完并产出真实表格。
+;  报告里以 `### ` 开头的行就是这些守卫在说话 —— 只有遍历被截断时才会出现；
+;  基线（tests\baseline\）里一条都没有，说明这次没有被截断。
+;  按文件汇总的堆表另有离线重算：tools\heap_stats_offline.py 直接读 ramdump 里的
+;  ap_dlm.bin，不经过 TRACE32（6028 块，与 arena 的 used 差 184 B）。
 ;
 ;  运行必须完整跑完：打印 AREA 只在其 16 KB 缓冲写满、或 AREA.Close 执行时
 ;  才落盘。实测：杀掉 TRACE32 会丢掉上一个 16 KB 边界之后打印的全部内容 -
@@ -57,12 +62,13 @@ PRINT "#  2211 AP death scene - headless extraction"
 PRINT "#  run     : __RUN_STAMP__"
 PRINT "#  ramdump : &ramdump"
 PRINT "#  elf     : &elf"
-PRINT "#  engine  : third_party\vendor\2210_trace32 (customer originals, unmodified)"
+PRINT "#  engine  : cmm\src_2210 (our working copy, S2-bounded walkers)"
+PRINT "#  frozen  : third_party\vendor\2210_trace32 (customer originals, never modified)"
 PRINT "##################################################################"
 PRINT ""
 
-PRINT "@@@[1/9] restore.cmm - load IRAM/PSRAM/ilm/dlm/xip + elf, set exception frame"
-do __SCRIPT_DIR__\restore.cmm "&ramdump" "&elf"
+PRINT "@@@[1/11] restore.cmm - load IRAM/PSRAM/ilm/dlm/xip + elf, set exception frame"
+do __SCRIPT_DIR__\restore.cmm &ramdump &elf
 IF sYmbol.EXIST(g_osAssert)
 (
     APPEND __MARKER_LOG__ "H01A-g_osAssert-OK"
@@ -77,7 +83,7 @@ APPEND __MARKER_LOG__ "H01B-MEM "+FORMAT.HEX(8.,&b0)+" "+FORMAT.HEX(8.,&b1)
 APPEND __MARKER_LOG__ "H01RESTORE"
 PRINT ""
 
-PRINT "@@@[2/9] show_sysinfo.cmm - current thread and IRQ nesting"
+PRINT "@@@[2/11] show_sysinfo.cmm - current thread and IRQ nesting"
 IF sYmbol.EXIST(g_osCurrentThread)
 (
     do __SCRIPT_DIR__\show_sysinfo.cmm
@@ -91,19 +97,19 @@ ELSE
 APPEND __MARKER_LOG__ "H02SYSINFO"
 PRINT ""
 
-PRINT "@@@[3/9] errinfo.cmm - assert / RISC-V exception decode"
+PRINT "@@@[3/11] errinfo.cmm - assert / RISC-V exception decode"
 do __SCRIPT_DIR__\errinfo.cmm
 ENTRY &info
 PRINT "ERRINFO: &info"
 APPEND __MARKER_LOG__ "H03ERRINFO"
 PRINT ""
 
-PRINT "@@@[4/9] show_thread.cmm - thread list"
+PRINT "@@@[4/11] show_thread.cmm - thread list"
 do __SCRIPT_DIR__\show_thread.cmm
 APPEND __MARKER_LOG__ "H04THREAD"
 PRINT ""
 
-PRINT "@@@[5/9] backtrace.cmm + frame.cmm - exception trace (exc_trace)"
+PRINT "@@@[5/11] backtrace.cmm + frame.cmm - exception trace (exc_trace)"
 &start=Var.Value(exc_trace)
 &end=&start+0x1000
 do __SCRIPT_DIR__\backtrace.cmm &start &end
@@ -111,30 +117,29 @@ do __SCRIPT_DIR__\frame.cmm &start
 APPEND __MARKER_LOG__ "H05TRACE"
 PRINT ""
 
-PRINT "@@@[6/9] show_all_backtrace.cmm - backtrace of every thread"
+PRINT "@@@[6/11] show_all_backtrace.cmm - backtrace of every thread"
 do __SCRIPT_DIR__\show_all_backtrace.cmm
 APPEND __MARKER_LOG__ "H06ALLBT"
 PRINT ""
 
-PRINT "@@@[7/9] show_mailbox.cmm - mailbox state"
+PRINT "@@@[7/11] show_mailbox.cmm - mailbox state"
 do __SCRIPT_DIR__\show_mailbox.cmm
 APPEND __MARKER_LOG__ "H07MAILBOX"
 PRINT ""
 
-PRINT "@@@[8/9] show_thread_swap.cmm - thread swap table"
+PRINT "@@@[8/11] show_thread_swap.cmm - thread swap table"
 do __SCRIPT_DIR__\show_thread_swap.cmm
 APPEND __MARKER_LOG__ "H08SWAP"
 PRINT ""
 
-; ---- dlmalloc arena 描述符，刻意放在最后 -----------------------------------
-; 厂商的 print_dlmalloc_heap.cmm / print_mem_summary_by_file.cmm 既没有环检测，
-; 也没有 size==0 保护，两者在本 arena 上都会死循环
-; （实测：跑几分钟零输出后被杀掉）。它们的遍历还需要
-; dlmalloc 内部 typedef（mbinptr / mchunkptr）和 sizeof()，而这些表达式在本环境中
-; 完全无法求值（实测：用到它们的每一行都静默地什么也不输出）。
-; 因此 cmm\heap_summary.cmm 只报告真正可靠可读的内容，
-; 并在输出里写明这一限制。
-PRINT "@@@[9/9] dlmalloc arena summary - AP system mem (cmm\heap_summary.cmm)"
+; ---- heap detail / summary, deliberately last -------------------------------
+; The vendor walkers print_dlmalloc_heap.cmm and print_mem_summary_by_file.cmm
+; had no loop guards: measured on this arena they spun forever with zero output
+; (that IS the customer MemTrace / MemSummary button hang). The working copy in
+; cmm\src_2210 is S2-bounded (per-bin + per-chunk + global step budgets, free-list
+; self-loop guard, size==0 guard) and finishes in seconds on the same fixtures, so
+; the vendor entry scripts can run inside this chain. cmm\heap_summary.cmm stays as
+; the low-level arena descriptor view.
 IF sYmbol.EXIST(g_osApSystemMem)
 (
     do __CMM_DIR__\heap_summary.cmm &g_osApSystemMem
@@ -144,6 +149,16 @@ ELSE
     PRINT "HEAPSUMMARY-AP skipped: symbol g_osApSystemMem does not exist"
 )
 APPEND __MARKER_LOG__ "H09HEAP"
+
+PRINT "@@@[10/11] show_ap_meminfo.cmm - per-arena heap detail (MemTrace button twin)"
+do __SCRIPT_DIR__\show_ap_meminfo.cmm
+APPEND __MARKER_LOG__ "H10MEMTRACE"
+PRINT ""
+
+PRINT "@@@[11/11] show_ap_meminfo_sum.cmm - per-file heap summary (MemSummary button twin)"
+do __SCRIPT_DIR__\show_ap_meminfo_sum.cmm
+APPEND __MARKER_LOG__ "H11MEMSUM"
+PRINT ""
 PRINT ""
 
 PRINT "##################################################################"

@@ -4,9 +4,10 @@
   一个功能，两个入口
     GUI 入口        third_party\vendor\2210_trace32\LM620_Restore.cmm  （按钮、DIALOG.*、STOP）
     无界面入口      cli\run_2211_func.ps1 + cli\2211_ap_func.cmm.tmpl
-  两者驱动的是 third_party\vendor\2210_trace32 里同一批客户脚本，这些脚本永不修改。
-  差别只在参数来源：GUI 里是对话框，这里是命令行。函数注册表是 cmm\functions.json，
-  因此函数清单只存在于一处。
+  两者跑的是同一批客户脚本，引擎是我们的工作副本 cmm\src_2210（S2 已把三个堆遍历
+  有界化）；third_party\vendor\2210_trace32 是永不修改的冻结参考，两者逐字节比对由
+  tests\verify_vendor.ps1 守。差别只在参数来源：GUI 里是对话框，这里是命令行。
+  函数注册表是 cmm\functions.json，因此函数清单只存在于一处。
 
   示例
     powershell -ExecutionPolicy Bypass -File cli\run_2211_func.ps1 -List
@@ -14,8 +15,8 @@
     powershell -ExecutionPolicy Bypass -File cli\run_2211_func.ps1 -Func thread_bt -Thread ImsMain
     powershell -ExecutionPolicy Bypass -File cli\run_2211_func.ps1 -Func all
 
-  -Func all 会跑除「实测在本 arena 上挂死」之外的所有函数（mem_trace、mem_summary）；
-  要跑这两个需按名字显式指定，或加 -IncludeUnsafe。
+  -Func all 只跑注册表里 safe 的函数；实测会挂死的函数须按名字显式指定，或加
+  -IncludeUnsafe。S2 把 mem_trace / mem_summary 由 unsafe 转 safe 之后，这两个也进 all。
 #>
 # 注意：本文件存为 UTF-8 with BOM：PS 5.1 读无 BOM 文件会按 GBK 乱码。
 param(
@@ -31,7 +32,10 @@ $ErrorActionPreference = 'Stop'
 $here       = Split-Path -Parent $PSScriptRoot
 $registry   = Join-Path $here 'cmm\functions.json'
 $tmpl       = Join-Path $PSScriptRoot '2211_ap_func.cmm.tmpl'
-$vendorDir  = Join-Path $here 'third_party\vendor\2210_trace32'
+# 引擎（S1 提升）：我们自己的工作副本，不再是 third_party\vendor\ 里的客户原件。
+# 客户脚本之间用裸名字互调，裸名按 t32 进程 CWD 解析，所以这个变量同时喂给
+# __SCRIPT_DIR__ 和 Start-Process -WorkingDirectory。
+$engineDir  = Join-Path $here 'cmm\src_2210'
 $cmmDir     = Join-Path $here 'cmm'
 $localDir   = Join-Path $here 'local'
 $logDir     = Join-Path $here 'out\logs'
@@ -61,7 +65,7 @@ if ($Func -eq 'list') {
     Write-Host ('function registry : ' + $registry)
     Write-Host ('GUI entry         : ' + $reg.gui_entry)
     Write-Host ''
-    Write-Host ('{0,-14} {1,-7} {2,-42} {3,-12} {4}' -f 'function', 'kind', 'GUI button', 'safe', 'vendor scripts')
+    Write-Host ('{0,-14} {1,-7} {2,-42} {3,-12} {4}' -f 'function', 'kind', 'GUI button', 'safe', 'engine scripts')
     Write-Host ('{0,-14} {1,-7} {2,-42} {3,-12} {4}' -f '--------', '----', '----------', '----', '--------------')
     foreach ($f in $all) {
         $safe = if ($f.safe -eq $false) { 'NO (hangs)' } else { 'yes' }
@@ -77,6 +81,7 @@ if (-not (Test-Path -LiteralPath $pathsFile)) {
 $paths = Import-PowerShellDataFile -LiteralPath $pathsFile
 $t32 = Join-Path ($paths.T32_INSTALL.TrimEnd('\')) 'bin\windows64\t32mriscv.exe'
 if (-not (Test-Path -LiteralPath $t32)) { throw ('t32mriscv.exe not found: ' + $t32) }
+if (-not (Test-Path -LiteralPath $engineDir)) { throw ('engine dir not found: ' + $engineDir + ' - bootstrap it by copying third_party\vendor\2210_trace32 into cmm\src_2210 (see README 7.4)') }
 if ($RamdumpDir -eq '') { $RamdumpDir = Join-Path $here 'ramdump\2211_deathscene' }
 if (-not (Test-Path -LiteralPath $RamdumpDir)) { throw ('ramdump dir not found: ' + $RamdumpDir) }
 
@@ -143,7 +148,7 @@ foreach ($f in $want) {
             '__ELF_NAME__'     = $reg.elf
             '__OUT_FILE__'     = $out
             '__MARKER_LOG__'   = $mark
-            '__SCRIPT_DIR__'   = $vendorDir
+            '__SCRIPT_DIR__'   = $engineDir
             '__CMM_DIR__'      = $cmmDir
             '__PARAM_THREAD__' = $Thread
         }
@@ -155,7 +160,7 @@ foreach ($f in $want) {
         Write-Utf8 $entry $text
 
         Kill-T32
-        $proc = Start-Process -FilePath $t32 -ArgumentList @('-c', ('"' + $cfg + '"'), '-s', ('"' + $entry + '"')) -WorkingDirectory $vendorDir -PassThru
+        $proc = Start-Process -FilePath $t32 -ArgumentList @('-c', ('"' + $cfg + '"'), '-s', ('"' + $entry + '"')) -WorkingDirectory $engineDir -PassThru
         if (-not $proc.WaitForExit($TimeoutSec * 1000)) {
             $timedOut = $true
             Get-Process -Name 't32*' -ErrorAction SilentlyContinue | Stop-Process -Force
@@ -168,7 +173,7 @@ foreach ($f in $want) {
     $sec = [math]::Round($sw.Elapsed.TotalSeconds, 1)
 
     $lines = 0
-    if (Test-Path -LiteralPath $out) { $lines = @(Get-Content -LiteralPath $out -Encoding Default).Count }
+    if (Test-Path -LiteralPath $out) { $lines = @(Get-Content -LiteralPath $out -Encoding UTF8).Count }
     $mk = @()
     if (Test-Path -LiteralPath $mark) { $mk = @(Get-Content -LiteralPath $mark) }
 
@@ -177,7 +182,7 @@ foreach ($f in $want) {
         $ok = ($rc -eq 0) -and ($lines -gt 0)
     } else {
         # 期望的 marker 存放于 tests\smoke\func.markers（数据在 tests\，逻辑在此处）
-        $need = @(Get-Content -LiteralPath (Join-Path $here 'tests\smoke\func.markers') |
+        $need = @(Get-Content -Encoding UTF8 -LiteralPath (Join-Path $here 'tests\smoke\func.markers') |
                   Where-Object { $_ -and -not $_.TrimStart().StartsWith('#') } | ForEach-Object { $_.Trim() })
         $mkText = if (Test-Path -LiteralPath $mark) { Get-Content -LiteralPath $mark -Raw } else { '' }
         $missMk = @($need | Where-Object { $mkText -notmatch ('(?m)^' + [regex]::Escape($_)) })
@@ -195,12 +200,13 @@ $sb = New-Object System.Text.StringBuilder
 [void]$sb.AppendLine('case        : 2211 AP death scene - single-function headless runs')
 [void]$sb.AppendLine('stamp       : ' + $stamp)
 [void]$sb.AppendLine('ramdump     : ' + $RamdumpDir)
-[void]$sb.AppendLine('engine      : third_party\vendor\2210_trace32 (customer originals) + cli\2211_ap_func.cmm.tmpl')
+[void]$sb.AppendLine('engine      : cmm\src_2210 (our working copy, S2-bounded walkers) + cli\2211_ap_func.cmm.tmpl')
+[void]$sb.AppendLine('frozen      : third_party\vendor\2210_trace32 (customer originals, never modified; tests\verify_vendor.ps1)')
 [void]$sb.AppendLine('registry    : cmm\functions.json')
 [void]$sb.AppendLine('thread_arg  : ' + $Thread)
 [void]$sb.AppendLine('config      : ' + $cfg)
 [void]$sb.AppendLine('t32         : ' + $t32)
-[void]$sb.AppendLine('t32_cwd     : ' + $vendorDir)
+[void]$sb.AppendLine('t32_cwd     : ' + $engineDir)
 [void]$sb.AppendLine('timeout_sec : ' + $TimeoutSec)
 [void]$sb.AppendLine('')
 foreach ($r in $rows) {

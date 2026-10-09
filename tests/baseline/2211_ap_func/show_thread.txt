@@ -8,35 +8,35 @@ Restore RISC-V Ramdump Files!!
 ===================================================================================================
 Name                Pri    State      maxStack     rmanTick   osThread_t    MsgCount    MaxMsgCount
 ---------------------------------------------------------------------------------------------------
-                     6     Ready         91%           5      0x803e90f0        0        0
-                     6     Suspend       44%           5      0x803ee368        0        0
+      ict_record     6     Ready         91%           5      0x803e90f0        0        0
+    ict_playback     6     Suspend       44%           5      0x803ee368        0        0
          voice-r     5     Suspend       54%           3      0x803ecea0       N/A       N/A
-                    16     Suspend       36%           1      0x802f8eb0       N/A       N/A
-                     6     Suspend       33%           1      0x802fb1b0       N/A       N/A
+ dxself_register    16     Suspend       36%           1      0x802f8eb0       N/A       N/A
+    NetFastnatDl     6     Suspend       33%           1      0x802fb1b0       N/A       N/A
       usb-serial    16     Suspend       26%           5      0x802f2460       N/A       N/A
  usb-ether(NDIS)    12     Suspend       13%           4      0x802e7dc8       N/A       N/A
-                    10     Suspend       13%           5      0x802bad30       N/A       N/A
+       uicc_plug    10     Suspend       13%           5      0x802bad30       N/A       N/A
           atcmd1     9     Suspend       16%           5      0x802ba7e0       N/A       N/A
           atcmd0     9     Suspend       16%           5      0x802b8040       N/A       N/A
-                     9     Suspend       18%           3      0x802b2e58       N/A       N/A
-                    16     Suspend       67%           2      0x802ae2a0       N/A       N/A
-                     9     Suspend       17%           5      0x802ad6b8       N/A       N/A
-                     9     Suspend       23%           5      0x802acb68       N/A       N/A
+             atr     9     Suspend       18%           3      0x802b2e58       N/A       N/A
+             rtc    16     Suspend       67%           2      0x802ae2a0       N/A       N/A
+             mal     9     Suspend       17%           5      0x802ad6b8       N/A       N/A
+        cfw_task     9     Suspend       23%           5      0x802acb68       N/A       N/A
            wq_lo    24     Ready         15%           3      0x802a93d0       N/A       N/A
            wq_hi     5     Suspend        6%           4      0x802a7278       N/A       N/A
           ims_ss     6     Suspend       12%           5      0x802a4fa8        0        0
           Ims2Ps     6     Suspend       75%           3      0x802a0a98        0        4
          ImsMain     6     Suspend       66%           1      0x802a0540        0        2
-            sua0     6     Ready         89%           5      0x8029d4d0        0        0
+            sua0     6     Running       89%           5      0x8029d4d0        0        0
            media     6     Suspend       59%           5      0x802981a8        0        0
-                     7     Suspend        3%           5      0x8028ddd8       N/A       N/A
-                    20     Suspend        6%           5      0x80289c50       N/A       N/A
-                     6     Suspend       41%           3      0x80288b88       N/A       N/A
+           audio     7     Suspend        3%           5      0x8028ddd8       N/A       N/A
+        MQTTTask    20     Suspend        6%           5      0x80289c50       N/A       N/A
+           tcpip     6     Suspend       41%           3      0x80288b88       N/A       N/A
          L2_TASK     3     Suspend       61%           5      0xc0277ad0        0       24
         RRC_TASK     4     Suspend       51%           5      0xc0277a38        0        5
         NAS_TASK     4     Suspend       45%           1      0xc02779a0        0        3
-                    14     Suspend       22%           2      0x80165968       N/A       N/A
-                    20     Suspend       11%           4      0x801658b8       N/A       N/A
+           SlogW    14     Suspend       22%           2      0x80165968       N/A       N/A
+           SlogR    20     Suspend       11%           4      0x801658b8       N/A       N/A
              usb    12     Suspend       15%           5      0x80276340       N/A       N/A
        workQueue    16     Suspend       29%           2      0x80274af0       N/A       N/A
             idle    31     Ready         22%           8      0x80164ce8       N/A       N/A
@@ -47,6 +47,106 @@ Name                Pri    State      maxStack     rmanTick   osThread_t    MsgC
 ===================================================================================================
 Index   Thread Name     Thread Handle   Timestamp   TimeUsed
 ---------------------------------------------------------------------------------------------------
+00000            L2_TASK 0xC0277AD0    1102794234           978
+00001         ict_record 0x803E90F0    1102794256            22
+00002            L2_TASK 0xC0277AD0    1102795231           975
+00003         ict_record 0x803E90F0    1102795245            14
+00004            L2_TASK 0xC0277AD0    1102796212           967
+00005         ict_record 0x803E90F0    1102796428           216
+00006            L2_TASK 0xC0277AD0    1102797248           820
+00007         ict_record 0x803E90F0    1102797264            16
+00008       NetFastnatDl 0x802FB1B0    1102797653           389
+00009              tcpip 0x80288B88    1102797705            52
+00010            L2_TASK 0xC0277AD0    1102798234           529
+00011              tcpip 0x80288B88    1102798342           108
+00012               sua0 0x8029D4D0    1102798502           160
+00013            L2_TASK 0xC0277AD0    1102799236           734
+00014               sua0 0x8029D4D0    1102799256            20
+00015            L2_TASK 0xC0277AD0    1102800222           966
+00016               sua0 0x8029D4D0    1102800239            17
+00017             Ims2Ps 0x802A0A98    1102800605           366
+00018           NAS_TASK 0xC02779A0    1102800856           251
+00019             Ims2Ps 0x802A0A98    1102800983           127
+00020              wq_lo 0x802A93D0    1102801001            18
+00021               idle 0x80164CE8    1102801068            67
+00022            L2_TASK 0xC0277AD0    1102801220           152
+00023               idle 0x80164CE8    1102801238            18
+00024            L2_TASK 0xC0277AD0    1102802207           969
+00025               idle 0x80164CE8    1102802219            12
+00026              wq_hi 0x802A7278    1102802949           730
+00027               idle 0x80164CE8    1102802961            12
+00028            L2_TASK 0xC0277AD0    1102803209           248
+00029               idle 0x80164CE8    1102803222            13
+00030            L2_TASK 0xC0277AD0    1102804214           992
+00031               idle 0x80164CE8    1102804226            12
+00032             Ims2Ps 0x802A0A98    1102805197           971
+00033            L2_TASK 0xC0277AD0    1102805203             6
+00034             Ims2Ps 0x802A0A98    1102805214            11
+00035               sua0 0x8029D4D0    1102805463           249
+00036            L2_TASK 0xC0277AD0    1102806225           762
+00037               sua0 0x8029D4D0    1102806239            14
+00038            L2_TASK 0xC0277AD0    1102807240          1001
+00039               sua0 0x8029D4D0    1102807256            16
+00040            L2_TASK 0xC0277AD0    1102808152           896
+00041            voice-r 0x803ECEA0    1102808341           189
+00042            L2_TASK 0xC0277AD0    1102809218           877
+00043            voice-r 0x803ECEA0    1102809269            51
+00044            L2_TASK 0xC0277AD0    1102810234           965
+00045            voice-r 0x803ECEA0    1102810263            29
+00046            L2_TASK 0xC0277AD0    1102811229           966
+00047            voice-r 0x803ECEA0    1102811246            17
+00048            L2_TASK 0xC0277AD0    1102812229           983
+00049            voice-r 0x803ECEA0    1102812255            26
+00050               sua0 0x8029D4D0    1102812568           313
+00051       ict_playback 0x803EE368    1102813201           633
+00052            L2_TASK 0xC0277AD0    1102813220            19
+00053       ict_playback 0x803EE368    1102813242            22
+00054             Ims2Ps 0x802A0A98    1102813397           155
+00055         ict_record 0x803E90F0    1102813412            15
+00056            L2_TASK 0xC0277AD0    1102814232           820
+00057         ict_record 0x803E90F0    1102814262            30
+00058            L2_TASK 0xC0277AD0    1102815231           969
+00059         ict_record 0x803E90F0    1102815249            18
+00060            L2_TASK 0xC0277AD0    1102816226           977
+00061         ict_record 0x803E90F0    1102816240            14
+00062               sua0 0x8029D4D0    1102817198           958
+00063            L2_TASK 0xC0277AD0    1102817235            37
+00064               sua0 0x8029D4D0    1102817250            15
+00065               idle 0x80164CE8    1102779245        -38005
+00066            L2_TASK 0xC0277AD0    1102780204           959
+00067               idle 0x80164CE8    1102780217            13
+00068            L2_TASK 0xC0277AD0    1102781207           990
+00069               idle 0x80164CE8    1102781218            11
+00070            L2_TASK 0xC0277AD0    1102782212           994
+00071               idle 0x80164CE8    1102782224            12
+00072            L2_TASK 0xC0277AD0    1102783188           964
+00073              SlogW 0x80165968    1102783211            23
+00074               idle 0x80164CE8    1102783227            16
+00075            L2_TASK 0xC0277AD0    1102784202           975
+00076               idle 0x80164CE8    1102784214            12
+00077            L2_TASK 0xC0277AD0    1102785208           994
+00078               idle 0x80164CE8    1102785219            11
+00079            L2_TASK 0xC0277AD0    1102786210           991
+00080               idle 0x80164CE8    1102786221            11
+00081            L2_TASK 0xC0277AD0    1102787185           964
+00082              wq_lo 0x802A93D0    1102787206            21
+00083               idle 0x80164CE8    1102787272            66
+00084            L2_TASK 0xC0277AD0    1102788137           865
+00085               idle 0x80164CE8    1102788234            97
+00086            voice-r 0x803ECEA0    1102788258            24
+00087            L2_TASK 0xC0277AD0    1102789238           980
+00088            voice-r 0x803ECEA0    1102789292            54
+00089            L2_TASK 0xC0277AD0    1102790238           946
+00090            voice-r 0x803ECEA0    1102790263            25
+00091            L2_TASK 0xC0277AD0    1102791227           964
+00092            voice-r 0x803ECEA0    1102791243            16
+00093            L2_TASK 0xC0277AD0    1102792220           977
+00094            voice-r 0x803ECEA0    1102792278            58
+00095       ict_playback 0x803EE368    1102792556           278
+00096              tcpip 0x80288B88    1102792723           167
+00097         ict_record 0x803E90F0    1102792784            61
+00098            L2_TASK 0xC0277AD0    1102793236           452
+00099         ict_record 0x803E90F0    1102793256            20
 
 ##################################################################
 #  END OF FUNCTION show_thread

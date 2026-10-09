@@ -8,8 +8,8 @@ Restore RISC-V Ramdump Files!!
 =============================================================================================
 Name                   capacity       count          write_index      read_index     osMb_t  
 ---------------------------------------------------------------------------------------------
-                           90               0               0               0      0x803ed2d0
-                           90               0               0               0      0x803ed0dc
+      ict_record           90               0               0               0      0x803ed2d0
+    ict_playback           90               0               0               0      0x803ed0dc
           ims_ss           90               0               0               0      0x802a0b94
           Ims2Ps           90               0              29              29      0x8029e164
          ImsMain           90               0              40              40      0x8029df04

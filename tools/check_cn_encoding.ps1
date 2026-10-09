@@ -56,10 +56,17 @@ function Test-WantBom([string] $relPath) {
 }
 
 Write-Host '== 编码 / BOM / 行尾 / 乱码（文件清单来自 git ls-files） =='
-$badUtf8 = 0; $badBom = 0; $badEol = 0; $badMoji = 0
+$badUtf8 = 0; $badBom = 0; $badEol = 0; $badMoji = 0; $missing = 0
 $totalBytes = 0
 foreach ($f in $rel) {
     $p = Join-Path $here $f
+    if (-not (Test-Path -LiteralPath $p)) {
+        # git ls-files 走的是索引：文件被删掉但还没 git add 时，索引里仍然有它。
+        # 这是必须报出来的事，不能让 ReadAllBytes 直接把整个闸门炸掉（2026-10-09 实测）。
+        $missing++
+        '[FAIL] {0,-38} MISSING - tracked in the git index, absent in the worktree (run: git add -A)' -f $f
+        continue
+    }
     $bytes = [System.IO.File]::ReadAllBytes($p)
     $totalBytes += $bytes.Length
     $bom = ($bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF)
@@ -121,10 +128,10 @@ if ($NonCommentVsHead) {
 }
 
 Write-Host ''
-Write-Host ('== 汇总 ==  文件={0}  字节={1}  NOT-UTF8={2}  BOM不合规={3}  行尾混用={4}  乱码={5}{6}' -f `
-    $rel.Count, $totalBytes, $badUtf8, $badBom, $badEol, $badMoji, `
+Write-Host ('== 汇总 ==  文件={0}  字节={1}  NOT-UTF8={2}  BOM不合规={3}  行尾混用={4}  乱码={5}  索引有而工作树无={6}{7}' -f `
+    $rel.Count, $totalBytes, $badUtf8, $badBom, $badEol, $badMoji, $missing, `
     $(if ($NonCommentVsHead) { '  非注释行不一致=' + $badNc } else { '' }))
-$fail = ($badUtf8 + $badBom + $badEol + $badMoji + $badNc)
+$fail = ($badUtf8 + $badBom + $badEol + $badMoji + $badNc + $missing)
 if ($fail -eq 0) { Write-Host 'CN-ENCODING-OK' -ForegroundColor Green; exit 0 }
 Write-Host 'CN-ENCODING-FAILED' -ForegroundColor Red
 exit 1
